@@ -167,7 +167,7 @@
                 'Balance Sheet (Debit)', 'Balance Sheet (Credit)'
             ],
             ['', '', '', '', '', '', '', '', '', '', ''],
-            ...Array(15).fill(Array(11).fill(''))
+            ...Array.from({ length: 15 }, () => Array(11).fill(''))
         ];
 
         // Initialize HyperFormula
