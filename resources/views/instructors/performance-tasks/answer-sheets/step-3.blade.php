@@ -127,16 +127,16 @@
             'Income Summary'
         ];
 
-        // 🧩 Each account will have: Date, Blank, Debit, Credit, Blank (5 columns)
-        const numCols = accounts.length * 5;
+        // 🧩 Each account will have: Date, Blank, Debit, Credit, Blank, Date (6 columns)
+        const numCols = accounts.length * 6;
         const initialData = savedData
             ? JSON.parse(savedData)
             : Array.from({ length: 15 }, () => Array(numCols).fill(''));
 
         // 🪟 Nested Headers setup (top = account name, bottom = individual columns)
         const nestedHeaders = [
-            accounts.map(name => ({ label: name, colspan: 5 })),
-            Array(accounts.length).fill(['Date', '', 'Debit (₱)', 'Credit (₱)', '']).flat()
+            accounts.map(name => ({ label: name, colspan: 6 })),
+            Array(accounts.length).fill(['Date', '', 'Debit (₱)', 'Credit (₱)', '', 'Date']).flat()
         ];
 
         // 🧱 Define column properties
@@ -147,7 +147,8 @@
                 { type: 'text', width: 40 },  // Blank divider
                 { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 120 }, // Debit
                 { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 120 }, // Credit
-                { type: 'text', width: 40 }   // Blank divider after Credit
+                { type: 'text', width: 40 },   // Blank divider after Credit
+                { type: 'text', width: 100 }   // Second Date
             );
         }
 
@@ -165,10 +166,10 @@
             minSpareRows: 1,
             cells: function (row, col) {
                 const cellProperties = {};
-                const colIndex = col % 5;
+                const colIndex = col % 6;
 
                 // 🎨 Assign T-account cell styling
-                if (colIndex === 0) {
+                if (colIndex === 0 || colIndex === 5) {
                     cellProperties.className = (cellProperties.className || '') + ' t-account-date';
                 } else if (colIndex === 1 || colIndex === 4) {
                     cellProperties.className = (cellProperties.className || '') + ' t-account-blank';

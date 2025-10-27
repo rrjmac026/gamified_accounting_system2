@@ -219,13 +219,13 @@
             ];
             
             // Generate columns: Date, Blank, Debit, Credit for each account (4 cols per account)
-            const numCols = accounts.length * 4;
+            const numCols = accounts.length * 6;
             const initialData = savedData ? JSON.parse(savedData) : Array.from({ length: 15 }, () => Array(numCols).fill(''));
             
             // Create nested headers with blank column after Date
             const nestedHeaders = [
-                accounts.map(name => ({ label: name, colspan: 4 })),
-                Array(accounts.length).fill(['Date', '', 'Debit (₱)', 'Credit (₱)']).flat()
+                accounts.map(name => ({ label: name, colspan: 6 })),
+                Array(accounts.length).fill(['Date', '', 'Debit (₱)', 'Credit (₱)', '', 'Date']).flat()
             ];
             
             // Create columns config with custom renderer for T-account style
@@ -235,7 +235,9 @@
                     { type: 'text', width: 100 },      // Date
                     { type: 'text', width: 50 },       // Blank column
                     { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 120 }, // Debit
-                    { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 120 }  // Credit
+                    { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 120 }, // Credit
+                    { type: 'text', width: 50 },       // Blank column
+                    { type: 'text', width: 100 }       // Second Date
                 );
             }
 
@@ -256,14 +258,14 @@
                 minSpareRows: 1,
                 cells: function(row, col) {
                     const cellProperties = {};
-                    const colIndex = col % 4;
+                    const colIndex = col % 6;
 
                     
                     // Apply T-account styling (append to existing className)
-                    if (colIndex === 0) {
+                    if (colIndex === 0 || colIndex === 5) {
                         // Date column
                         cellProperties.className = (cellProperties.className || '') + ' t-account-date';
-                    } else if (colIndex === 1) {
+                    } else if (colIndex === 1 || colIndex === 4) {
                         // Blank column
                         cellProperties.className = (cellProperties.className || '') + ' t-account-blank';
                         cellProperties.readOnly = false; // Make blank column read-only
