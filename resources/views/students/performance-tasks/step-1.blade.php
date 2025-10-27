@@ -244,10 +244,10 @@
                 licenseKey: 'non-commercial-and-evaluation',
                 readOnly: isReadOnly,
                 nestedHeaders: [
-                    ['', { label: 'ASSETS', colspan: 6 }, { label: 'LIABILITIES', colspan: 2 }, { label: "OWNER'S EQUITY", colspan: 3 }, { label: 'EXPENSES', colspan: 3 }],
-                    ['', 'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixtures', 'Land', 'Equipment', 'Accounts Payable', 'Notes Payable', 'Capital', 'Withdrawal', 'Service Revenue', 'Rent Expense', 'Utilities Expense', 'Salaries Expense']
+                    ['', { label: 'ASSETS', colspan: 6 }, { label: 'LIABILITIES', colspan: 2 }, { label: "OWNER'S EQUITY", colspan: 3 }, { label: 'EXPENSES', colspan: 4 }],
+                    ['', 'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixtures', 'Land', 'Equipment', 'Accounts Payable', 'Notes Payable', 'Capital', 'Withdrawal', 'Service Revenue', 'Rent Expense', 'Utilities Expense', 'Salaries Expense', 'Misc. Expense']
                 ],
-                columns: Array(14).fill({ type: 'text' }),
+                columns: Array(15).fill({ type: 'text' }),
                 colWidths: isMobile ? 100 : (isTablet ? 110 : 120),
                 formulas: { engine: hyperformulaInstance },
                 contextMenu: !isReadOnly,
