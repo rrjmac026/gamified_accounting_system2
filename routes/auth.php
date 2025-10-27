@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProfileController;
 
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
@@ -21,6 +22,17 @@ Route::middleware('guest')->group(function () {
         ->name('login');
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
+
+    // Two-Factor Authentication (2FA) Challenge
+    Route::get('/two-factor-challenge', function () {
+        if (!session('2fa:user:id')) {
+            return redirect('/login');
+        }
+        return view('auth.two-factor-challenge');
+    })->name('two-factor.challenge');
+
+    Route::post('/two-factor-challenge', [ProfileController::class, 'verifyTwoFactor'])
+        ->name('two-factor.login');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');

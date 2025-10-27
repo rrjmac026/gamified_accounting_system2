@@ -7,7 +7,7 @@ use App\Models\FeedbackRecord;
 use App\Http\Requests\FeedbackRecordRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use App\Models\Task;
+use App\Models\PerformanceTask; // Changed from Task
 use Exception;
 
 class FeedbackController extends Controller
@@ -18,8 +18,8 @@ class FeedbackController extends Controller
     public function index()
     {
         try {
-            $feedbacks = FeedbackRecord::with(['task'])
-                ->where('student_id', Auth::user()->student->id) // Fixed: Use student->id instead of Auth::id()
+            $feedbacks = FeedbackRecord::with(['performanceTask']) // Changed from 'task'
+                ->where('student_id', Auth::user()->student->id)
                 ->latest()
                 ->paginate(10);
 
@@ -34,9 +34,9 @@ class FeedbackController extends Controller
     public function create()
     {
         try {
-            $tasks = Task::whereHas('students', function($query) {
-                $query->where('student_id', Auth::user()->student->id);
-            })->get();
+            // Get tasks assigned to the student's section
+            $tasks = PerformanceTask::where('section_id', Auth::user()->student->section_id)
+                ->get();
 
             if ($tasks->isEmpty()) {
                 return redirect()->route('students.feedback.index')
@@ -57,10 +57,9 @@ class FeedbackController extends Controller
     public function store(FeedbackRecordRequest $request)
     {
         try {
-            // Validate task belongs to student
-            $task = Task::whereHas('students', function($query) {
-                $query->where('student_id', Auth::user()->student->id);
-            })->find($request->task_id);
+            // Validate task belongs to student's section
+            $task = PerformanceTask::where('section_id', Auth::user()->student->section_id)
+                ->find($request->performance_task_id); // Changed from task_id
 
             if (!$task) {
                 return redirect()->back()
@@ -71,7 +70,7 @@ class FeedbackController extends Controller
             // Check for duplicate feedback
             $existingFeedback = FeedbackRecord::where([
                 'student_id' => Auth::user()->student->id,
-                'task_id' => $request->task_id
+                'performance_task_id' => $request->performance_task_id // Changed from task_id
             ])->exists();
 
             if ($existingFeedback) {
@@ -87,10 +86,10 @@ class FeedbackController extends Controller
 
             FeedbackRecord::create([
                 'student_id' => Auth::user()->student->id,
-                'task_id' => $request->task_id,
+                'performance_task_id' => $request->performance_task_id, // Changed from task_id
                 'feedback_type' => $request->feedback_type,
                 'feedback_text' => $request->feedback_text,
-                'recommendations' => $recommendations, // Will be automatically json encoded
+                'recommendations' => $recommendations,
                 'rating' => $request->rating,
                 'generated_at' => now(),
                 'is_read' => false,

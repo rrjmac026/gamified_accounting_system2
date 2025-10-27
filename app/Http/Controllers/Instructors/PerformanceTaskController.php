@@ -87,6 +87,7 @@ class PerformanceTaskController extends Controller
                 'message' => "Your instructor has assigned a new performance task: '{$task->title}'.",
                 'type'    => 'info',
                 'is_read' => false,
+                'link'    => route('students.performance-tasks.progress', ['taskId' => $task->id]),
             ]);
         }
 
@@ -166,9 +167,10 @@ class PerformanceTaskController extends Controller
             SystemNotification::create([
                 'user_id' => $student->user->id,
                 'title'   => 'Performance Task Updated',
-                'message' => "The performance task '{$task->title}' has been updated. Check for new instructions or changes.",
+                'message' => "The performance task '{$task->title}' has been updated.",
                 'type'    => 'warning',
                 'is_read' => false,
+                'link'    => route('students.performance-tasks.progress', ['taskId' => $task->id]),
             ]);
         }
 
@@ -199,9 +201,10 @@ class PerformanceTaskController extends Controller
                 SystemNotification::create([
                     'user_id' => $student->user->id,
                     'title'   => 'Performance Task Removed',
-                    'message' => "The performance task '{$taskTitle}' has been removed by your instructor.",
+                    'message' => "The performance task '{$taskTitle}' has been removed.",
                     'type'    => 'info',
                     'is_read' => false,
+                    'link'    => null, // No link since task is deleted
                 ]);
             }
         }
