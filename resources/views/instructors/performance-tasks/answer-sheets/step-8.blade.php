@@ -5,6 +5,146 @@
     <!-- Formula Parser (HyperFormula) -->
     <script src="https://cdn.jsdelivr.net/npm/hyperformula@2.6.2/dist/hyperformula.full.min.js"></script>
     
+    <style>
+        /* Enhanced Header Section Styles */
+        .answer-key-header {
+            background: linear-gradient(135deg, #f9fafb 0%, #f3e8ff 50%, #faf5ff 100%);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid #e9d5ff;
+            box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.1), 0 2px 4px -1px rgba(139, 92, 246, 0.06);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .answer-key-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(167, 139, 250, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .answer-key-header::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -5%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(196, 181, 253, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .step-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.3), 0 2px 4px -1px rgba(139, 92, 246, 0.2);
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .step-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px -1px rgba(139, 92, 246, 0.4), 0 3px 5px -1px rgba(139, 92, 246, 0.3);
+        }
+
+        .step-badge svg {
+            width: 1rem;
+            height: 1rem;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .header-title {
+            font-size: 2.25rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #581c87 0%, #7c3aed 50%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-description {
+            color: #6b7280;
+            font-size: 1rem;
+            line-height: 1.625;
+            max-width: 48rem;
+            margin-bottom: 0.75rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .task-info-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.875rem;
+            background: white;
+            color: #7c3aed;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: 1px solid #e9d5ff;
+            box-shadow: 0 1px 3px 0 rgba(139, 92, 246, 0.1);
+            position: relative;
+            z-index: 1;
+            transition: all 0.2s ease;
+        }
+
+        .task-info-badge:hover {
+            background: #faf5ff;
+            border-color: #d8b4fe;
+            transform: translateX(4px);
+        }
+
+        .task-info-badge svg {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        body { overflow-x: hidden; }
+        .handsontable td { 
+            border-color: #d1d5db;
+        }
+        .handsontable .area { background-color: rgba(147, 51, 234, 0.1); }
+        .handsontable { position: relative; z-index: 1; }
+        #spreadsheet { isolation: isolate; }
+        .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+
+        @media (max-width: 640px) {
+            .handsontable { font-size: 12px; }
+            .handsontable th, .handsontable td { padding: 4px; }
+        }
+
+        @media (min-width: 640px) and (max-width: 1024px) {
+            .handsontable { font-size: 13px; }
+        }
+    </style>
+
     <div class="py-4 sm:py-6 lg:py-8">
         @if (session('error'))
             <div class="mb-6 animate-slideDown">
@@ -49,34 +189,28 @@
         @endif
 
         <!-- Enhanced Header Section -->
-        <div class="mb-6 sm:mb-8">
-            <div class="relative">
-                <!-- Step Indicator Badge -->
-                <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-xs sm:text-sm font-semibold mb-3">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
-                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
-                    </svg>
-                    <span>Answer Key - Step 8 of 10</span>
-                </div>
-                
-                <!-- Title Section -->
-                <div class="flex items-start justify-between gap-4">
-                    <div class="flex-1">
-                        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">
-                            Answer Key: Balance Sheet
-                        </h1>
-                        <p class="mt-3 text-sm sm:text-base text-gray-600 leading-relaxed max-w-3xl">
-                            Create the correct answer key for the Balance Sheet. This will be used to automatically grade student submissions.
-                        </p>
-                        <div class="mt-2 flex items-center gap-2 text-sm text-purple-600">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                            </svg>
-                            <span>Task: {{ $task->title }}</span>
-                        </div>
-                    </div>
-                </div>
+        <div class="answer-key-header">
+            <div class="step-badge">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                </svg>
+                <span>Answer Key - Step 8 of 10</span>
+            </div>
+            
+            <h1 class="header-title">
+                Answer Key: Balance Sheet
+            </h1>
+            
+            <p class="header-description">
+                Create the correct answer key for the Balance Sheet. This will be used to automatically grade student submissions.
+            </p>
+            
+            <div class="task-info-badge">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                <span>Task: {{ $task->title }}</span>
             </div>
         </div>
 
@@ -260,24 +394,4 @@
             }
         });
     </script>
-
-    <style>
-        body { overflow-x: hidden; }
-        .handsontable td { 
-            border-color: #d1d5db;
-        }
-        .handsontable .area { background-color: rgba(147, 51, 234, 0.1); }
-        .handsontable { position: relative; z-index: 1; }
-        #spreadsheet { isolation: isolate; }
-        .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
-
-        @media (max-width: 640px) {
-            .handsontable { font-size: 12px; }
-            .handsontable th, .handsontable td { padding: 4px; }
-        }
-
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .handsontable { font-size: 13px; }
-        }
-    </style>
 </x-app-layout>

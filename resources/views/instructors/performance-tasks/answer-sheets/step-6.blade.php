@@ -5,6 +5,212 @@
     <!-- Formula Parser (HyperFormula) -->
     <script src="https://cdn.jsdelivr.net/npm/hyperformula@2.6.2/dist/hyperformula.full.min.js"></script>
     
+    <style>
+        /* Enhanced Header Section Styles */
+        .answer-key-header {
+            background: linear-gradient(135deg, #f9fafb 0%, #f3e8ff 50%, #faf5ff 100%);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid #e9d5ff;
+            box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.1), 0 2px 4px -1px rgba(139, 92, 246, 0.06);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .answer-key-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(167, 139, 250, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .answer-key-header::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -5%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(196, 181, 253, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .step-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.3), 0 2px 4px -1px rgba(139, 92, 246, 0.2);
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .step-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px -1px rgba(139, 92, 246, 0.4), 0 3px 5px -1px rgba(139, 92, 246, 0.3);
+        }
+
+        .step-badge svg {
+            width: 1rem;
+            height: 1rem;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .header-title {
+            font-size: 2.25rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #581c87 0%, #7c3aed 50%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-description {
+            color: #6b7280;
+            font-size: 1rem;
+            line-height: 1.625;
+            max-width: 48rem;
+            margin-bottom: 0.75rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .task-info-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.875rem;
+            background: white;
+            color: #7c3aed;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: 1px solid #e9d5ff;
+            box-shadow: 0 1px 3px 0 rgba(139, 92, 246, 0.1);
+            position: relative;
+            z-index: 1;
+            transition: all 0.2s ease;
+        }
+
+        .task-info-badge:hover {
+            background: #faf5ff;
+            border-color: #d8b4fe;
+            transform: translateX(4px);
+        }
+
+        .task-info-badge svg {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        /* Instructions Box Enhancement */
+        .instructions-box {
+            background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+            border: 1px solid #e9d5ff;
+            border-left: 4px solid #8b5cf6;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(139, 92, 246, 0.08);
+        }
+
+        .instructions-box h3 {
+            color: #581c87;
+            font-size: 0.9375rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .instructions-box p {
+            color: #6b21a8;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .instructions-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            color: #8b5cf6;
+            flex-shrink: 0;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .answer-key-header {
+                padding: 1.5rem;
+            }
+
+            .header-title {
+                font-size: 1.75rem;
+            }
+
+            .header-description {
+                font-size: 0.875rem;
+            }
+
+            .step-badge {
+                font-size: 0.75rem;
+                padding: 0.375rem 0.75rem;
+            }
+        }
+
+        @media (min-width: 640px) and (max-width: 1024px) {
+            .header-title {
+                font-size: 2rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .header-title {
+                font-size: 2.5rem;
+            }
+        }
+
+        body { overflow-x: hidden; }
+        .handsontable .font-bold { font-weight: bold; }
+        .handsontable .bg-gray-100 { background-color: #f3f4f6 !important; }
+        .handsontable .bg-blue-50 { background-color: #eff6ff !important; }
+        .handsontable td { border-color: #d1d5db; }
+        .handsontable .area { background-color: rgba(147, 51, 234, 0.1); }
+        .handsontable { position: relative; z-index: 1; }
+        #spreadsheet { isolation: isolate; }
+        .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+
+        @media (max-width: 640px) {
+            .handsontable { font-size: 12px; }
+            .handsontable th, .handsontable td { padding: 4px; }
+        }
+
+        @media (min-width: 640px) and (max-width: 1024px) {
+            .handsontable { font-size: 13px; }
+        }
+    </style>
+    
     <div class="py-4 sm:py-6 lg:py-8">
         @if (session('error'))
             <div class="mb-6 animate-slideDown">
@@ -49,51 +255,45 @@
         @endif
 
         <!-- Enhanced Header Section -->
-        <div class="mb-6 sm:mb-8">
-            <div class="relative">
-                <!-- Step Indicator Badge -->
-                <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-xs sm:text-sm font-semibold mb-3">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
-                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
-                    </svg>
-                    <span>Answer Key - Step 6 of 10</span>
-                </div>
-                
-                <!-- Title Section -->
-                <div class="flex items-start justify-between gap-4">
-                    <div class="flex-1">
-                        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">
-                            Answer Key: Worksheet
-                        </h1>
-                        <p class="mt-3 text-sm sm:text-base text-gray-600 leading-relaxed max-w-3xl">
-                            Create the correct answer key for the Worksheet. This will be used to automatically grade student submissions.
-                        </p>
-                        <div class="mt-2 flex items-center gap-2 text-sm text-purple-600">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                            </svg>
-                            <span>Task: {{ $task->title }}</span>
-                        </div>
-                    </div>
-                </div>
+        <div class="answer-key-header">
+            <div class="step-badge">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                </svg>
+                <span>Answer Key - Step 6 of 10</span>
+            </div>
+            
+            <h1 class="header-title">
+                Answer Key: Worksheet
+            </h1>
+            
+            <p class="header-description">
+                Create the correct answer key for the Worksheet. This will be used to automatically grade student submissions.
+            </p>
+            
+            <div class="task-info-badge">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                <span>Task: {{ $task->title }}</span>
             </div>
         </div>
 
         <!-- Main Content Card -->
         <div class="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <!-- Instructions Section -->
-            <div class="p-4 sm:p-6 bg-purple-50 border-b border-purple-100">
-                <div class="flex items-start gap-3">
-                    <svg class="w-5 h-5 text-purple-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                    </svg>
-                    <div>
-                        <h3 class="text-sm font-semibold text-purple-900 mb-1">Instructions for Creating Answer Key</h3>
-                        <p class="text-xs sm:text-sm text-purple-800">
-                            Fill in the correct answers below. Students' submissions will be compared against this answer key for grading. Empty cells will be ignored during comparison.
-                        </p>
-                    </div>
+            <div class="p-4 sm:p-6">
+                <div class="instructions-box">
+                    <h3>
+                        <svg class="instructions-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        Instructions for Creating Answer Key
+                    </h3>
+                    <p>
+                        Fill in the correct answers below. Students' submissions will be compared against this answer key for grading. Empty cells will be ignored during comparison.
+                    </p>
                 </div>
             </div>
 
@@ -212,29 +412,23 @@
             customBorders: true,
             className: 'htCenter htMiddle',
             
-            // ✅ Merge cells for the first 3 rows
             mergeCells: [
-                { row: 0, col: 0, rowspan: 1, colspan: 11 }, // Company name spans all columns
-                { row: 1, col: 0, rowspan: 1, colspan: 11 }, // Document title spans all columns
-                { row: 2, col: 0, rowspan: 1, colspan: 11 }  // Date spans all columns
+                { row: 0, col: 0, rowspan: 1, colspan: 11 },
+                { row: 1, col: 0, rowspan: 1, colspan: 11 },
+                { row: 2, col: 0, rowspan: 1, colspan: 11 }
             ],
             
-            // ✅ Hide column headers completely - we'll add them manually
             colHeaders: false,
             
-            // ✅ Add custom headers using afterGetRowHeader hook
             afterGetRowHeader: function(row, TH) {
-                // Add a data attribute to identify header rows
                 if (row < 3) {
                     TH.style.backgroundColor = '#fafafa';
                 }
             },
             
-            // ✅ Custom cell rendering and styling
             cells: function(row, col) {
                 const cellProperties = {};
                 
-                // Row 0: Company name (editable, centered, bold)
                 if (row === 0) {
                     cellProperties.className = 'header-company';
                     cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
@@ -246,7 +440,6 @@
                     };
                 }
                 
-                // Row 1: Document title (editable, centered, bold)
                 else if (row === 1) {
                     cellProperties.className = 'header-title';
                     cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
@@ -258,7 +451,6 @@
                     };
                 }
                 
-                // Row 2: Date field (editable, centered, bold)
                 else if (row === 2) {
                     cellProperties.className = 'header-date';
                     cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
@@ -271,12 +463,10 @@
                     };
                 }
                 
-                // Row 3: Section headers (read-only)
                 else if (row === 3) {
                     cellProperties.readOnly = true;
                     cellProperties.className = 'section-headers';
                     cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                        const labels = ['Account Title', 'Unadjusted TB', '', 'Adjustments', '', 'Adjusted TB', '', 'Income Stmt', '', 'Balance Sheet', ''];
                         const sectionLabels = [
                             'Account Title',
                             'Unadjusted Trial Balance',
@@ -300,7 +490,6 @@
                     };
                 }
                 
-                // Row 4: Sub-headers (Debit/Credit) - read-only
                 else if (row === 4) {
                     cellProperties.readOnly = true;
                     cellProperties.className = 'sub-headers';
@@ -320,22 +509,19 @@
             }
         });
 
-        // ✅ Manually merge header cells for sections
         hot.updateSettings({
             mergeCells: [
-                { row: 0, col: 0, rowspan: 1, colspan: 11 }, // Company name
-                { row: 1, col: 0, rowspan: 1, colspan: 11 }, // Document title
-                { row: 2, col: 0, rowspan: 1, colspan: 11 }, // Date
-                // Section headers merge
-                { row: 3, col: 1, rowspan: 1, colspan: 2 }, // Unadjusted Trial Balance
-                { row: 3, col: 3, rowspan: 1, colspan: 2 }, // Adjustments
-                { row: 3, col: 5, rowspan: 1, colspan: 2 }, // Adjusted Trial Balance
-                { row: 3, col: 7, rowspan: 1, colspan: 2 }, // Income Statement
-                { row: 3, col: 9, rowspan: 1, colspan: 2 }, // Balance Sheet
+                { row: 0, col: 0, rowspan: 1, colspan: 11 },
+                { row: 1, col: 0, rowspan: 1, colspan: 11 },
+                { row: 2, col: 0, rowspan: 1, colspan: 11 },
+                { row: 3, col: 1, rowspan: 1, colspan: 2 },
+                { row: 3, col: 3, rowspan: 1, colspan: 2 },
+                { row: 3, col: 5, rowspan: 1, colspan: 2 },
+                { row: 3, col: 7, rowspan: 1, colspan: 2 },
+                { row: 3, col: 9, rowspan: 1, colspan: 2 },
             ]
         });
 
-        // Handle responsive resize
         let resizeTimer;
         window.addEventListener('resize', function () {
             clearTimeout(resizeTimer);
@@ -351,7 +537,6 @@
             }, 250);
         });
 
-        // Save data on submit
         const answerKeyForm = document.getElementById("answerKeyForm");
         if (answerKeyForm) {
             answerKeyForm.addEventListener("submit", function (e) {
@@ -363,46 +548,4 @@
         }
     });
 </script>
-
-<style>
-    /* Center and style the top report headers */
-    .handsontable thead th.report-header {
-        text-align: center !important;
-        font-weight: 700 !important;
-        font-size: 1rem !important;
-        background-color: #fafafa !important;
-        border-bottom: none !important;
-    }
-
-    /* Optional: give subtle separator line before table content */
-    .handsontable thead tr:nth-child(3) th.report-header {
-        border-bottom: 2px solid #e5e7eb !important;
-    }
-
-    @media (max-width: 640px) {
-        .handsontable { font-size: 12px; }
-    }
-</style>
-
-
-    <style>
-        body { overflow-x: hidden; }
-        .handsontable .font-bold { font-weight: bold; }
-        .handsontable .bg-gray-100 { background-color: #f3f4f6 !important; }
-        .handsontable .bg-blue-50 { background-color: #eff6ff !important; }
-        .handsontable td { border-color: #d1d5db; }
-        .handsontable .area { background-color: rgba(147, 51, 234, 0.1); }
-        .handsontable { position: relative; z-index: 1; }
-        #spreadsheet { isolation: isolate; }
-        .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
-
-        @media (max-width: 640px) {
-            .handsontable { font-size: 12px; }
-            .handsontable th, .handsontable td { padding: 4px; }
-        }
-
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .handsontable { font-size: 13px; }
-        }
-    </style>
 </x-app-layout>
