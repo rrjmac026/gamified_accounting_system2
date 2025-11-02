@@ -191,6 +191,7 @@
         </div>
     </div>
 
+
 <script>
     let hot;
     document.addEventListener('DOMContentLoaded', function () {
@@ -221,6 +222,12 @@
                 ['Total', '', '']
             ];
 
+        // Initialize HyperFormula with whitespace support
+        const hyperformulaInstance = HyperFormula.buildEmpty({
+            licenseKey: 'internal-use-in-handsontable',
+            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+        });
+
         hot = new Handsontable(container, {
             data: initialData,
             columns: [
@@ -232,19 +239,55 @@
             licenseKey: 'non-commercial-and-evaluation',
             height: 450,
             stretchH: 'all',
+            
+            // Formula support with whitespace handling
+            formulas: { engine: hyperformulaInstance },
+            
+            // Handle formula input with whitespace
+            beforeChange: function(changes, source) {
+                if (changes) {
+                    changes.forEach(function(change) {
+                        // change[3] is the new value
+                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
+                            // Trim leading/trailing spaces but keep internal spaces
+                            change[3] = change[3].trim();
+                        }
+                    });
+                }
+            },
+            
+            // Full feature set
             contextMenu: true,
+            undo: true,
             manualColumnResize: true,
             manualRowResize: true,
+            manualColumnMove: true,
+            manualRowMove: true,
+            fillHandle: true,
+            copyPaste: true,
             minSpareRows: 0,
+            enterMoves: { row: 1, col: 0 },
+            tabMoves: { row: 0, col: 1 },
+            outsideClickDeselects: false,
+            selectionMode: 'multiple',
+            mergeCells: true,
+            comments: true,
+            customBorders: true,
             className: 'htCenter htMiddle',
             
             cells: function(row, col) {
                 const cellProperties = {};
                 const data = this.instance.getData();
                 const lastRow = data.length - 1;
+                const cellData = this.instance.getDataAtCell(row, col);
+                
+                // Add visual indicator for formula cells
+                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
+                    cellProperties.className = 'formula-cell';
+                }
                 
                 if (row === 0) {
-                    cellProperties.className = 'header-company';
+                    cellProperties.className = (cellProperties.className || '') + ' header-company';
                     if (col === 0 || col === 2) {
                         cellProperties.readOnly = true;
                         cellProperties.renderer = function(instance, td) {
@@ -262,7 +305,7 @@
                 }
                 
                 if (row === 1) {
-                    cellProperties.className = 'header-title';
+                    cellProperties.className = (cellProperties.className || '') + ' header-title';
                     if (col === 0 || col === 2) {
                         cellProperties.readOnly = true;
                         cellProperties.renderer = function(instance, td) {
@@ -280,7 +323,7 @@
                 }
                 
                 if (row === 2) {
-                    cellProperties.className = 'header-date';
+                    cellProperties.className = (cellProperties.className || '') + ' header-date';
                     if (col === 0 || col === 2) {
                         cellProperties.readOnly = true;
                         cellProperties.renderer = function(instance, td) {
@@ -299,7 +342,7 @@
                 
                 if (row === 3) {
                     cellProperties.readOnly = true;
-                    cellProperties.className = 'header-columns';
+                    cellProperties.className = (cellProperties.className || '') + ' header-columns';
                     cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
                         Handsontable.renderers.TextRenderer.apply(this, arguments);
                         td.innerHTML = '<strong>' + value + '</strong>';
@@ -309,7 +352,7 @@
                 }
                 
                 if (row === lastRow) {
-                    cellProperties.className = 'total-row';
+                    cellProperties.className = (cellProperties.className || '') + ' total-row';
                     if (col === 0) {
                         cellProperties.readOnly = true;
                         cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
@@ -317,7 +360,7 @@
                             td.innerHTML = '<strong>Total</strong>';
                         };
                     } else {
-                        cellProperties.className = 'total-row total-cell-bold';
+                        cellProperties.className = (cellProperties.className || '') + ' total-cell-bold';
                     }
                 }
                 
@@ -418,5 +461,7 @@
     .animate-slideDown {
         animation: slideDown 0.3s ease-out;
     }
+
+    
 </style>
 </x-app-layout>

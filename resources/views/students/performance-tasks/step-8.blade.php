@@ -150,180 +150,298 @@
                 </div>
             </div>
 
-            <script>
-                let hot;
-                document.addEventListener('DOMContentLoaded', function () {
-                    const container = document.getElementById('spreadsheet');
+<script>
+    let hot;
+    document.addEventListener('DOMContentLoaded', function () {
+        const container = document.getElementById('spreadsheet');
 
-                    // Student's saved answers
-                    const savedData = @json($submission->submission_data ?? null);
-                    const initialData = savedData
-                        ? JSON.parse(savedData)
-                        : Array.from({ length: 15 }, () => Array(20).fill(''));
+        // Student's saved answers
+        const savedData = @json($submission->submission_data ?? null);
+        const initialData = savedData
+            ? JSON.parse(savedData)
+            : Array.from({ length: 15 }, () => Array(21).fill(''));
 
-                    // Instructor's correct data
-                    const correctData = @json($answerSheet->correct_data ?? null);
-                    const submissionStatus = @json($submission->status ?? null);
+        // Instructor's correct data
+        const correctData = @json($answerSheet->correct_data ?? null);
+        const submissionStatus = @json($submission->status ?? null);
 
-                    // Initialize HyperFormula for Excel-like formulas
-                    const hyperformulaInstance = HyperFormula.buildEmpty({
-                        licenseKey: 'internal-use-in-handsontable',
-                    });
+        // Initialize HyperFormula with whitespace support
+        const hyperformulaInstance = HyperFormula.buildEmpty({
+            licenseKey: 'internal-use-in-handsontable',
+            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+        });
 
-                    // Initialize Handsontable
-                    hot = new Handsontable(container, {
-                        data: initialData,
-                        rowHeaders: true,
-                        // Using nested headers like Step 5
-                        nestedHeaders: [
-                            [
-                                {label: 'Date', colspan: 2}, // Date spans 2 columns
-                                'Account Titles and Explanation', 
-                                'Account Number', 
-                                'Debit (₱)', 
-                                'Credit (₱)',
-                                '',
-                                'Cash', 
-                                'Accounts Receivable', 
-                                'Supplies', 
-                                'Furniture & Fixtures', 
-                                'Land', 
-                                'Equipment', 
-                                'Accounts Payable', 
-                                'Notes Payable', 
-                                'Capital', 
-                                'Withdrawal', 
-                                'Service Revenue', 
-                                'Rent Expense', 
-                                'Paid Licenses', 
-                                'Salaries Expense'
-                            ],
-                            [
-                                '', // Sub-column 1 under Date
-                                '', // Sub-column 2 under Date
-                                '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
-                            ]
-                        ],
-                        columns: [
-                            { type: 'text', width: 100 }, // Month
-                            { type: 'text', width: 100 }, // Day
-                            { type: 'text', width: 400 },
-                            { type: 'text', width: 100 },
-                            { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 150 },
-                            { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 150 },
-                            { type: 'text', width: 100 },
-                            { type: 'text', width: 100 },
-                            { type: 'text', width: 120 },
-                            { type: 'text', width: 100 },
-                            { type: 'text', width: 120 },
-                            { type: 'text', width: 100 },
-                            { type: 'text', width: 100 },
-                            { type: 'text', width: 120 },
-                            { type: 'text', width: 120 },
-                            { type: 'text', width: 100 },
-                            { type: 'text', width: 100 },
-                            { type: 'text', width: 120 },
-                            { type: 'text', width: 120 },
-                            { type: 'text', width: 100 },
-                            { type: 'text', width: 120 }
-                        ],
-                        stretchH: 'all',
-                        height: 500,
-                        minSpareRows: 1,
-                        licenseKey: 'non-commercial-and-evaluation',
-                        formulas: { engine: hyperformulaInstance },
-                        contextMenu: true,
-                        undo: true,
-                        manualColumnResize: true,
-                        manualRowResize: true,
-                        fillHandle: true,
-                        autoColumnSize: false,
-                        autoRowSize: false,
-                        copyPaste: true,
-                        enterMoves: { row: 1, col: 0 },
-                        tabMoves: { row: 0, col: 1 },
-                        outsideClickDeselects: false,
-                        selectionMode: 'multiple',
-                        cells: function(row, col) {
-                            const cellProperties = {};
-                            
-                            // Only apply correct/incorrect coloring if submission has been graded
-                            if (submissionStatus && correctData && savedData) {
-                                const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
-                                const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
-                                
-                                const studentValue = parsedStudent[row]?.[col];
-                                const correctValue = parsedCorrect[row]?.[col];
-                                
-                                // Only compare non-empty cells that the STUDENT filled in
-                                if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
-                                    // Normalize values for comparison (trim whitespace, case-insensitive)
-                                    const normalizedStudent = String(studentValue).trim().toLowerCase();
-                                    const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
-                                    
-                                    if (normalizedStudent === normalizedCorrect) {
-                                        cellProperties.className = 'cell-correct';
-                                    } else {
-                                        cellProperties.className = 'cell-wrong';
-                                    }
-                                }
-                            }
-                            
-                            return cellProperties;
-                        },
-                        afterRenderer: function (TD, row, col, prop, value, cellProperties) {
-                            // Make the border after Credit column (now index 5) bold
-                            if (col === 5) {
-                                TD.style.borderRight = '3px solid #000000ff';
-                            }
+        // Determine responsive dimensions
+        const isMobile = window.innerWidth < 640;
+        const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+
+        // Initialize Handsontable
+        hot = new Handsontable(container, {
+            data: initialData,
+            rowHeaders: true,
+            // Using nested headers like Step 5
+            nestedHeaders: [
+                [
+                    {label: 'Date', colspan: 2}, // Date spans 2 columns
+                    'Account Titles and Explanation', 
+                    'Account Number', 
+                    'Debit (₱)', 
+                    'Credit (₱)',
+                    '',
+                    'Cash', 
+                    'Accounts Receivable', 
+                    'Supplies', 
+                    'Furniture & Fixtures', 
+                    'Land', 
+                    'Equipment', 
+                    'Accounts Payable', 
+                    'Notes Payable', 
+                    'Capital', 
+                    'Withdrawal', 
+                    'Service Revenue', 
+                    'Rent Expense', 
+                    'Paid Licenses', 
+                    'Salaries Expense'
+                ],
+                [
+                    'Month', // Sub-column 1 under Date
+                    'Day', // Sub-column 2 under Date
+                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
+                ]
+            ],
+            columns: [
+                { type: 'text', width: isMobile ? 80 : 100 }, // Month
+                { type: 'text', width: isMobile ? 80 : 100 }, // Day
+                { type: 'text', width: isMobile ? 300 : 400 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 100 : 120 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 100 : 120 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 100 : 120 },
+                { type: 'text', width: isMobile ? 100 : 120 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 100 : 120 },
+                { type: 'text', width: isMobile ? 100 : 120 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 100 : 120 }
+            ],
+            stretchH: 'none',
+            height: isMobile ? 350 : (isTablet ? 450 : 500),
+            width: '100%',
+            minSpareRows: 1,
+            licenseKey: 'non-commercial-and-evaluation',
+            
+            // Formula support with whitespace handling
+            formulas: { engine: hyperformulaInstance },
+            
+            // Handle formula input with whitespace
+            beforeChange: function(changes, source) {
+                if (changes) {
+                    changes.forEach(function(change) {
+                        // change[3] is the new value
+                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
+                            // Trim leading/trailing spaces but keep internal spaces
+                            change[3] = change[3].trim();
                         }
                     });
+                }
+            },
+            
+            // Full feature set
+            contextMenu: true,
+            undo: true,
+            manualColumnResize: true,
+            manualRowResize: true,
+            manualColumnMove: true,
+            manualRowMove: true,
+            fillHandle: true,
+            autoColumnSize: false,
+            autoRowSize: false,
+            copyPaste: true,
+            enterMoves: { row: 1, col: 0 },
+            tabMoves: { row: 0, col: 1 },
+            outsideClickDeselects: false,
+            selectionMode: 'multiple',
+            mergeCells: true,
+            comments: true,
+            customBorders: true,
+            
+            cells: function(row, col) {
+                const cellProperties = {};
+                const cellData = this.instance.getDataAtCell(row, col);
+                
+                // Add visual indicator for formula cells
+                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
+                    cellProperties.className = 'formula-cell';
+                }
+                
+                // Only apply correct/incorrect coloring if submission has been graded
+                if (submissionStatus && correctData && savedData) {
+                    const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
+                    const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
+                    
+                    const studentValue = parsedStudent[row]?.[col];
+                    const correctValue = parsedCorrect[row]?.[col];
+                    
+                    // Only compare non-empty cells that the STUDENT filled in
+                    if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
+                        // Normalize values for comparison
+                        const normalizeValue = (val) => {
+                            if (val === null || val === undefined || val === '') return '';
+                            if (typeof val === 'string') return val.trim().toLowerCase();
+                            if (typeof val === 'number') return val.toFixed(2);
+                            return String(val);
+                        };
+                        
+                        const normalizedStudent = normalizeValue(studentValue);
+                        const normalizedCorrect = normalizeValue(correctValue);
+                        
+                        if (normalizedStudent === normalizedCorrect) {
+                            cellProperties.className = (cellProperties.className || '') + ' cell-correct';
+                        } else {
+                            cellProperties.className = (cellProperties.className || '') + ' cell-wrong';
+                        }
+                    }
+                }
+                
+                return cellProperties;
+            },
+            
+            afterRenderer: function (TD, row, col, prop, value, cellProperties) {
+                // Make the border after Credit column (now index 5) bold
+                if (col === 5) {
+                    TD.style.borderRight = '3px solid #000000';
+                }
+            }
+        });
 
-                    // Keep data synced before form submission
-                    const form = document.getElementById('saveForm');
-                    form.addEventListener('submit', function (e) {
-                        e.preventDefault();
-                        document.getElementById('submission_data').value = JSON.stringify(hot.getData());
-                        this.submit();
-                    });
+        // Responsive resize handler
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                const newIsMobile = window.innerWidth < 640;
+                const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+                const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
+                
+                hot.updateSettings({
+                    height: newHeight,
+                    columns: [
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 300 : 400 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 120 : 150 },
+                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 120 : 150 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 }
+                    ]
                 });
-            </script>
+            }, 250);
+        });
 
-            <style>
-                body { overflow-x: hidden; }
-                .handsontable td { 
-                    border-color: #d1d5db;
-                    background-color: #ffffff; /* Default white background */
-                }
-                .handsontable th { background-color: #f3f4f6; font-weight: 600; }
-                .handsontable .area { background-color: rgba(59,130,246,0.1); }
-                .handsontable { position: relative; z-index: 1; }
-                #spreadsheet { isolation: isolate; }
+        // Keep data synced before form submission
+        const form = document.getElementById('saveForm');
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            document.getElementById('submission_data').value = JSON.stringify(hot.getData());
+            this.submit();
+        });
+    });
+</script>
 
-                /* Correct/Incorrect answer styling - consistent with Step 6 */
-                .handsontable td.cell-correct {
-                    background-color: #dcfce7 !important; /* Light green */
-                    border: 2px solid #16a34a !important; /* Green border */
-                    color: #166534;
-                }
+<style>
+    body { overflow-x: hidden; }
+    .handsontable td { 
+        border-color: #d1d5db;
+        background-color: #ffffff; /* Default white background */
+    }
+    .handsontable th { background-color: #f3f4f6; font-weight: 600; }
+    .handsontable .area { background-color: rgba(59,130,246,0.1); }
+    .handsontable { position: relative; z-index: 1; }
+    #spreadsheet { isolation: isolate; }
+    .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
 
-                .handsontable td.cell-wrong {
-                    background-color: #fee2e2 !important; /* Light red */
-                    border: 2px solid #dc2626 !important; /* Red border */
-                    color: #991b1b;
-                }
+    /* Formula cell indicator */
+    .handsontable td.formula-cell {
+        font-style: italic;
+        background-color: #f0f9ff !important;
+        border-left: 3px solid #3b82f6 !important;
+    }
 
-                /* Prevent selected cells from overriding colors */
-                .handsontable td.cell-correct.area,
-                .handsontable td.cell-correct.current {
-                    background-color: #bbf7d0 !important; /* Slightly darker green when selected */
-                }
+    /* Formula cell selected states */
+    .handsontable td.formula-cell.area,
+    .handsontable td.formula-cell.current {
+        background-color: #dbeafe !important;
+    }
 
-                .handsontable td.cell-wrong.area,
-                .handsontable td.cell-wrong.current {
-                    background-color: #fecaca !important; /* Slightly darker red when selected */
-                }
-            </style>
+    /* Correct/Incorrect answer styling - consistent with Step 6 */
+    .handsontable td.cell-correct {
+        background-color: #dcfce7 !important; /* Light green */
+        border: 2px solid #16a34a !important; /* Green border */
+        color: #166534;
+    }
+
+    .handsontable td.cell-wrong {
+        background-color: #fee2e2 !important; /* Light red */
+        border: 2px solid #dc2626 !important; /* Red border */
+        color: #991b1b;
+    }
+
+    /* Prevent selected cells from overriding colors */
+    .handsontable td.cell-correct.area,
+    .handsontable td.cell-correct.current {
+        background-color: #bbf7d0 !important; /* Slightly darker green when selected */
+    }
+
+    .handsontable td.cell-wrong.area,
+    .handsontable td.cell-wrong.current {
+        background-color: #fecaca !important; /* Slightly darker red when selected */
+    }
+
+    @media (max-width: 640px) {
+        .handsontable { font-size: 12px; }
+        .handsontable th, .handsontable td { padding: 4px; }
+    }
+    @media (min-width: 640px) and (max-width: 1024px) {
+        .handsontable { font-size: 13px; }
+    }
+
+    /* Animation for flash messages */
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .animate-slideDown {
+        animation: slideDown 0.3s ease-out;
+    }
+</style>
         </div>
     </div>
 </x-app-layout>

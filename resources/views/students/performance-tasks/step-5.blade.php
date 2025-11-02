@@ -199,198 +199,249 @@
         </div>
     </div>
 
-    <script>
-        let hot;
-        document.addEventListener('DOMContentLoaded', function() {
-            const container = document.getElementById('spreadsheet');
+<script>
+    let hot;
+    document.addEventListener('DOMContentLoaded', function() {
+        const container = document.getElementById('spreadsheet');
 
-            // Student's saved answers
-            const savedData = @json($submission->submission_data ?? null);
-            const initialData = savedData ? JSON.parse(savedData) : Array.from({ length: 15 }, () => Array(20).fill(''));
+        // Student's saved answers
+        const savedData = @json($submission->submission_data ?? null);
+        const initialData = savedData ? JSON.parse(savedData) : Array.from({ length: 15 }, () => Array(21).fill(''));
 
-            // Instructor's correct data
-            const correctData = @json($answerSheet->correct_data ?? null);
-            const submissionStatus = @json($submission->status ?? null);
+        // Instructor's correct data
+        const correctData = @json($answerSheet->correct_data ?? null);
+        const submissionStatus = @json($submission->status ?? null);
 
-            // Initialize Handsontable with NESTED HEADERS
-            hot = new Handsontable(container, {
-                data: initialData,
-                rowHeaders: true,
-                nestedHeaders: [
-                    [
-                        {label: 'Date', colspan: 2},
-                        'Account Titles and Explanation', 
-                        'Account Number', 
-                        'Debit (₱)', 
-                        'Credit (₱)',
-                        'Date',
-                        'Cash', 
-                        'Accounts Receivable', 
-                        'Supplies', 
-                        'Furniture & Fixtures', 
-                        'Land', 
-                        'Equipment', 
-                        'Accounts Payable', 
-                        'Notes Payable', 
-                        'Capital', 
-                        'Withdrawal', 
-                        'Service Revenue', 
-                        'Rent Expense', 
-                        'Paid Licenses', 
-                        'Salaries Expense'
-                    ],
-                    [
-                        '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
-                    ]
+        // Initialize HyperFormula with whitespace support
+        const hyperformulaInstance = HyperFormula.buildEmpty({
+            licenseKey: 'internal-use-in-handsontable',
+            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+        });
+
+        // Initialize Handsontable with NESTED HEADERS
+        hot = new Handsontable(container, {
+            data: initialData,
+            rowHeaders: true,
+            nestedHeaders: [
+                [
+                    {label: 'Date', colspan: 2},
+                    'Account Titles and Explanation', 
+                    'Account Number', 
+                    'Debit (₱)', 
+                    'Credit (₱)',
+                    'Date',
+                    'Cash', 
+                    'Accounts Receivable', 
+                    'Supplies', 
+                    'Furniture & Fixtures', 
+                    'Land', 
+                    'Equipment', 
+                    'Accounts Payable', 
+                    'Notes Payable', 
+                    'Capital', 
+                    'Withdrawal', 
+                    'Service Revenue', 
+                    'Rent Expense', 
+                    'Paid Licenses', 
+                    'Salaries Expense'
                 ],
-                columns: [
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 400 },
-                    { type: 'text', width: 100 },
-                    { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 150 },
-                    { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 150 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 120 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 120 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 120 },
-                    { type: 'text', width: 120 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 120 },
-                    { type: 'text', width: 120 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 120 }
-                ],
-                stretchH: 'all',
-                height: 'auto',
-                licenseKey: 'non-commercial-and-evaluation',
-                contextMenu: true,
-                undo: true,
-                manualColumnResize: true,
-                manualRowResize: true,
-                fillHandle: true,
-                autoColumnSize: false,
-                autoRowSize: false,
-                copyPaste: true,
-                minSpareRows: 1,
-                enterMoves: { row: 1, col: 0 },
-                tabMoves: { row: 0, col: 1 },
-                outsideClickDeselects: false,
-                selectionMode: 'multiple',
-                cells: function(row, col) {
-                    const cellProperties = {};
+                [
+                    'Month', 'Day', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
+                ]
+            ],
+            columns: [
+                { type: 'text', width: 100 },      // Month
+                { type: 'text', width: 100 },      // Day
+                { type: 'text', width: 400 },      // Account Titles
+                { type: 'text', width: 100 },      // Account Number
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 150 }, // Debit
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 150 }, // Credit
+                { type: 'text', width: 100 },      // Date
+                { type: 'text', width: 100 },      // Cash
+                { type: 'text', width: 120 },      // Accounts Receivable
+                { type: 'text', width: 100 },      // Supplies
+                { type: 'text', width: 120 },      // Furniture & Fixtures
+                { type: 'text', width: 100 },      // Land
+                { type: 'text', width: 100 },      // Equipment
+                { type: 'text', width: 120 },      // Accounts Payable
+                { type: 'text', width: 120 },      // Notes Payable
+                { type: 'text', width: 100 },      // Capital
+                { type: 'text', width: 100 },      // Withdrawal
+                { type: 'text', width: 120 },      // Service Revenue
+                { type: 'text', width: 120 },      // Rent Expense
+                { type: 'text', width: 100 },      // Paid Licenses
+                { type: 'text', width: 120 }       // Salaries Expense
+            ],
+            stretchH: 'none',
+            height: 'auto',
+            licenseKey: 'non-commercial-and-evaluation',
+            
+            // Formula support with whitespace handling
+            formulas: { engine: hyperformulaInstance },
+            
+            // Handle formula input with whitespace
+            beforeChange: function(changes, source) {
+                if (changes) {
+                    changes.forEach(function(change) {
+                        // change[3] is the new value
+                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
+                            // Trim leading/trailing spaces but keep internal spaces
+                            change[3] = change[3].trim();
+                        }
+                    });
+                }
+            },
+            
+            // Full feature set
+            contextMenu: true,
+            undo: true,
+            manualColumnResize: true,
+            manualRowResize: true,
+            manualColumnMove: true,
+            manualRowMove: true,
+            fillHandle: true,
+            autoColumnSize: false,
+            autoRowSize: false,
+            copyPaste: true,
+            minSpareRows: 1,
+            enterMoves: { row: 1, col: 0 },
+            tabMoves: { row: 0, col: 1 },
+            outsideClickDeselects: false,
+            selectionMode: 'multiple',
+            mergeCells: true,
+            comments: true,
+            customBorders: true,
+            
+            cells: function(row, col) {
+                const cellProperties = {};
+                const cellData = this.instance.getDataAtCell(row, col);
+                
+                // Add visual indicator for formula cells
+                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
+                    cellProperties.className = 'formula-cell';
+                }
+                
+                // Only apply correct/incorrect coloring if submission has been graded
+                if (submissionStatus && correctData && savedData) {
+                    const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
+                    const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
                     
-                    // Only apply correct/incorrect coloring if submission has been graded
-                    if (submissionStatus && correctData && savedData) {
-                        const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
-                        const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
+                    const studentValue = parsedStudent[row]?.[col];
+                    const correctValue = parsedCorrect[row]?.[col];
+                    
+                    // Only compare non-empty cells that the STUDENT filled in
+                    if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
+                        // Normalize values for comparison (trim whitespace, case-insensitive)
+                        const normalizedStudent = String(studentValue).trim().toLowerCase();
+                        const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
                         
-                        const studentValue = parsedStudent[row]?.[col];
-                        const correctValue = parsedCorrect[row]?.[col];
-                        
-                        // Only compare non-empty cells that the STUDENT filled in
-                        if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
-                            // Normalize values for comparison (trim whitespace, case-insensitive)
-                            const normalizedStudent = String(studentValue).trim().toLowerCase();
-                            const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
-                            
-                            if (normalizedStudent === normalizedCorrect) {
-                                cellProperties.className = 'cell-correct';
-                            } else {
-                                cellProperties.className = 'cell-wrong';
-                            }
+                        if (normalizedStudent === normalizedCorrect) {
+                            cellProperties.className = (cellProperties.className || '') + ' cell-correct';
+                        } else {
+                            cellProperties.className = (cellProperties.className || '') + ' cell-wrong';
                         }
                     }
-                    
-                    return cellProperties;
-                },
-                afterRenderer: function (TD, row, col, prop, value, cellProperties) {
-                    // Make the border after Credit column (now index 5) bold
-                    if (col === 5) {
-                        TD.style.borderRight = '3px solid #000000ff';
-                    }
                 }
-            });
-
-            // Handle window resize
-            let resizeTimer;
-            window.addEventListener('resize', function() {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(function() {
-                    hot.render();
-                }, 250);
-            });
-
-            // Save submission data
-            const form = document.getElementById('saveForm');
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                document.getElementById('submission_data').value = JSON.stringify(hot.getData());
-                this.submit();
-            });
+                
+                return cellProperties;
+            },
+            
+            afterRenderer: function (TD, row, col, prop, value, cellProperties) {
+                // Make the border after Credit column (now index 5) bold
+                if (col === 5) {
+                    TD.style.borderRight = '3px solid #000000';
+                }
+            }
         });
-    </script>
 
-    <style>
-        body { overflow-x: hidden; }
-        .handsontable td { 
-            border-color: #d1d5db;
-        }
-        .handsontable .area { background-color: rgba(16, 185, 129, 0.1); }
-        .handsontable { position: relative; z-index: 1; }
-        #spreadsheet { isolation: isolate; }
-        .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+        // Handle window resize
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                hot.render();
+            }, 250);
+        });
 
-        /* Correct/Incorrect answer styling */
-        .handsontable td.cell-correct {
-            background-color: #dcfce7 !important;
-            border: 2px solid #16a34a !important;
-            color: #166534;
-        }
+        // Save submission data
+        const form = document.getElementById('saveForm');
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            document.getElementById('submission_data').value = JSON.stringify(hot.getData());
+            this.submit();
+        });
+    });
+</script>
 
-        .handsontable td.cell-wrong {
-            background-color: #fee2e2 !important;
-            border: 2px solid #dc2626 !important;
-            color: #991b1b;
-        }
 
-        /* Prevent selected cells from overriding colors */
-        .handsontable td.cell-correct.area,
-        .handsontable td.cell-correct.current {
-            background-color: #bbf7d0 !important;
-        }
+<style>
+    body { overflow-x: hidden; }
+    .handsontable td { 
+        border-color: #d1d5db;
+    }
+    .handsontable .area { background-color: rgba(16, 185, 129, 0.1); }
+    .handsontable { position: relative; z-index: 1; }
+    #spreadsheet { isolation: isolate; }
+    .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
 
-        .handsontable td.cell-wrong.area,
-        .handsontable td.cell-wrong.current {
-            background-color: #fecaca !important;
-        }
+    /* Formula cell indicator */
+    .handsontable td.formula-cell {
+        font-style: italic;
+        background-color: #f0f9ff !important;
+        border-left: 3px solid #3b82f6 !important;
+    }
 
-        @media (max-width: 640px) {
-            .handsontable { font-size: 12px; }
-            .handsontable th, .handsontable td { padding: 4px; }
-        }
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .handsontable { font-size: 13px; }
-        }
+    /* Correct/Incorrect answer styling */
+    .handsontable td.cell-correct {
+        background-color: #dcfce7 !important;
+        border: 2px solid #16a34a !important;
+        color: #166534;
+    }
 
-        /* Animation for flash messages */
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+    .handsontable td.cell-wrong {
+        background-color: #fee2e2 !important;
+        border: 2px solid #dc2626 !important;
+        color: #991b1b;
+    }
+
+    /* Prevent selected cells from overriding colors */
+    .handsontable td.cell-correct.area,
+    .handsontable td.cell-correct.current {
+        background-color: #bbf7d0 !important;
+    }
+
+    .handsontable td.cell-wrong.area,
+    .handsontable td.cell-wrong.current {
+        background-color: #fecaca !important;
+    }
+
+    /* Formula cell selected states */
+    .handsontable td.formula-cell.area,
+    .handsontable td.formula-cell.current {
+        background-color: #dbeafe !important;
+    }
+
+    @media (max-width: 640px) {
+        .handsontable { font-size: 12px; }
+        .handsontable th, .handsontable td { padding: 4px; }
+    }
+    @media (min-width: 640px) and (max-width: 1024px) {
+        .handsontable { font-size: 13px; }
+    }
+
+    /* Animation for flash messages */
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
         }
-        .animate-slideDown {
-            animation: slideDown 0.3s ease-out;
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
-    </style>
+    }
+    .animate-slideDown {
+        animation: slideDown 0.3s ease-out;
+    }
+</style>
 </x-app-layout>

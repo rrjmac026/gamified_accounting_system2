@@ -201,124 +201,167 @@
 
 <script>
     let hot;
-        document.addEventListener('DOMContentLoaded', function() {
-            const container = document.getElementById('spreadsheet');
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const container = document.getElementById('spreadsheet');
 
-            // Student's saved answers
-            const savedData = @json($submission->submission_data ?? null);
-            
-            // Account names list
-            const accounts = [
-                'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixture', 
-                'Accumulated Depreciation - F&F', 'Land', 'Equipment', 
-                'Accumulated Depreciation - Equipment', 'Accounts Payable', 
-                'Notes Payable', 'Utilities Payable', 'Capital', 'Withdrawals',
-                'Service Revenue', 'Rent Expense', 'Utilities Expense', 
-                'Salaries Expense', 'Supplies Expense', 'Depreciation Expense', 
-                'Income Summary'
-            ];
-            
-            // Generate columns: Date, Blank, Debit, Credit for each account (4 cols per account)
-            const numCols = accounts.length * 6;
-            const initialData = savedData ? JSON.parse(savedData) : Array.from({ length: 15 }, () => Array(numCols).fill(''));
-            
-            // Create nested headers with blank column after Date
-            const nestedHeaders = [
-                accounts.map(name => ({ label: name, colspan: 6 })),
-                Array(accounts.length).fill(['Date', '', 'Debit (₱)', 'Credit (₱)', '', 'Date']).flat()
-            ];
-            
-            // Create columns config with custom renderer for T-account style
-            const columns = [];
-            for (let i = 0; i < accounts.length; i++) {
-                columns.push(
-                    { type: 'text', width: 100 },      // Date
-                    { type: 'text', width: 50 },       // Blank column
-                    { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 120 }, // Debit
-                    { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 120 }, // Credit
-                    { type: 'text', width: 50 },       // Blank column
-                    { type: 'text', width: 100 }       // Second Date
-                );
-            }
+        // Student's saved answers
+        const savedData = @json($submission->submission_data ?? null);
+        
+        // Account names list
+        const accounts = [
+            'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixture', 
+            'Accumulated Depreciation - F&F', 'Land', 'Equipment', 
+            'Accumulated Depreciation - Equipment', 'Accounts Payable', 
+            'Notes Payable', 'Utilities Payable', 'Capital', 'Withdrawals',
+            'Service Revenue', 'Rent Expense', 'Utilities Expense', 
+            'Salaries Expense', 'Supplies Expense', 'Depreciation Expense', 
+            'Income Summary'
+        ];
+        
+        // Generate columns: Date, Blank, Debit, Credit, Blank, Date for each account (6 cols per account)
+        const numCols = accounts.length * 6;
+        const initialData = savedData ? JSON.parse(savedData) : Array.from({ length: 15 }, () => Array(numCols).fill(''));
+        
+        // Create nested headers with blank column after Date
+        const nestedHeaders = [
+            accounts.map(name => ({ label: name, colspan: 6 })),
+            Array(accounts.length).fill(['Date', '', 'Debit (₱)', 'Credit (₱)', '', 'Date']).flat()
+        ];
+        
+        // Create columns config with custom renderer for T-account style
+        const columns = [];
+        for (let i = 0; i < accounts.length; i++) {
+            columns.push(
+                { type: 'text', width: 100 },      // Date
+                { type: 'text', width: 50 },       // Blank column
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 120 }, // Debit
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 120 }, // Credit
+                { type: 'text', width: 50 },       // Blank column
+                { type: 'text', width: 100 }       // Second Date
+            );
+        }
 
-            // Instructor's correct data
-            const correctData = @json($answerSheet->correct_data ?? null);
-            const submissionStatus = @json($submission->status ?? null);
+        // Instructor's correct data
+        const correctData = @json($answerSheet->correct_data ?? null);
+        const submissionStatus = @json($submission->status ?? null);
+        
+        // Initialize HyperFormula with whitespace support
+        const hyperformulaInstance = HyperFormula.buildEmpty({
+            licenseKey: 'internal-use-in-handsontable',
+            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+        });
+        
+        hot = new Handsontable(container, {
+            data: initialData,
+            rowHeaders: true,
+            nestedHeaders: nestedHeaders,
+            columns: columns,
+            height: 'auto',
+            licenseKey: 'non-commercial-and-evaluation',
             
-            hot = new Handsontable(container, {
-                data: initialData,
-                rowHeaders: true,
-                nestedHeaders: nestedHeaders,
-                columns: columns,
-                height: 'auto',
-                licenseKey: 'non-commercial-and-evaluation',
-                contextMenu: true,
-                manualColumnResize: true,
-                manualRowResize: true,
-                minSpareRows: 1,
-                cells: function(row, col) {
-                    const cellProperties = {};
-                    const colIndex = col % 6;
+            // Formula support with whitespace handling
+            formulas: { engine: hyperformulaInstance },
+            
+            // Handle formula input with whitespace
+            beforeChange: function(changes, source) {
+                if (changes) {
+                    changes.forEach(function(change) {
+                        // change[3] is the new value
+                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
+                            // Trim leading/trailing spaces but keep internal spaces
+                            change[3] = change[3].trim();
+                        }
+                    });
+                }
+            },
+            
+            // Full feature set
+            contextMenu: true,
+            undo: true,
+            manualColumnResize: true,
+            manualRowResize: true,
+            manualColumnMove: true,
+            manualRowMove: true,
+            fillHandle: true,
+            copyPaste: true,
+            minSpareRows: 1,
+            enterMoves: { row: 1, col: 0 },
+            tabMoves: { row: 0, col: 1 },
+            outsideClickDeselects: false,
+            selectionMode: 'multiple',
+            mergeCells: true,
+            comments: true,
+            customBorders: true,
+            
+            cells: function(row, col) {
+                const cellProperties = {};
+                const colIndex = col % 6;
+                const cellData = this.instance.getDataAtCell(row, col);
+                
+                // Add visual indicator for formula cells
+                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
+                    cellProperties.className = 'formula-cell';
+                }
 
+                // Apply T-account styling (append to existing className)
+                if (colIndex === 0 || colIndex === 5) {
+                    // Date column
+                    cellProperties.className = (cellProperties.className || '') + ' t-account-date';
+                } else if (colIndex === 1 || colIndex === 4) {
+                    // Blank column
+                    cellProperties.className = (cellProperties.className || '') + ' t-account-blank';
+                    cellProperties.readOnly = false; // Make blank column read-only
+                } else if (colIndex === 2) {
+                    // Debit column (left side)
+                    cellProperties.className = (cellProperties.className || '') + ' t-account-debit';
+                } else if (colIndex === 3) {
+                    // Credit column (right side)
+                    cellProperties.className = (cellProperties.className || '') + ' t-account-credit';
+                }
+                
+                // Only apply correct/incorrect coloring if submission has been graded
+                if (submissionStatus && correctData && savedData && colIndex !== 1 && colIndex !== 4) { // Skip blank columns
+                    const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
+                    const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
                     
-                    // Apply T-account styling (append to existing className)
-                    if (colIndex === 0 || colIndex === 5) {
-                        // Date column
-                        cellProperties.className = (cellProperties.className || '') + ' t-account-date';
-                    } else if (colIndex === 1 || colIndex === 4) {
-                        // Blank column
-                        cellProperties.className = (cellProperties.className || '') + ' t-account-blank';
-                        cellProperties.readOnly = false; // Make blank column read-only
-                    } else if (colIndex === 2) {
-                        // Debit column (left side)
-                        cellProperties.className = (cellProperties.className || '') + ' t-account-debit';
-                    } else if (colIndex === 3) {
-                        // Credit column (right side)
-                        cellProperties.className = (cellProperties.className || '') + ' t-account-credit';
-                    }
+                    const studentValue = parsedStudent[row]?.[col];
+                    const correctValue = parsedCorrect[row]?.[col];
                     
-                    // Only apply correct/incorrect coloring if submission has been graded
-                    if (submissionStatus && correctData && savedData && colIndex !== 1) { // Skip blank column
-                        const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
-                        const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
+                    // ONLY color cells where the STUDENT entered something
+                    if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
+                        // Normalize values for comparison
+                        const normalizeValue = (val) => {
+                            if (val === null || val === undefined || val === '') return '';
+                            if (typeof val === 'string') return val.trim().toLowerCase();
+                            if (typeof val === 'number') return val.toFixed(2);
+                            return String(val);
+                        };
                         
-                        const studentValue = parsedStudent[row]?.[col];
-                        const correctValue = parsedCorrect[row]?.[col];
+                        const normalizedStudent = normalizeValue(studentValue);
+                        const normalizedCorrect = normalizeValue(correctValue);
                         
-                        // ONLY color cells where the STUDENT entered something
-                        if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
-                            // Normalize values for comparison
-                            const normalizeValue = (val) => {
-                                if (val === null || val === undefined || val === '') return '';
-                                if (typeof val === 'string') return val.trim().toLowerCase();
-                                if (typeof val === 'number') return val.toFixed(2);
-                                return String(val);
-                            };
-                            
-                            const normalizedStudent = normalizeValue(studentValue);
-                            const normalizedCorrect = normalizeValue(correctValue);
-                            
-                            // Compare student's answer with correct answer
-                            if (normalizedStudent === normalizedCorrect) {
-                                cellProperties.className = (cellProperties.className || '') + ' cell-correct';
-                            } else {
-                                cellProperties.className = (cellProperties.className || '') + ' cell-wrong';
-                            }
+                        // Compare student's answer with correct answer
+                        if (normalizedStudent === normalizedCorrect) {
+                            cellProperties.className = (cellProperties.className || '') + ' cell-correct';
+                        } else {
+                            cellProperties.className = (cellProperties.className || '') + ' cell-wrong';
                         }
                     }
-                    
-                    return cellProperties;
-                },
-            });
-
-            // Save submission data
-            const form = document.getElementById('saveForm');
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                document.getElementById('submission_data').value = JSON.stringify(hot.getData());
-                this.submit();
-            });
+                }
+                
+                return cellProperties;
+            },
         });
+
+        // Save submission data
+        const form = document.getElementById('saveForm');
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            document.getElementById('submission_data').value = JSON.stringify(hot.getData());
+            this.submit();
+        });
+    });
 </script>
 
     <style>
