@@ -14,7 +14,7 @@ class StudentSubjectController extends Controller
 
         // Get subjects the student is enrolled in
         $subjects = $student->subjects()
-            ->with(['instructors.user']) // eager load instructors if you want
+            ->with(['instructors.user'])
             ->get();
 
         return view('students.subjects.index', compact('subjects'));
@@ -25,7 +25,14 @@ class StudentSubjectController extends Controller
         $student = Auth::user()->student;
 
         $subject = $student->subjects()
-            ->with(['instructors.user', 'performanceTasks']) // Make sure this is 'performanceTasks'
+            ->with([
+                'instructors.user',
+                'performanceTasks' => function ($query) use ($student) {
+                    $query->with(['students' => function ($q) use ($student) {
+                        $q->where('students.id', $student->id);
+                    }]);
+                }
+            ])
             ->findOrFail($id);
 
         return view('students.subjects.show', compact('subject'));

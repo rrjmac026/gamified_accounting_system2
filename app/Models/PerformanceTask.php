@@ -67,4 +67,11 @@ class PerformanceTask extends Model
     {
         return $this->hasMany(XpTransaction::class, 'performance_task_id');
     }
+
+    public function students()
+{
+    return $this->belongsToMany(Student::class, 'performance_task_student')
+        ->withPivot(['status', 'score', 'attempts']) // Removed 'completed_at'
+        ->withTimestamps();
+}
 }

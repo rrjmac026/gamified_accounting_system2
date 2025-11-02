@@ -10,9 +10,11 @@
                     <div class="relative z-10">
                         <h1 class="text-3xl font-bold mb-2">Welcome, {{ auth()->user()->name }}!</h1>
                         <p class="text-pink-100">
-                            {{ $student->course->course_name ?? 'No Course' }}
                             @if($student->sections->isNotEmpty())
+                                {{ $student->sections->first()->course->course_name ?? 'No Course' }}
                                 | Section {{ $student->sections->first()->name }}
+                            @else
+                                No Section Assigned
                             @endif
                         </p>
                     </div>
@@ -106,7 +108,7 @@
                         </div>
                         <div class="p-6 space-y-4">
                             @forelse($upcomingDeadlines as $task)
-                                <a href="{{ route('students.tasks.show', $task->id) }}" 
+                                <a href="{{ route('students.performance-tasks.show', $task->id) }}" 
                                 class="block bg-[#FFF6FD] border border-[#FFC8FB]/30 rounded-lg p-4 hover:bg-[#FFD9FF]/30 transition-colors duration-200">
                                     <div class="flex justify-between items-start">
                                         <div class="flex-1">
@@ -116,12 +118,12 @@
                                             </p>
                                         </div>
                                         <div class="text-right ml-4">
-                                            @if($task->pivot->due_date)
+                                            @if($task->due_date)
                                                 <div class="text-sm font-medium text-gray-700">
-                                                    Due: {{ \Carbon\Carbon::parse($task->pivot->due_date)->format('M d, Y') }}
+                                                    Due: {{ $task->due_date->format('M d, Y') }}
                                                 </div>
                                                 <div class="text-xs text-gray-500 mt-1">
-                                                    {{ \Carbon\Carbon::parse($task->pivot->due_date)->format('g:i A') }}
+                                                    {{ $task->due_date->format('g:i A') }}
                                                 </div>
                                             @else
                                                 <div class="text-sm text-gray-500">No due date</div>
@@ -154,7 +156,11 @@
                         </div>
                         <div class="p-6 space-y-4">
                             @forelse($recentGrades as $task)
-                                <div class="bg-[#FFF6FD] border border-[#FFC8FB]/30 rounded-lg p-4 hover:bg-[#FFD9FF]/30 transition-colors duration-200">
+                                @php
+                                    $studentPivot = $task->students->first()?->pivot;
+                                @endphp
+                                <a href="{{ route('students.performance-tasks.show', $task->id) }}" 
+                                   class="block bg-[#FFF6FD] border border-[#FFC8FB]/30 rounded-lg p-4 hover:bg-[#FFD9FF]/30 transition-colors duration-200">
                                     <div class="flex justify-between items-start">
                                         <div class="flex-1">
                                             <h3 class="font-medium text-gray-800 mb-1">{{ $task->title }}</h3>
@@ -164,16 +170,16 @@
                                         </div>
                                         <div class="text-right ml-4">
                                             <div class="font-semibold text-lg text-[#FF92C2]">
-                                                {{ $task->pivot->score ?? 'N/A' }}/{{ $task->max_score ?? 100 }}
+                                                {{ $studentPivot->score ?? 'N/A' }}/{{ $task->max_score ?? 100 }}
                                             </div>
-                                            @if($task->pivot->xp_earned)
+                                            @if($studentPivot && isset($studentPivot->xp_earned))
                                                 <div class="text-sm text-emerald-600 font-medium">
-                                                    XP: +{{ $task->pivot->xp_earned }}
+                                                    XP: +{{ $studentPivot->xp_earned }}
                                                 </div>
                                             @endif
                                         </div>
                                     </div>
-                                </div>
+                                </a>
                             @empty
                                 <div class="text-center py-8">
                                     <div class="text-[#FF92C2] mb-2">
@@ -251,24 +257,30 @@
                             </div>
                         </div>
                     </div>
+
                     <!-- Upcoming Tasks -->
                     <div class="bg-[#FFF0FA] rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
                         <div class="border-b border-[#FFC8FB] p-6">
                             <h2 class="text-xl font-semibold text-[#FF92C2] flex items-center">
-                                <i class="fas fa-calendar mr-2"></i>
+                                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
                                 Upcoming Tasks
                             </h2>
                         </div>
-                        <div class="p-6">
+                        <div class="p-6 space-y-3">
                             @forelse($upcomingTasks as $task)
-                                <div class="mb-4 last:mb-0 p-4 bg-white rounded-lg border border-[#FFC8FB]/30">
+                                <a href="{{ route('students.performance-tasks.show', $task->id) }}" 
+                                   class="block p-4 bg-white rounded-lg border border-[#FFC8FB]/30 hover:bg-[#FFD9FF]/30 transition-colors duration-200">
                                     <h3 class="font-medium text-gray-900">{{ $task->title }}</h3>
-                                    <p class="text-sm text-gray-600">{{ $task->subject->subject_name }}</p>
+                                    <p class="text-sm text-gray-600">{{ $task->subject->subject_name ?? 'No Subject' }}</p>
                                     <div class="flex items-center mt-2 text-xs text-gray-500">
-                                        <i class="fas fa-clock mr-1"></i>
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
                                         Due {{ $task->due_date->format('M d, Y') }}
                                     </div>
-                                </div>
+                                </a>
                             @empty
                                 <p class="text-gray-500 text-center py-4">No upcoming tasks</p>
                             @endforelse

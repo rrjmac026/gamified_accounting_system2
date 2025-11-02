@@ -63,7 +63,8 @@
                             </h3>
                             <div class="space-y-3">
                                 @forelse($subject->performanceTasks->take(5) as $performanceTask)
-                                    <div class="p-3 bg-white rounded-lg border border-[#FFC8FB]/30 hover:bg-[#FFD9FF]/30 transition-colors duration-200">
+                                    <a href="{{ route('students.performance-tasks.show', $performanceTask->id) }}" 
+                                       class="block p-3 bg-white rounded-lg border border-[#FFC8FB]/30 hover:bg-[#FFD9FF]/30 hover:border-[#FF92C2] transition-all duration-200 cursor-pointer">
                                         <div class="flex items-center justify-between">
                                             <div class="flex-1">
                                                 <h4 class="font-medium text-gray-900 text-sm">{{ $performanceTask->title }}</h4>
@@ -75,11 +76,11 @@
                                                     @endif
                                                 </p>
                                             </div>
-                                            <div class="ml-3">
+                                            <div class="ml-3 flex items-center space-x-2">
                                                 @php
                                                     $student = auth()->user()->student;
                                                     $pivot = $performanceTask->students->firstWhere('id', $student->id)?->pivot;
-                                                    $status = $pivot->status ?? 'assigned';
+                                                    $status = $pivot?->status ?? 'assigned';
                                                 @endphp
                                                 <span @class([
                                                     'px-2 py-1 text-xs rounded-full',
@@ -89,11 +90,14 @@
                                                     'bg-purple-100 text-purple-800' => $status === 'graded',
                                                     'bg-red-100 text-red-800' => in_array($status, ['late', 'missing', 'overdue'])
                                                 ])>
-                                                    {{ ucfirst($status) }}
+                                                    {{ ucfirst(str_replace('_', ' ', $status)) }}
                                                 </span>
+                                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                                </svg>
                                             </div>
                                         </div>
-                                    </div>
+                                    </a>
                                 @empty
                                     <div class="text-center py-8">
                                         <div class="text-[#FF92C2] mb-2">
