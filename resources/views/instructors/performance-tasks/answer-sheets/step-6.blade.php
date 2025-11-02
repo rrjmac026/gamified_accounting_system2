@@ -343,6 +343,7 @@
 
 <script>
     let hot;
+
     document.addEventListener("DOMContentLoaded", function () {
         const container = document.getElementById('spreadsheet');
         const savedData = @json($sheet->correct_data ?? null);
@@ -371,9 +372,10 @@
                 ['', '', '', '', '', '', '', '', '', '', '']
             ];
 
-        // Initialize HyperFormula
+        // Initialize HyperFormula with whitespace support
         const hyperformulaInstance = HyperFormula.buildEmpty({
             licenseKey: 'internal-use-in-handsontable',
+            ignoreWhiteSpace: 'any', // Allows spaces in formulas
         });
 
         const isMobile = window.innerWidth < 640;
@@ -392,7 +394,24 @@
             minCols: 11,
             stretchH: 'all',
             licenseKey: 'non-commercial-and-evaluation',
+
+            // Formula support with whitespace handling
             formulas: { engine: hyperformulaInstance },
+
+            // Handle formula input with whitespace
+            beforeChange: function(changes, source) {
+                if (changes) {
+                    changes.forEach(function(change) {
+                        // change[3] is the new value
+                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
+                            // Trim leading/trailing spaces but keep internal spaces
+                            change[3] = change[3].trim();
+                        }
+                    });
+                }
+            },
+
+            // Full feature set
             contextMenu: true,
             undo: true,
             manualColumnResize: true,
@@ -428,6 +447,12 @@
             
             cells: function(row, col) {
                 const cellProperties = {};
+                const cellData = this.instance.getDataAtCell(row, col);
+
+                // Add formula cell styling
+                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
+                    cellProperties.className = (cellProperties.className || '') + ' formula-cell';
+                }
                 
                 if (row === 0) {
                     cellProperties.className = 'header-company';
@@ -522,6 +547,7 @@
             ]
         });
 
+        // Responsive resize handler
         let resizeTimer;
         window.addEventListener('resize', function () {
             clearTimeout(resizeTimer);
@@ -537,6 +563,7 @@
             }, 250);
         });
 
+        // Capture spreadsheet data on submit
         const answerKeyForm = document.getElementById("answerKeyForm");
         if (answerKeyForm) {
             answerKeyForm.addEventListener("submit", function (e) {

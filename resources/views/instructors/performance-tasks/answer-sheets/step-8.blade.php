@@ -275,123 +275,196 @@
         </div>
     </div>
 
-    <script>
-        let hot;
+<script>
+    let hot;
 
-        document.addEventListener("DOMContentLoaded", function () {
-            const container = document.getElementById('spreadsheet');
-            
-            // Get saved answer key data if it exists
-            const savedData = @json($sheet->correct_data ?? null);
-            // Changed to 20 columns to match Step 5 structure
-            const initialData = savedData ? JSON.parse(savedData) : Array.from({ length: 15 }, () => Array(20).fill(''));
+    document.addEventListener("DOMContentLoaded", function () {
+        const container = document.getElementById('spreadsheet');
+        
+        // Get saved answer key data if it exists
+        const savedData = @json($sheet->correct_data ?? null);
+        // Changed to 20 columns to match Step 5 structure
+        const initialData = savedData ? JSON.parse(savedData) : Array.from({ length: 15 }, () => Array(20).fill(''));
 
-            // Initialize HyperFormula for Excel-like formulas
-            const hyperformulaInstance = HyperFormula.buildEmpty({
-                licenseKey: 'internal-use-in-handsontable',
-            });
-            
-            hot = new Handsontable(container, {
-                data: initialData,
-                rowHeaders: true,
-                // Using nested headers like Step 5
-                nestedHeaders: [
-                    [
-                        {label: 'Date', colspan: 2}, // Date spans 2 columns
-                        'Account Titles and Explanation', 
-                        'Account Number', 
-                        'Debit (₱)', 
-                        'Credit (₱)',
-                        '',
-                        'Cash', 
-                        'Accounts Receivable', 
-                        'Supplies', 
-                        'Furniture & Fixtures', 
-                        'Land', 
-                        'Equipment', 
-                        'Accounts Payable', 
-                        'Notes Payable', 
-                        'Capital', 
-                        'Withdrawal', 
-                        'Service Revenue', 
-                        'Rent Expense', 
-                        'Paid Licenses', 
-                        'Salaries Expense'
-                    ],
-                    [
-                        '', // Sub-column 1 under Date
-                        '', // Sub-column 2 under Date
-                        '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
-                    ]
+        // Initialize HyperFormula with whitespace support
+        const hyperformulaInstance = HyperFormula.buildEmpty({
+            licenseKey: 'internal-use-in-handsontable',
+            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+        });
+
+        // Determine responsive dimensions
+        const isMobile = window.innerWidth < 640;
+        const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+        
+        hot = new Handsontable(container, {
+            data: initialData,
+            rowHeaders: true,
+            width: '100%',
+            height: isMobile ? 350 : (isTablet ? 450 : 500),
+            licenseKey: 'non-commercial-and-evaluation',
+
+            // Using nested headers like Step 5
+            nestedHeaders: [
+                [
+                    {label: 'Date', colspan: 2}, // Date spans 2 columns
+                    'Account Titles and Explanation', 
+                    'Account Number', 
+                    'Debit (₱)', 
+                    'Credit (₱)',
+                    '',
+                    'Cash', 
+                    'Accounts Receivable', 
+                    'Supplies', 
+                    'Furniture & Fixtures', 
+                    'Land', 
+                    'Equipment', 
+                    'Accounts Payable', 
+                    'Notes Payable', 
+                    'Capital', 
+                    'Withdrawal', 
+                    'Service Revenue', 
+                    'Rent Expense', 
+                    'Paid Licenses', 
+                    'Salaries Expense'
                 ],
-                columns: [
-                    { type: 'text', width: 100 }, // Month
-                    { type: 'text', width: 100 }, // Day
-                    { type: 'text', width: 400 },
-                    { type: 'text', width: 100 },
-                    { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 150 },
-                    { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 150 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 120 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 120 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 120 },
-                    { type: 'text', width: 120 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 120 },
-                    { type: 'text', width: 120 },
-                    { type: 'text', width: 100 },
-                    { type: 'text', width: 120 }
-                ],
-                
-                stretchH: 'all',
-                height: 'auto',
-                licenseKey: 'non-commercial-and-evaluation',
-                formulas: { engine: hyperformulaInstance },
-                contextMenu: true,
-                undo: true,
-                manualColumnResize: true,
-                manualRowResize: true,
-                fillHandle: true,
-                autoColumnSize: false,
-                autoRowSize: false,
-                copyPaste: true,
-                minSpareRows: 1,
-                enterMoves: { row: 1, col: 0 },
-                tabMoves: { row: 0, col: 1 },
-                outsideClickDeselects: false,
-                selectionMode: 'multiple',
-                afterRenderer: function (TD, row, col, prop, value, cellProperties) {
-                    // Make the border after Credit column (now index 5) bold
-                    if (col === 5) {
-                        TD.style.borderRight = '3px solid #000000ff';
-                    }
+                [
+                    '', // Sub-column 1 under Date
+                    '', // Sub-column 2 under Date
+                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
+                ]
+            ],
+
+            columns: [
+                { type: 'text', width: isMobile ? 80 : 100 }, // Month
+                { type: 'text', width: isMobile ? 80 : 100 }, // Day
+                { type: 'text', width: isMobile ? 300 : 400 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 100 : 120 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 100 : 120 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 100 : 120 },
+                { type: 'text', width: isMobile ? 100 : 120 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 100 : 120 },
+                { type: 'text', width: isMobile ? 100 : 120 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 100 : 120 }
+            ],
+
+            // Formula support with whitespace handling
+            formulas: { engine: hyperformulaInstance },
+
+            // Handle formula input with whitespace
+            beforeChange: function(changes, source) {
+                if (changes) {
+                    changes.forEach(function(change) {
+                        // change[3] is the new value
+                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
+                            // Trim leading/trailing spaces but keep internal spaces
+                            change[3] = change[3].trim();
+                        }
+                    });
                 }
-            });
+            },
 
-            // Handle window resize
-            let resizeTimer;
-            window.addEventListener('resize', function() {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(function() {
-                    hot.render();
-                }, 250);
-            });
+            // Optional: Add visual indicator for formula cells
+            cells: function(row, col) {
+                const cellProperties = {};
+                const cellData = this.instance.getDataAtCell(row, col);
+                
+                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
+                    cellProperties.className = 'formula-cell';
+                }
+                
+                return cellProperties;
+            },
 
-            // Capture spreadsheet data on submit
-            const answerKeyForm = document.getElementById("answerKeyForm");
-            if (answerKeyForm) {
-                answerKeyForm.addEventListener("submit", function (e) {
-                    e.preventDefault();
-                    const data = hot.getData();
-                    document.getElementById("correctData").value = JSON.stringify(data);
-                    this.submit();
-                });
+            // Full feature set
+            stretchH: 'none',
+            contextMenu: true,
+            undo: true,
+            manualColumnResize: true,
+            manualRowResize: true,
+            manualColumnMove: true,
+            manualRowMove: true,
+            fillHandle: true,
+            autoColumnSize: false,
+            autoRowSize: false,
+            copyPaste: true,
+            minRows: 15,
+            minCols: 21,
+            minSpareRows: 1,
+            enterMoves: { row: 1, col: 0 },
+            tabMoves: { row: 0, col: 1 },
+            outsideClickDeselects: false,
+            selectionMode: 'multiple',
+            mergeCells: true,
+            comments: true,
+            customBorders: true,
+
+            afterRenderer: function (TD, row, col, prop, value, cellProperties) {
+                // Make the border after Credit column (now index 5) bold
+                if (col === 5) {
+                    TD.style.borderRight = '3px solid #000000';
+                }
             }
         });
-    </script>
+
+        // Responsive resize handler
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                const newIsMobile = window.innerWidth < 640;
+                const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+                const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
+                
+                hot.updateSettings({
+                    height: newHeight,
+                    columns: [
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 300 : 400 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 120 : 150 },
+                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 120 : 150 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 }
+                    ]
+                });
+            }, 250);
+        });
+
+        // Capture spreadsheet data on submit
+        const answerKeyForm = document.getElementById("answerKeyForm");
+        if (answerKeyForm) {
+            answerKeyForm.addEventListener("submit", function (e) {
+                e.preventDefault();
+                const data = hot.getData();
+                document.getElementById("correctData").value = JSON.stringify(data);
+                this.submit();
+            });
+        }
+    });
+</script>
 </x-app-layout>

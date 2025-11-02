@@ -289,329 +289,378 @@
     </div>
 
 <script>
-        let hot;
+    let hot;
 
-        document.addEventListener("DOMContentLoaded", function () {
-            const container = document.getElementById('spreadsheet');
+    document.addEventListener("DOMContentLoaded", function () {
+        const container = document.getElementById('spreadsheet');
+        
+        // Get saved answer key data if it exists
+        const savedData = @json($sheet->correct_data ?? null);
+        
+        // Initialize with McGraw Hill financial statement structure
+        const initialData = savedData ? JSON.parse(savedData) : [
+            // INCOME STATEMENT - McGraw Hill Format
+            ['', 'Durano Enterprise', '', ''],
+            ['', 'Income Statement', '', ''],
+            ['', 'For the Month Ended February 29, 2024', '', ''],
+            ['', '', '', ''],
+            ['Revenues', '', '', ''],
+            ['Service revenue', '', '', ''],
+            ['Total revenues', '', '', ''],
+            ['', '', '', ''],
+            ['Expenses', '', '', ''],
+            ['Rent expense', '', '', ''],
+            ['Utilities expense', '', '', ''],
+            ['Salaries expense', '', '', ''],
+            ['Supplies expense', '', '', ''],
+            ['Depreciation expense', '', '', ''],
+            ['Total expenses', '', '', ''],
+            ['', '', '', ''],
+            ['Net income', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
             
-            // Get saved answer key data if it exists
-            const savedData = @json($sheet->correct_data ?? null);
+            // STATEMENT OF OWNER'S EQUITY - McGraw Hill Format
+            ['', 'Durano Enterprise', '', ''],
+            ['', 'Statement of Owner\'s Equity', '', ''],
+            ['', 'For the Month Ended February 29, 2024', '', ''],
+            ['', '', '', ''],
+            ['Durano, Capital, February 1, 2024', '', '', ''],
+            ['Add: Investments by owner', '', '', ''],
+            ['Net income for the month', '', '', ''],
+            ['', '', '', ''],
+            ['Less: Withdrawals by owner', '', '', ''],
+            ['Increase in capital', '', '', ''],
+            ['Durano, Capital, February 29, 2024', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
             
-            // Initialize with McGraw Hill financial statement structure
-            const initialData = savedData ? JSON.parse(savedData) : [
-                // INCOME STATEMENT - McGraw Hill Format
-                ['', 'Durano Enterprise', '', ''],
-                ['', 'Income Statement', '', ''],
-                ['', 'For the Month Ended February 29, 2024', '', ''],
-                ['', '', '', ''],
-                ['Revenues', '', '', ''],
-                ['Service revenue', '', '', ''],
-                ['Total revenues', '', '', ''],
-                ['', '', '', ''],
-                ['Expenses', '', '', ''],
-                ['Rent expense', '', '', ''],
-                ['Utilities expense', '', '', ''],
-                ['Salaries expense', '', '', ''],
-                ['Supplies expense', '', '', ''],
-                ['Depreciation expense', '', '', ''],
-                ['Total expenses', '', '', ''],
-                ['', '', '', ''],
-                ['Net income', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                
-                // STATEMENT OF OWNER'S EQUITY - McGraw Hill Format
-                ['', 'Durano Enterprise', '', ''],
-                ['', 'Statement of Owner\'s Equity', '', ''],
-                ['', 'For the Month Ended February 29, 2024', '', ''],
-                ['', '', '', ''],
-                ['Durano, Capital, February 1, 2024', '', '', ''],
-                ['Add: Investments by owner', '', '', ''],
-                ['Net income for the month', '', '', ''],
-                ['', '', '', ''],
-                ['Less: Withdrawals by owner', '', '', ''],
-                ['Increase in capital', '', '', ''],
-                ['Durano, Capital, February 29, 2024', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                
-                // BALANCE SHEET - McGraw Hill Format
-                ['', 'Durano Enterprise', '', ''],
-                ['', 'Balance Sheet', '', ''],
-                ['', 'February 29, 2024', '', ''],
-                ['', '', '', ''],
-                ['Assets', '', '', ''],
-                ['Cash', '', '', ''],
-                ['Accounts receivable', '', '', ''],
-                ['Supplies', '', '', ''],
-                ['Total current assets', '', '', ''],
-                ['', '', '', ''],
-                ['Equipment', '', '', ''],
-                ['Less: Accumulated depreciation—Equipment', '', '', ''],
-                ['', '', '', ''],
-                ['Furniture and fixtures', '', '', ''],
-                ['Less: Accumulated depreciation—Furniture and fixtures', '', '', ''],
-                ['', '', '', ''],
-                ['Land', '', '', ''],
-                ['Total property, plant and equipment', '', '', ''],
-                ['Total assets', '', '', ''],
-                ['', '', '', ''],
-                ['Liabilities', '', '', ''],
-                ['Accounts payable', '', '', ''],
-                ['Utilities payable', '', '', ''],
-                ['Notes payable', '', '', ''],
-                ['Total liabilities', '', '', ''],
-                ['', '', '', ''],
-                ['Owner\'s Equity', '', '', ''],
-                ['Durano, Capital', '', '', ''],
-                ['Total liabilities and owner\'s equity', '', '', '']
+            // BALANCE SHEET - McGraw Hill Format
+            ['', 'Durano Enterprise', '', ''],
+            ['', 'Balance Sheet', '', ''],
+            ['', 'February 29, 2024', '', ''],
+            ['', '', '', ''],
+            ['Assets', '', '', ''],
+            ['Cash', '', '', ''],
+            ['Accounts receivable', '', '', ''],
+            ['Supplies', '', '', ''],
+            ['Total current assets', '', '', ''],
+            ['', '', '', ''],
+            ['Equipment', '', '', ''],
+            ['Less: Accumulated depreciation—Equipment', '', '', ''],
+            ['', '', '', ''],
+            ['Furniture and fixtures', '', '', ''],
+            ['Less: Accumulated depreciation—Furniture and fixtures', '', '', ''],
+            ['', '', '', ''],
+            ['Land', '', '', ''],
+            ['Total property, plant and equipment', '', '', ''],
+            ['Total assets', '', '', ''],
+            ['', '', '', ''],
+            ['Liabilities', '', '', ''],
+            ['Accounts payable', '', '', ''],
+            ['Utilities payable', '', '', ''],
+            ['Notes payable', '', '', ''],
+            ['Total liabilities', '', '', ''],
+            ['', '', '', ''],
+            ['Owner\'s Equity', '', '', ''],
+            ['Durano, Capital', '', '', ''],
+            ['Total liabilities and owner\'s equity', '', '', '']
+        ];
+
+        // Initialize HyperFormula with whitespace support
+        const hyperformulaInstance = HyperFormula.buildEmpty({
+            licenseKey: 'internal-use-in-handsontable',
+            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+        });
+
+        // Determine responsive dimensions with better calculations
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const isMobile = viewportWidth < 640;
+        const isTablet = viewportWidth >= 640 && viewportWidth < 1024;
+        const isDesktop = viewportWidth >= 1024;
+
+        // Calculate optimal table height based on viewport
+        let tableHeight;
+        if (isMobile) {
+            tableHeight = Math.min(Math.max(viewportHeight * 0.5, 350), 500);
+        } else if (isTablet) {
+            tableHeight = Math.min(Math.max(viewportHeight * 0.6, 450), 600);
+        } else {
+            tableHeight = Math.min(Math.max(viewportHeight * 0.65, 550), 700);
+        }
+
+        // Calculate optimal column widths
+        let colWidths;
+        if (isMobile) {
+            const availableWidth = Math.min(viewportWidth - 60, 440);
+            colWidths = [
+                Math.floor(availableWidth * 0.30),  // Account Title: 30%
+                Math.floor(availableWidth * 0.35),  // Description: 35%
+                Math.floor(availableWidth * 0.175), // Debit: 17.5%
+                Math.floor(availableWidth * 0.175)  // Credit: 17.5%
             ];
-
-            // Initialize HyperFormula for Excel-like formulas
-            const hyperformulaInstance = HyperFormula.buildEmpty({
-                licenseKey: 'internal-use-in-handsontable',
-            });
-
-            // Determine responsive dimensions with better calculations
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-            const isMobile = viewportWidth < 640;
-            const isTablet = viewportWidth >= 640 && viewportWidth < 1024;
-            const isDesktop = viewportWidth >= 1024;
-
-            // Calculate optimal table height based on viewport
-            let tableHeight;
-            if (isMobile) {
-                tableHeight = Math.min(Math.max(viewportHeight * 0.5, 350), 500);
-            } else if (isTablet) {
-                tableHeight = Math.min(Math.max(viewportHeight * 0.6, 450), 600);
-            } else {
-                tableHeight = Math.min(Math.max(viewportHeight * 0.65, 550), 700);
-            }
-
-            // Calculate optimal column widths
-            let colWidths;
-            if (isMobile) {
-                const availableWidth = Math.min(viewportWidth - 60, 440);
-                colWidths = [
-                    Math.floor(availableWidth * 0.30),  // Account Title: 30%
-                    Math.floor(availableWidth * 0.35),  // Description: 35%
-                    Math.floor(availableWidth * 0.175), // Debit: 17.5%
-                    Math.floor(availableWidth * 0.175)  // Credit: 17.5%
-                ];
-            } else if (isTablet) {
-                colWidths = [180, 200, 120, 120];
-            } else {
-                colWidths = [220, 260, 140, 140];
-            }
-                
-            hot = new Handsontable(container, {
-                data: initialData,
-                rowHeaders: true,
-                colHeaders: [
-                    'Account Title',
-                    'Description',
-                    'Debit (₱)',
-                    'Credit (₱)'
-                ],
-                columns: [
-                    { 
-                        type: 'text',
-                        renderer: function(instance, td, row, col, prop, value, cellProperties) {
-                            Handsontable.renderers.TextRenderer.apply(this, arguments);
-                            
-                            // Style statement titles
-                            if (value && value.includes('Durano Enterprise')) {
-                                td.style.fontWeight = 'bold';
-                                td.style.fontSize = '14px';
-                                td.style.textAlign = 'center';
-                            }
-                            
-                            // Style main statement headers
-                            if (value && (
-                                value.includes('Income Statement') ||
-                                value.includes('Statement of Owner\'s Equity') ||
-                                value.includes('Balance Sheet') ||
-                                value.includes('For the Month Ended') ||
-                                value.includes('February 29, 2024')
-                            )) {
-                                td.style.fontWeight = 'bold';
-                                td.style.textAlign = 'center';
-                            }
-                            
-                            // Style major categories
-                            if (value && (
-                                value === 'Revenues' ||
-                                value === 'Expenses' ||
-                                value === 'Assets' ||
-                                value === 'Liabilities' ||
-                                value === 'Owner\'s Equity' ||
-                                value === 'Total current assets' ||
-                                value === 'Total property, plant and equipment'
-                            )) {
-                                td.style.fontWeight = 'bold';
-                                td.style.backgroundColor = '#f8fafc';
-                            }
-                            
-                            // Style total rows
-                            if (value && (
-                                value.includes('Total revenues') ||
-                                value.includes('Total expenses') ||
-                                value.includes('Net income') ||
-                                value.includes('Total assets') ||
-                                value.includes('Total liabilities') ||
-                                value.includes('Total liabilities and owner\'s equity') ||
-                                value.includes('Durano, Capital, February 29, 2024')
-                            )) {
-                                td.style.fontWeight = 'bold';
-                                td.style.borderTop = '2px solid #4b5563';
-                            }
-                            
-                            // Indent sub-accounts
-                            if (value && !value.includes('Durano') && !value.includes('Total') && 
-                                !value.includes('Revenues') && !value.includes('Expenses') && 
-                                !value.includes('Assets') && !value.includes('Liabilities') && 
-                                !value.includes('Owner\'s Equity') && value !== 'Net income' &&
-                                value !== 'Add: Investments by owner' && value !== 'Less: Withdrawals by owner' &&
-                                value !== 'Increase in capital') {
-                                td.style.paddingLeft = '20px';
-                            }
+        } else if (isTablet) {
+            colWidths = [180, 200, 120, 120];
+        } else {
+            colWidths = [220, 260, 140, 140];
+        }
+            
+        hot = new Handsontable(container, {
+            data: initialData,
+            rowHeaders: true,
+            colHeaders: [
+                'Account Title',
+                'Description',
+                'Debit (₱)',
+                'Credit (₱)'
+            ],
+            columns: [
+                { 
+                    type: 'text',
+                    renderer: function(instance, td, row, col, prop, value, cellProperties) {
+                        Handsontable.renderers.TextRenderer.apply(this, arguments);
+                        
+                        // Check for formula cells
+                        if (value && typeof value === 'string' && value.startsWith('=')) {
+                            td.classList.add('formula-cell');
                         }
-                    },
-                    { 
-                        type: 'text',
-                        renderer: function(instance, td, row, col, prop, value, cellProperties) {
-                            Handsontable.renderers.TextRenderer.apply(this, arguments);
+                        
+                        // Style statement titles
+                        if (value && value.includes('Durano Enterprise')) {
+                            td.style.fontWeight = 'bold';
+                            td.style.fontSize = '14px';
                             td.style.textAlign = 'center';
                         }
-                    },
-                    { 
-                        type: 'numeric', 
-                        numericFormat: { pattern: '₱0,0.00' },
-                        renderer: function(instance, td, row, col, prop, value, cellProperties) {
-                            Handsontable.renderers.NumericRenderer.apply(this, arguments);
-                            if (instance.getDataAtCell(row, 0) && (
-                                instance.getDataAtCell(row, 0).includes('Total revenues') ||
-                                instance.getDataAtCell(row, 0).includes('Total expenses') ||
-                                instance.getDataAtCell(row, 0).includes('Net income') ||
-                                instance.getDataAtCell(row, 0).includes('Total assets') ||
-                                instance.getDataAtCell(row, 0).includes('Total liabilities') ||
-                                instance.getDataAtCell(row, 0).includes('Total liabilities and owner\'s equity') ||
-                                instance.getDataAtCell(row, 0).includes('Durano, Capital, February 29, 2024')
-                            )) {
-                                td.style.fontWeight = 'bold';
-                                td.style.borderTop = '2px solid #4b5563';
-                            }
+                        
+                        // Style main statement headers
+                        if (value && (
+                            value.includes('Income Statement') ||
+                            value.includes('Statement of Owner\'s Equity') ||
+                            value.includes('Balance Sheet') ||
+                            value.includes('For the Month Ended') ||
+                            value.includes('February 29, 2024')
+                        )) {
+                            td.style.fontWeight = 'bold';
+                            td.style.textAlign = 'center';
                         }
-                    },
-                    { 
-                        type: 'numeric', 
-                        numericFormat: { pattern: '₱0,0.00' },
-                        renderer: function(instance, td, row, col, prop, value, cellProperties) {
-                            Handsontable.renderers.NumericRenderer.apply(this, arguments);
-                            if (instance.getDataAtCell(row, 0) && (
-                                instance.getDataAtCell(row, 0).includes('Total revenues') ||
-                                instance.getDataAtCell(row, 0).includes('Total expenses') ||
-                                instance.getDataAtCell(row, 0).includes('Net income') ||
-                                instance.getDataAtCell(row, 0).includes('Total assets') ||
-                                instance.getDataAtCell(row, 0).includes('Total liabilities') ||
-                                instance.getDataAtCell(row, 0).includes('Total liabilities and owner\'s equity') ||
-                                instance.getDataAtCell(row, 0).includes('Durano, Capital, February 29, 2024')
-                            )) {
-                                td.style.fontWeight = 'bold';
-                                td.style.borderTop = '2px solid #4b5563';
-                            }
+                        
+                        // Style major categories
+                        if (value && (
+                            value === 'Revenues' ||
+                            value === 'Expenses' ||
+                            value === 'Assets' ||
+                            value === 'Liabilities' ||
+                            value === 'Owner\'s Equity' ||
+                            value === 'Total current assets' ||
+                            value === 'Total property, plant and equipment'
+                        )) {
+                            td.style.fontWeight = 'bold';
+                            td.style.backgroundColor = '#f8fafc';
+                        }
+                        
+                        // Style total rows
+                        if (value && (
+                            value.includes('Total revenues') ||
+                            value.includes('Total expenses') ||
+                            value.includes('Net income') ||
+                            value.includes('Total assets') ||
+                            value.includes('Total liabilities') ||
+                            value.includes('Total liabilities and owner\'s equity') ||
+                            value.includes('Durano, Capital, February 29, 2024')
+                        )) {
+                            td.style.fontWeight = 'bold';
+                            td.style.borderTop = '2px solid #4b5563';
+                        }
+                        
+                        // Indent sub-accounts
+                        if (value && !value.includes('Durano') && !value.includes('Total') && 
+                            !value.includes('Revenues') && !value.includes('Expenses') && 
+                            !value.includes('Assets') && !value.includes('Liabilities') && 
+                            !value.includes('Owner\'s Equity') && value !== 'Net income' &&
+                            value !== 'Add: Investments by owner' && value !== 'Less: Withdrawals by owner' &&
+                            value !== 'Increase in capital') {
+                            td.style.paddingLeft = '20px';
                         }
                     }
-                ],
-                width: '100%',
-                height: tableHeight,
-                colWidths: colWidths,
-                licenseKey: 'non-commercial-and-evaluation',
-                formulas: { engine: hyperformulaInstance },
-                contextMenu: true,
-                undo: true,
-                manualColumnResize: true,
-                manualRowResize: true,
-                fillHandle: true,
-                autoColumnSize: false,
-                autoRowSize: false,
-                copyPaste: true,
-                minRows: 45,
-                minSpareRows: 1,
-                stretchH: 'all',
-                enterMoves: { row: 1, col: 0 },
-                tabMoves: { row: 0, col: 1 },
-                outsideClickDeselects: false,
-                selectionMode: 'multiple',
-                className: 'htLeft htMiddle',
-                mergeCells: [
-                    { row: 0, col: 1, rowspan: 1, colspan: 3 },
-                    { row: 1, col: 1, rowspan: 1, colspan: 3 },
-                    { row: 2, col: 1, rowspan: 1, colspan: 3 },
-                    { row: 19, col: 1, rowspan: 1, colspan: 3 },
-                    { row: 20, col: 1, rowspan: 1, colspan: 3 },
-                    { row: 21, col: 1, rowspan: 1, colspan: 3 },
-                    { row: 32, col: 1, rowspan: 1, colspan: 3 },
-                    { row: 33, col: 1, rowspan: 1, colspan: 3 },
-                    { row: 34, col: 1, rowspan: 1, colspan: 3 }
-                ],
-            });
+                },
+                { 
+                    type: 'text',
+                    renderer: function(instance, td, row, col, prop, value, cellProperties) {
+                        Handsontable.renderers.TextRenderer.apply(this, arguments);
+                        
+                        // Check for formula cells
+                        if (value && typeof value === 'string' && value.startsWith('=')) {
+                            td.classList.add('formula-cell');
+                        }
+                        
+                        td.style.textAlign = 'center';
+                    }
+                },
+                { 
+                    type: 'numeric', 
+                    numericFormat: { pattern: '₱0,0.00' },
+                    renderer: function(instance, td, row, col, prop, value, cellProperties) {
+                        Handsontable.renderers.NumericRenderer.apply(this, arguments);
+                        
+                        // Check for formula cells
+                        const cellValue = instance.getDataAtCell(row, col);
+                        if (cellValue && typeof cellValue === 'string' && cellValue.startsWith('=')) {
+                            td.classList.add('formula-cell');
+                        }
+                        
+                        if (instance.getDataAtCell(row, 0) && (
+                            instance.getDataAtCell(row, 0).includes('Total revenues') ||
+                            instance.getDataAtCell(row, 0).includes('Total expenses') ||
+                            instance.getDataAtCell(row, 0).includes('Net income') ||
+                            instance.getDataAtCell(row, 0).includes('Total assets') ||
+                            instance.getDataAtCell(row, 0).includes('Total liabilities') ||
+                            instance.getDataAtCell(row, 0).includes('Total liabilities and owner\'s equity') ||
+                            instance.getDataAtCell(row, 0).includes('Durano, Capital, February 29, 2024')
+                        )) {
+                            td.style.fontWeight = 'bold';
+                            td.style.borderTop = '2px solid #4b5563';
+                        }
+                    }
+                },
+                { 
+                    type: 'numeric', 
+                    numericFormat: { pattern: '₱0,0.00' },
+                    renderer: function(instance, td, row, col, prop, value, cellProperties) {
+                        Handsontable.renderers.NumericRenderer.apply(this, arguments);
+                        
+                        // Check for formula cells
+                        const cellValue = instance.getDataAtCell(row, col);
+                        if (cellValue && typeof cellValue === 'string' && cellValue.startsWith('=')) {
+                            td.classList.add('formula-cell');
+                        }
+                        
+                        if (instance.getDataAtCell(row, 0) && (
+                            instance.getDataAtCell(row, 0).includes('Total revenues') ||
+                            instance.getDataAtCell(row, 0).includes('Total expenses') ||
+                            instance.getDataAtCell(row, 0).includes('Net income') ||
+                            instance.getDataAtCell(row, 0).includes('Total assets') ||
+                            instance.getDataAtCell(row, 0).includes('Total liabilities') ||
+                            instance.getDataAtCell(row, 0).includes('Total liabilities and owner\'s equity') ||
+                            instance.getDataAtCell(row, 0).includes('Durano, Capital, February 29, 2024')
+                        )) {
+                            td.style.fontWeight = 'bold';
+                            td.style.borderTop = '2px solid #4b5563';
+                        }
+                    }
+                }
+            ],
+            width: '100%',
+            height: tableHeight,
+            colWidths: colWidths,
+            licenseKey: 'non-commercial-and-evaluation',
 
-            // Improved window resize handler with debouncing
-            let resizeTimer;
-            window.addEventListener('resize', function() {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(function() {
-                    const newViewportWidth = window.innerWidth;
-                    const newViewportHeight = window.innerHeight;
-                    const newIsMobile = newViewportWidth < 640;
-                    const newIsTablet = newViewportWidth >= 640 && newViewportWidth < 1024;
-                    const newIsDesktop = newViewportWidth >= 1024;
-                    
-                    // Recalculate height
-                    let newHeight;
-                    if (newIsMobile) {
-                        newHeight = Math.min(Math.max(newViewportHeight * 0.5, 350), 500);
-                    } else if (newIsTablet) {
-                        newHeight = Math.min(Math.max(newViewportHeight * 0.6, 450), 600);
-                    } else {
-                        newHeight = Math.min(Math.max(newViewportHeight * 0.65, 550), 700);
-                    }
-                    
-                    // Recalculate column widths
-                    let newColWidths;
-                    if (newIsMobile) {
-                        const availableWidth = Math.min(newViewportWidth - 60, 440);
-                        newColWidths = [
-                            Math.floor(availableWidth * 0.30),
-                            Math.floor(availableWidth * 0.35),
-                            Math.floor(availableWidth * 0.175),
-                            Math.floor(availableWidth * 0.175)
-                        ];
-                    } else if (newIsTablet) {
-                        newColWidths = [180, 200, 120, 120];
-                    } else {
-                        newColWidths = [220, 260, 140, 140];
-                    }
-                    
-                    hot.updateSettings({
-                        height: newHeight,
-                        colWidths: newColWidths
+            // Formula support with whitespace handling
+            formulas: { engine: hyperformulaInstance },
+
+            // Handle formula input with whitespace
+            beforeChange: function(changes, source) {
+                if (changes) {
+                    changes.forEach(function(change) {
+                        // change[3] is the new value
+                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
+                            // Trim leading/trailing spaces but keep internal spaces
+                            change[3] = change[3].trim();
+                        }
                     });
-                }, 250);
-            });
+                }
+            },
 
-            // Capture spreadsheet data on submit
-            const answerKeyForm = document.getElementById("answerKeyForm");
-            if (answerKeyForm) {
-                answerKeyForm.addEventListener("submit", function (e) {
-                    e.preventDefault();
-                    const data = hot.getData();
-                    document.getElementById("correctData").value = JSON.stringify(data);
-                    this.submit();
-                });
-            }
+            // Full feature set
+            contextMenu: true,
+            undo: true,
+            manualColumnResize: true,
+            manualRowResize: true,
+            manualColumnMove: true,
+            manualRowMove: true,
+            fillHandle: true,
+            autoColumnSize: false,
+            autoRowSize: false,
+            copyPaste: true,
+            minRows: 62,
+            minCols: 4,
+            minSpareRows: 1,
+            stretchH: 'all',
+            enterMoves: { row: 1, col: 0 },
+            tabMoves: { row: 0, col: 1 },
+            outsideClickDeselects: false,
+            selectionMode: 'multiple',
+            comments: true,
+            customBorders: true,
+            className: 'htLeft htMiddle',
+
+            mergeCells: [
+                { row: 0, col: 1, rowspan: 1, colspan: 3 },
+                { row: 1, col: 1, rowspan: 1, colspan: 3 },
+                { row: 2, col: 1, rowspan: 1, colspan: 3 },
+                { row: 19, col: 1, rowspan: 1, colspan: 3 },
+                { row: 20, col: 1, rowspan: 1, colspan: 3 },
+                { row: 21, col: 1, rowspan: 1, colspan: 3 },
+                { row: 32, col: 1, rowspan: 1, colspan: 3 },
+                { row: 33, col: 1, rowspan: 1, colspan: 3 },
+                { row: 34, col: 1, rowspan: 1, colspan: 3 }
+            ],
         });
-    </script>
+
+        // Improved window resize handler with debouncing
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                const newViewportWidth = window.innerWidth;
+                const newViewportHeight = window.innerHeight;
+                const newIsMobile = newViewportWidth < 640;
+                const newIsTablet = newViewportWidth >= 640 && newViewportWidth < 1024;
+                const newIsDesktop = newViewportWidth >= 1024;
+                
+                // Recalculate height
+                let newHeight;
+                if (newIsMobile) {
+                    newHeight = Math.min(Math.max(newViewportHeight * 0.5, 350), 500);
+                } else if (newIsTablet) {
+                    newHeight = Math.min(Math.max(newViewportHeight * 0.6, 450), 600);
+                } else {
+                    newHeight = Math.min(Math.max(newViewportHeight * 0.65, 550), 700);
+                }
+                
+                // Recalculate column widths
+                let newColWidths;
+                if (newIsMobile) {
+                    const availableWidth = Math.min(newViewportWidth - 60, 440);
+                    newColWidths = [
+                        Math.floor(availableWidth * 0.30),
+                        Math.floor(availableWidth * 0.35),
+                        Math.floor(availableWidth * 0.175),
+                        Math.floor(availableWidth * 0.175)
+                    ];
+                } else if (newIsTablet) {
+                    newColWidths = [180, 200, 120, 120];
+                } else {
+                    newColWidths = [220, 260, 140, 140];
+                }
+                
+                hot.updateSettings({
+                    height: newHeight,
+                    colWidths: newColWidths
+                });
+            }, 250);
+        });
+
+        // Capture spreadsheet data on submit
+        const answerKeyForm = document.getElementById("answerKeyForm");
+        if (answerKeyForm) {
+            answerKeyForm.addEventListener("submit", function (e) {
+                e.preventDefault();
+                const data = hot.getData();
+                document.getElementById("correctData").value = JSON.stringify(data);
+                this.submit();
+            });
+        }
+    });
+</script>
 </x-app-layout>

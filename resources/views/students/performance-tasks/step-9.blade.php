@@ -1,9 +1,110 @@
 <x-app-layout>
-    <!-- Handsontable -->
+    <!-- Handsontable + HyperFormula -->
     <script src="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.css" />
-    <!-- Formula Parser (HyperFormula) -->
     <script src="https://cdn.jsdelivr.net/npm/hyperformula@2.6.2/dist/hyperformula.full.min.js"></script>
+
+    <style>
+        body { overflow-x: hidden; }
+        .handsontable td {
+            border-color: #d1d5db;
+            vertical-align: middle;
+            background-color: #ffffff;
+        }
+        
+        .handsontable thead th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+            border-bottom: 2px solid #9ca3af;
+        }
+        
+        .handsontable .htRight {
+            text-align: right;
+            padding-right: 8px;
+        }
+        
+        .handsontable .htLeft {
+            text-align: left;
+            padding-left: 8px;
+        }
+        
+        .handsontable .htCenter {
+            text-align: center;
+        }
+        
+        .handsontable .htMiddle {
+            vertical-align: middle;
+        }
+        
+        .handsontable tbody tr:hover {
+            background-color: #f9fafb;
+        }
+
+        .handsontable .area { 
+            background-color: rgba(147, 51, 234, 0.1); 
+        }
+        
+        .handsontable { 
+            position: relative; 
+            z-index: 1; 
+        }
+        
+        #spreadsheet { 
+            isolation: isolate; 
+        }
+        
+        .overflow-x-auto { 
+            -webkit-overflow-scrolling: touch; 
+            scroll-behavior: smooth; 
+        }
+
+        /* Header rows styling */
+        .handsontable td.header-company,
+        .handsontable td.header-title,
+        .handsontable td.header-date {
+            background-color: white !important;
+            font-size: 14px;
+            padding: 8px;
+        }
+        
+        .handsontable td.header-columns {
+            background-color: #f3f4f6 !important;
+            font-weight: 700;
+            border-bottom: 2px solid #374151 !important;
+        }
+
+        /* Correct/Incorrect answer styling */
+        .handsontable td.cell-correct {
+            background-color: #dcfce7 !important;
+            border: 2px solid #16a34a !important;
+            color: #166534;
+        }
+
+        .handsontable td.cell-wrong {
+            background-color: #fee2e2 !important;
+            border: 2px solid #dc2626 !important;
+            color: #991b1b;
+        }
+
+        .handsontable td.cell-correct.area,
+        .handsontable td.cell-correct.current {
+            background-color: #bbf7d0 !important;
+        }
+
+        .handsontable td.cell-wrong.area,
+        .handsontable td.cell-wrong.current {
+            background-color: #fecaca !important;
+        }
+
+        @media (max-width: 640px) {
+            .handsontable { font-size: 12px; }
+            .handsontable th, .handsontable td { padding: 4px; }
+        }
+
+        @media (min-width: 640px) and (max-width: 1024px) {
+            .handsontable { font-size: 13px; }
+        }
+    </style>
 
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
@@ -192,50 +293,71 @@
     document.addEventListener("DOMContentLoaded", function () {
         const container = document.getElementById('spreadsheet');
 
-        // ✅ Load saved submission data or default blank
+        // ✅ Load saved submission data or default blank with 3 columns
         const savedData = @json($submission->submission_data ?? null);
         const initialData = savedData ? JSON.parse(savedData) : [
-            ['Durano Enterprise', '', '', '', '', '', '', '', '', '', ''],
-            ['Trial Balance', '', '', '', '', '', '', '', '', '', ''],
-            ['Date: ____________________________', '', '', '', '', '', '', '', '', '', ''],
-            ['Account Title', 'Unadjusted Trial Balance (Debit)', 'Unadjusted Trial Balance (Credit)',
-                'Adjustments (Debit)', 'Adjustments (Credit)',
-                'Adjusted Trial Balance (Debit)', 'Adjusted Trial Balance (Credit)',
-                'Income Statement (Debit)', 'Income Statement (Credit)',
-                'Balance Sheet (Debit)', 'Balance Sheet (Credit)'
-            ],
-            ['', '', '', '', '', '', '', '', '', '', ''],
-            ...Array.from({ length: 15 }, () => Array(11).fill(''))
+            ['Durano Enterprise', '', ''],  // Row 0: Company name
+            ['Closing Entries', '', ''],    // Row 1: Document title
+            ['Date: ____________', '', ''], // Row 2: Date field
+            ['Account Title', 'Debit (₱)', 'Credit (₱)'], // Row 3: Column headers
+            ['', '', ''],                   // Row 4: First data row
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', ''],
+            ['', '', '']
         ];
 
-        // ✅ Initialize HyperFormula
+        // ✅ Initialize HyperFormula with whitespace support
         const hyperformulaInstance = HyperFormula.buildEmpty({
             licenseKey: 'internal-use-in-handsontable',
+            ignoreWhiteSpace: 'any',
         });
 
         // ✅ Responsive detection
         const isMobile = window.innerWidth < 640;
         const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
 
-        // ✅ Handsontable initialization
+        // ✅ Handsontable initialization with 3 columns
         hot = new Handsontable(container, {
             data: initialData,
-            rowHeaders: true,
-            colHeaders: false,
-
             columns: [
-                { type: 'text', width: 200 },
-                ...Array(10).fill({ type: 'numeric', numericFormat: { pattern: '₱0,0.00' } })
+                { type: 'text' },
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' } },
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' } },
             ],
-
+            rowHeaders: true,
             width: '100%',
             height: isMobile ? 350 : (isTablet ? 450 : 500),
-            colWidths: [220, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120],
-            minCols: 11,
-            minRows: 20,
-            stretchH: 'all',
             licenseKey: 'non-commercial-and-evaluation',
+            stretchH: 'all',
+            className: 'htCenter htMiddle',
+
+            // Formula support
             formulas: { engine: hyperformulaInstance },
+
+            // Handle formula input
+            beforeChange: function(changes, source) {
+                if (changes) {
+                    changes.forEach(function(change) {
+                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
+                            change[3] = change[3].trim();
+                        }
+                    });
+                }
+            },
+
+            // Full feature set
             contextMenu: true,
             undo: true,
             manualColumnResize: true,
@@ -243,34 +365,101 @@
             manualColumnMove: true,
             manualRowMove: true,
             fillHandle: true,
-            copyPaste: true,
             autoColumnSize: false,
             autoRowSize: false,
+            copyPaste: true,
+            minRows: 20,
+            minCols: 3,
+            enterMoves: { row: 1, col: 0 },
+            tabMoves: { row: 0, col: 1 },
             outsideClickDeselects: false,
             selectionMode: 'multiple',
-            mergeCells: [
-                { row: 0, col: 0, rowspan: 1, colspan: 11 },
-                { row: 1, col: 0, rowspan: 1, colspan: 11 },
-                { row: 2, col: 0, rowspan: 1, colspan: 11 },
-            ],
+            mergeCells: true,
             comments: true,
             customBorders: true,
-            className: 'htCenter htMiddle',
+            minSpareRows: 0,
 
-            // Add cell validation similar to Step 1
+            // Cell styling and validation
             cells: function(row, col) {
                 const cellProperties = {};
+                const cellData = this.instance.getDataAtCell(row, col);
+
+                // Formula cell styling
+                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
+                    cellProperties.className = (cellProperties.className || '') + ' formula-cell';
+                }
                 
-                if (row <= 2 && col === 0) {
-                    cellProperties.className = 'htCenter htBold';
-                    cellProperties.readOnly = false;
-                } else if (row === 3) {
-                    cellProperties.className = 'htCenter htBold';
+                // Row 0: Company name (only in Debit column)
+                if (row === 0) {
+                    cellProperties.className = 'header-company';
+                    if (col === 0 || col === 2) {
+                        cellProperties.readOnly = true;
+                        cellProperties.renderer = function(instance, td) {
+                            td.innerHTML = '';
+                            td.style.background = 'white';
+                            td.style.border = 'none';
+                        };
+                    } else if (col === 1) {
+                        cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
+                            Handsontable.renderers.TextRenderer.apply(this, arguments);
+                            td.innerHTML = '<strong>' + (value || 'Durano Enterprise') + '</strong>';
+                            td.style.textAlign = 'center';
+                        };
+                    }
+                }
+                
+                // Row 1: Document title (only in Debit column)
+                if (row === 1) {
+                    cellProperties.className = 'header-title';
+                    if (col === 0 || col === 2) {
+                        cellProperties.readOnly = true;
+                        cellProperties.renderer = function(instance, td) {
+                            td.innerHTML = '';
+                            td.style.background = 'white';
+                            td.style.border = 'none';
+                        };
+                    } else if (col === 1) {
+                        cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
+                            Handsontable.renderers.TextRenderer.apply(this, arguments);
+                            td.innerHTML = '<strong>' + (value || 'Closing Entries') + '</strong>';
+                            td.style.textAlign = 'center';
+                        };
+                    }
+                }
+                
+                // Row 2: Date field (only in Debit column)
+                if (row === 2) {
+                    cellProperties.className = 'header-date';
+                    if (col === 0 || col === 2) {
+                        cellProperties.readOnly = true;
+                        cellProperties.renderer = function(instance, td) {
+                            td.innerHTML = '';
+                            td.style.background = 'white';
+                            td.style.border = 'none';
+                        };
+                    } else if (col === 1) {
+                        cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
+                            Handsontable.renderers.TextRenderer.apply(this, arguments);
+                            td.innerHTML = '<strong>' + (value || 'Date: ____________') + '</strong>';
+                            td.style.textAlign = 'center';
+                        };
+                    }
+                }
+                
+                // Row 3: Column headers (bold, centered, read-only)
+                if (row === 3) {
                     cellProperties.readOnly = true;
-                } else {
+                    cellProperties.className = 'header-columns';
+                    cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
+                        Handsontable.renderers.TextRenderer.apply(this, arguments);
+                        td.innerHTML = '<strong>' + value + '</strong>';
+                        td.style.textAlign = 'center';
+                        td.style.backgroundColor = '#f3f4f6';
+                    };
+                } else if (row > 3) {
+                    // Data rows - add validation coloring
                     cellProperties.readOnly = false;
 
-                    // Add color validation for submitted answers
                     const submissionStatus = @json($submission->status ?? null);
                     const correctData = @json($answerSheet->correct_data ?? null);
                     const savedData = @json($submission->submission_data ?? null);
@@ -294,8 +483,9 @@
                         }
                     }
                 }
+                
                 return cellProperties;
-            },
+            }
         });
 
         // ✅ Responsive behavior
@@ -308,8 +498,7 @@
                 const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
 
                 hot.updateSettings({
-                    height: newHeight,
-                    colWidths: newIsMobile ? 100 : (newIsTablet ? 110 : 120)
+                    height: newHeight
                 });
             }, 250);
         });
@@ -325,94 +514,4 @@
         }
     });
 </script>
-
-
-    <style>
-        body { overflow-x: hidden; }
-        .handsontable td {
-            border-color: #d1d5db;
-            vertical-align: middle;
-            background-color: #ffffff; /* Default white background */
-        }
-        
-        .handsontable thead th {
-            background-color: #f3f4f6;
-            font-weight: 600;
-            border-bottom: 2px solid #9ca3af;
-        }
-        
-        .handsontable .htRight {
-            text-align: right;
-            padding-right: 8px;
-        }
-        
-        .handsontable .htLeft {
-            text-align: left;
-            padding-left: 8px;
-        }
-        
-        .handsontable .htCenter {
-            text-align: center;
-        }
-        
-        .handsontable .htMiddle {
-            vertical-align: middle;
-        }
-        
-        /* Add visual separator for journal entries */
-        .handsontable tbody tr:hover {
-            background-color: #f9fafb;
-        }
-
-        .handsontable .area { 
-            background-color: rgba(147, 51, 234, 0.1); 
-        }
-        
-        .handsontable { 
-            position: relative; 
-            z-index: 1; 
-        }
-        
-        #spreadsheet { 
-            isolation: isolate; 
-        }
-        
-        .overflow-x-auto { 
-            -webkit-overflow-scrolling: touch; 
-            scroll-behavior: smooth; 
-        }
-
-        /* Correct/Incorrect answer styling - consistent with Step 6 */
-        .handsontable td.cell-correct {
-            background-color: #dcfce7 !important; /* Light green */
-            border: 2px solid #16a34a !important; /* Green border */
-            color: #166534;
-        }
-
-        .handsontable td.cell-wrong {
-            background-color: #fee2e2 !important; /* Light red */
-            border: 2px solid #dc2626 !important; /* Red border */
-            color: #991b1b;
-        }
-
-        /* Prevent selected cells from overriding colors */
-        .handsontable td.cell-correct.area,
-        .handsontable td.cell-correct.current {
-            background-color: #bbf7d0 !important; /* Slightly darker green when selected */
-        }
-
-        .handsontable td.cell-wrong.area,
-        .hantml:handantable td.cell-wrong.current {
-            background-color: #fecaca !important; /* Slightly darker red when selected */
-        }
-
-        @media (max-width: 640px) {
-            .handsontable { font-size: 12px; }
-            .handsontable th, .handsontable td { padding: 4px; }
-        }
-
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .handsontable { font-size: 13px; }
-        }
-    </style>
 </x-app-layout>

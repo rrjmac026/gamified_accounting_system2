@@ -370,6 +370,12 @@
                 ['Totals', '', '', '']
             ];
 
+            // Initialize HyperFormula with whitespace support
+            const hyperformulaInstance = HyperFormula.buildEmpty({
+                licenseKey: 'internal-use-in-handsontable',
+                ignoreWhiteSpace: 'any', // Allows spaces in formulas
+            });
+
             const isMobile = window.innerWidth < 640;
             const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
             
@@ -383,8 +389,31 @@
                     { type: 'numeric', numericFormat: { pattern: '0,0.00' } },
                     { type: 'numeric', numericFormat: { pattern: '0,0.00' } }
                 ],
+
+                // Formula support with whitespace handling
+                formulas: { engine: hyperformulaInstance },
+
+                // Handle formula input with whitespace
+                beforeChange: function(changes, source) {
+                    if (changes) {
+                        changes.forEach(function(change) {
+                            // change[3] is the new value
+                            if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
+                                // Trim leading/trailing spaces but keep internal spaces
+                                change[3] = change[3].trim();
+                            }
+                        });
+                    }
+                },
+
                 cells: function(row, col) {
                     const cellProperties = {};
+                    const cellData = this.instance.getDataAtCell(row, col);
+
+                    // Add formula cell styling
+                    if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
+                        cellProperties.className = (cellProperties.className || '') + ' formula-cell';
+                    }
                     
                     // Title row (row 0)
                     if (row === 0 && col === 0) {
@@ -417,21 +446,41 @@
                     
                     return cellProperties;
                 },
+
                 width: '100%',
                 height: isMobile ? 500 : (isTablet ? 550 : 600),
                 colWidths: isMobile ? [200, 50, 120, 120] : (isTablet ? [250, 60, 140, 140] : [300, 80, 160, 160]),
                 licenseKey: 'non-commercial-and-evaluation',
-                contextMenu: ['undo', 'redo'],
+
+                // Full feature set
+                contextMenu: true,
                 undo: true,
+                manualColumnResize: true,
+                manualRowResize: true,
+                manualColumnMove: true,
+                manualRowMove: true,
+                fillHandle: true,
+                autoColumnSize: false,
+                autoRowSize: false,
+                copyPaste: true,
+                minRows: 20,
+                minCols: 4,
                 minSpareRows: 0,
                 stretchH: 'all',
+                enterMoves: { row: 1, col: 0 },
+                tabMoves: { row: 0, col: 1 },
+                outsideClickDeselects: false,
+                selectionMode: 'multiple',
+                comments: true,
+                customBorders: true,
+
                 mergeCells: [
                     { row: 0, col: 0, rowspan: 1, colspan: 4 },
                     { row: 1, col: 0, rowspan: 1, colspan: 4 }
                 ]
             });
 
-            // Handle window resize
+            // Responsive resize handler
             let resizeTimer;
             window.addEventListener('resize', function() {
                 clearTimeout(resizeTimer);

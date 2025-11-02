@@ -121,7 +121,6 @@
             }
         }
 
-        // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             const iconType = document.querySelector('input[name="icon_type"]:checked').value;
             toggleIconInput(iconType);

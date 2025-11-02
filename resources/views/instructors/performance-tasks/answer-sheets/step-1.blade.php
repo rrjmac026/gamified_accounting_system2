@@ -341,102 +341,128 @@
         </div>
     </div>
 
-    <script>
-        let hot;
+<script>
+    let hot;
 
-        document.addEventListener("DOMContentLoaded", function () {
-            const container = document.getElementById('spreadsheet');
-            
-            // Get saved answer key data if it exists
-            const savedData = @json($sheet->correct_data ?? null);
-            const initialData = savedData ? JSON.parse(savedData) : Array(15).fill().map(() => Array(14).fill(''));
+    document.addEventListener("DOMContentLoaded", function () {
+        const container = document.getElementById('spreadsheet');
+        
+        // Get saved answer key data if it exists
+        const savedData = @json($sheet->correct_data ?? null);
+        const initialData = savedData ? JSON.parse(savedData) : Array(15).fill().map(() => Array(14).fill(''));
 
-            // Initialize HyperFormula for Excel-like formulas
-            const hyperformulaInstance = HyperFormula.buildEmpty({
-                licenseKey: 'internal-use-in-handsontable',
-            });
+        // Initialize HyperFormula for Excel-like formulas with whitespace support
+        const hyperformulaInstance = HyperFormula.buildEmpty({
+            licenseKey: 'internal-use-in-handsontable',
+            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+        });
 
-            // Determine responsive dimensions
-            const isMobile = window.innerWidth < 640;
-            const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-            
-            hot = new Handsontable(container, {
-                data: initialData,
-                colHeaders: false,
-                rowHeaders: true,
-                width: '100%',
-                height: isMobile ? 350 : (isTablet ? 450 : 500),
-                licenseKey: 'non-commercial-and-evaluation',
+        // Determine responsive dimensions
+        const isMobile = window.innerWidth < 640;
+        const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+        
+        hot = new Handsontable(container, {
+            data: initialData,
+            colHeaders: false,
+            rowHeaders: true,
+            width: '100%',
+            height: isMobile ? 350 : (isTablet ? 450 : 500),
+            licenseKey: 'non-commercial-and-evaluation',
 
-                nestedHeaders: [
-                    [
-                        '',
-                        { label: 'ASSETS', colspan: 6 },
-                        { label: 'LIABILITIES', colspan: 2 },
-                        { label: "OWNER'S EQUITY", colspan: 3 },
-                        { label: 'EXPENSES', colspan: 4 }
-                    ],
-                    [
-                        '',
-                        'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixtures', 'Land', 'Equipment',
-                        'Accounts Payable', 'Notes Payable',
-                        'Capital', 'Withdrawal', 'Service Revenue',
-                        'Rent Expense', 'Utilities Expense', 'Salaries Expense', 'Misc. Expense'
-                    ]
+            nestedHeaders: [
+                [
+                    '',
+                    { label: 'ASSETS', colspan: 6 },
+                    { label: 'LIABILITIES', colspan: 2 },
+                    { label: "OWNER'S EQUITY", colspan: 3 },
+                    { label: 'EXPENSES', colspan: 4 }
                 ],
+                [
+                    '',
+                    'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixtures', 'Land', 'Equipment',
+                    'Accounts Payable', 'Notes Payable',
+                    'Capital', 'Withdrawal', 'Service Revenue',
+                    'Rent Expense', 'Utilities Expense', 'Salaries Expense', 'Misc. Expense'
+                ]
+            ],
 
-                columns: Array(15).fill({ type: 'text' }),
-                colWidths: isMobile ? 100 : (isTablet ? 110 : 120),
+            columns: Array(15).fill({ type: 'text' }),
+            colWidths: isMobile ? 100 : (isTablet ? 110 : 120),
 
-                formulas: { engine: hyperformulaInstance },
-                contextMenu: true,
-                undo: true,
-                manualColumnResize: true,
-                manualRowResize: true,
-                manualColumnMove: true,
-                manualRowMove: true,
-                fillHandle: true,
-                autoColumnSize: false,
-                autoRowSize: false,
-                copyPaste: true,
-                minRows: 15,
-                minCols: 15,
-                stretchH: 'none',
-                enterMoves: { row: 1, col: 0 },
-                tabMoves: { row: 0, col: 1 },
-                outsideClickDeselects: false,
-                selectionMode: 'multiple',
-                mergeCells: true,
-                comments: true,
-                customBorders: true,
-            });
+            formulas: { engine: hyperformulaInstance },
+            contextMenu: true,
+            undo: true,
+            manualColumnResize: true,
+            manualRowResize: true,
+            manualColumnMove: true,
+            manualRowMove: true,
+            fillHandle: true,
+            autoColumnSize: false,
+            autoRowSize: false,
+            copyPaste: true,
+            minRows: 15,
+            minCols: 15,
+            stretchH: 'none',
+            enterMoves: { row: 1, col: 0 },
+            tabMoves: { row: 0, col: 1 },
+            outsideClickDeselects: false,
+            selectionMode: 'multiple',
+            mergeCells: true,
+            comments: true,
+            customBorders: true,
 
-            // Handle window resize
-            let resizeTimer;
-            window.addEventListener('resize', function() {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(function() {
-                    const newIsMobile = window.innerWidth < 640;
-                    const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-                    const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
-                    
-                    hot.updateSettings({
-                        height: newHeight,
-                        colWidths: newIsMobile ? 100 : (newIsTablet ? 110 : 120)
+            // Handle formula input with whitespace
+            beforeChange: function(changes, source) {
+                if (changes) {
+                    changes.forEach(function(change) {
+                        // change[3] is the new value
+                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
+                            // Trim leading/trailing spaces but keep internal spaces
+                            change[3] = change[3].trim();
+                        }
                     });
-                }, 250);
-            });
+                }
+            },
 
-            // Capture spreadsheet data on submit
-            const answerKeyForm = document.getElementById("answerKeyForm");
-            if (answerKeyForm) {
-                answerKeyForm.addEventListener("submit", function (e) {
-                    e.preventDefault();
-                    const data = hot.getData();
-                    document.getElementById("correctData").value = JSON.stringify(data);
-                    this.submit();
-                });
+            // Optional: Add visual indicator for formula cells
+            cells: function(row, col) {
+                const cellProperties = {};
+                const cellData = this.instance.getDataAtCell(row, col);
+                
+                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
+                    cellProperties.className = 'formula-cell';
+                }
+                
+                return cellProperties;
             }
         });
-    </script>
+
+        // Responsive resize handler
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                const newIsMobile = window.innerWidth < 640;
+                const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+                const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
+                
+                hot.updateSettings({
+                    height: newHeight,
+                    colWidths: newIsMobile ? 100 : (newIsTablet ? 110 : 120)
+                });
+            }, 250);
+        });
+
+        // Capture spreadsheet data on submit
+        const answerKeyForm = document.getElementById("answerKeyForm");
+        if (answerKeyForm) {
+            answerKeyForm.addEventListener("submit", function (e) {
+                e.preventDefault();
+                const data = hot.getData();
+                document.getElementById("correctData").value = JSON.stringify(data);
+                this.submit();
+            });
+        }
+    });
+</script>
 </x-app-layout>

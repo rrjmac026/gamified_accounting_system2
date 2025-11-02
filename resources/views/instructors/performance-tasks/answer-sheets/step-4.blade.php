@@ -358,6 +358,7 @@
 
 <script>
     let hot;
+
     document.addEventListener("DOMContentLoaded", function () {
         const container = document.getElementById('spreadsheet');
         const savedData = @json($sheet->correct_data ?? null);
@@ -384,6 +385,16 @@
                 ['Total', '', '']               // Last row: Totals
             ];
 
+        // Initialize HyperFormula for Excel-like formulas with whitespace support
+        const hyperformulaInstance = HyperFormula.buildEmpty({
+            licenseKey: 'internal-use-in-handsontable',
+            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+        });
+
+        // Determine responsive dimensions
+        const isMobile = window.innerWidth < 640;
+        const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+
         // ✅ Initialize Handsontable
         hot = new Handsontable(container, {
             data: initialData,
@@ -393,20 +404,62 @@
                 { type: 'numeric', numericFormat: { pattern: '₱0,0.00' } },
             ],
             rowHeaders: true,
+            width: '100%',
+            height: isMobile ? 350 : (isTablet ? 450 : 500),
             licenseKey: 'non-commercial-and-evaluation',
-            height: 450,
             stretchH: 'all',
+            className: 'htCenter htMiddle',
+
+            // Formula support with whitespace handling
+            formulas: { engine: hyperformulaInstance },
+
+            // Handle formula input with whitespace
+            beforeChange: function(changes, source) {
+                if (changes) {
+                    changes.forEach(function(change) {
+                        // change[3] is the new value
+                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
+                            // Trim leading/trailing spaces but keep internal spaces
+                            change[3] = change[3].trim();
+                        }
+                    });
+                }
+            },
+
+            // Full feature set
             contextMenu: true,
+            undo: true,
             manualColumnResize: true,
             manualRowResize: true,
+            manualColumnMove: true,
+            manualRowMove: true,
+            fillHandle: true,
+            autoColumnSize: false,
+            autoRowSize: false,
+            copyPaste: true,
+            minRows: 16,
+            minCols: 3,
+            stretchH: 'all',
+            enterMoves: { row: 1, col: 0 },
+            tabMoves: { row: 0, col: 1 },
+            outsideClickDeselects: false,
+            selectionMode: 'multiple',
+            mergeCells: true,
+            comments: true,
+            customBorders: true,
             minSpareRows: 0,
-            className: 'htCenter htMiddle',
             
             // ✅ Custom cell styling
             cells: function(row, col) {
                 const cellProperties = {};
                 const data = this.instance.getData();
                 const lastRow = data.length - 1;
+                const cellData = this.instance.getDataAtCell(row, col);
+
+                // Add formula cell styling
+                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
+                    cellProperties.className = (cellProperties.className || '') + ' formula-cell';
+                }
                 
                 // Row 0: Company name (only in Debit column)
                 if (row === 0) {
@@ -493,6 +546,21 @@
                 
                 return cellProperties;
             }
+        });
+
+        // Responsive resize handler
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                const newIsMobile = window.innerWidth < 640;
+                const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+                const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
+                
+                hot.updateSettings({
+                    height: newHeight
+                });
+            }, 250);
         });
 
         // ✅ Handle form submission

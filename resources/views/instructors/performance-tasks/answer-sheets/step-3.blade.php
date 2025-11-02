@@ -368,6 +368,7 @@
 
 <script>
     let hot;
+
     document.addEventListener("DOMContentLoaded", function () {
         const container = document.getElementById('spreadsheet');
         const savedData = @json($sheet->correct_data ?? null);
@@ -387,6 +388,16 @@
             ? JSON.parse(savedData)
             : Array.from({ length: 15 }, () => Array(numCols).fill(''));
 
+        // Initialize HyperFormula for Excel-like formulas with whitespace support
+        const hyperformulaInstance = HyperFormula.buildEmpty({
+            licenseKey: 'internal-use-in-handsontable',
+            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+        });
+
+        // Determine responsive dimensions
+        const isMobile = window.innerWidth < 640;
+        const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+
         const nestedHeaders = [
             accounts.map(name => ({ label: name, colspan: 6 })),
             Array(accounts.length).fill(['Date', '', 'Debit (₱)', 'Credit (₱)', '', 'Date']).flat()
@@ -394,13 +405,16 @@
 
         const columns = [];
         for (let i = 0; i < accounts.length; i++) {
+            const baseWidth = isMobile ? 80 : (isTablet ? 90 : 100);
+            const numericWidth = isMobile ? 100 : (isTablet ? 110 : 120);
+            
             columns.push(
-                { type: 'text', width: 100 },
+                { type: 'text', width: baseWidth },
                 { type: 'text', width: 40 },
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 120 },
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 120 },
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: numericWidth },
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: numericWidth },
                 { type: 'text', width: 40 },
-                { type: 'text', width: 100 }
+                { type: 'text', width: baseWidth }
             );
         }
 
@@ -409,16 +423,60 @@
             rowHeaders: true,
             nestedHeaders: nestedHeaders,
             columns: columns,
-            height: 'auto',
+            width: '100%',
+            height: isMobile ? 350 : (isTablet ? 450 : 500),
             licenseKey: 'non-commercial-and-evaluation',
+
+            // Formula support with whitespace handling
+            formulas: { engine: hyperformulaInstance },
+
+            // Handle formula input with whitespace
+            beforeChange: function(changes, source) {
+                if (changes) {
+                    changes.forEach(function(change) {
+                        // change[3] is the new value
+                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
+                            // Trim leading/trailing spaces but keep internal spaces
+                            change[3] = change[3].trim();
+                        }
+                    });
+                }
+            },
+
+            // Full feature set
             contextMenu: true,
+            undo: true,
             manualColumnResize: true,
             manualRowResize: true,
+            manualColumnMove: true,
+            manualRowMove: true,
+            fillHandle: true,
+            autoColumnSize: false,
+            autoRowSize: false,
+            copyPaste: true,
+            minRows: 15,
+            minCols: numCols,
+            stretchH: 'none',
+            enterMoves: { row: 1, col: 0 },
+            tabMoves: { row: 0, col: 1 },
+            outsideClickDeselects: false,
+            selectionMode: 'multiple',
+            mergeCells: true,
+            comments: true,
+            customBorders: true,
             minSpareRows: 1,
+
             cells: function (row, col) {
                 const cellProperties = {};
                 const colIndex = col % 6;
+                const cellData = this.instance.getDataAtCell(row, col);
 
+                // Add formula cell styling
+                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
+                    cellProperties.className = (cellProperties.className || '') + ' formula-cell';
+                }
+
+                // T-account styling
                 if (colIndex === 0 || colIndex === 5) {
                     cellProperties.className = (cellProperties.className || '') + ' t-account-date';
                 } else if (colIndex === 1 || colIndex === 4) {
@@ -434,6 +492,38 @@
             },
         });
 
+        // Responsive resize handler
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                const newIsMobile = window.innerWidth < 640;
+                const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+                const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
+                
+                const newColumns = [];
+                for (let i = 0; i < accounts.length; i++) {
+                    const baseWidth = newIsMobile ? 80 : (newIsTablet ? 90 : 100);
+                    const numericWidth = newIsMobile ? 100 : (newIsTablet ? 110 : 120);
+                    
+                    newColumns.push(
+                        { type: 'text', width: baseWidth },
+                        { type: 'text', width: 40 },
+                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: numericWidth },
+                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: numericWidth },
+                        { type: 'text', width: 40 },
+                        { type: 'text', width: baseWidth }
+                    );
+                }
+                
+                hot.updateSettings({
+                    height: newHeight,
+                    columns: newColumns
+                });
+            }, 250);
+        });
+
+        // Capture spreadsheet data on submit
         const answerKeyForm = document.getElementById("answerKeyForm");
         if (answerKeyForm) {
             answerKeyForm.addEventListener("submit", function (e) {
