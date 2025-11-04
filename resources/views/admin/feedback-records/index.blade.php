@@ -2,7 +2,7 @@
 
 <x-app-layout>
     {{-- Header Section with Create Button --}}
-    <div class="flex flex-col sm:flex-row justify-between items-center px-4 sm:px-8 mt-4 gap-4">
+    <!-- <div class="flex flex-col sm:flex-row justify-between items-center px-4 sm:px-8 mt-4 gap-4">
         <h2 class="text-lg sm:text-xl font-semibold text-[#FF92C2]">Feedback Records Management</h2>
         <div class="w-full sm:w-auto">
             <a href="{{ route('admin.feedback-records.create') }}" 
@@ -11,7 +11,7 @@
                 Add Feedback
             </a>
         </div>
-    </div>
+    </div> -->
 
     {{-- Enhanced Search Form --}}
     <div class="px-4 sm:px-8 mt-8">
@@ -78,53 +78,53 @@
                                                 </th>
                                             </tr>
                                         </thead>
-                                        <tbody id="feedback-table-body">
-                                            @forelse($feedbacks as $feedback)
-                                                <tr class="bg-white border-b border-[#FFC8FB] hover:bg-[#FFD9FF] transition-colors duration-150">
-                                                    <td class="py-3 px-4 font-medium">
-                                                        {{ $feedback->student->user->name }}
-                                                    </td>
-                                                    <td class="hidden md:table-cell py-3 px-4">
-                                                        {{ $feedback->task->title }}
-                                                    </td>
-                                                    <td class="hidden lg:table-cell py-3 px-4">
-                                                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-[#FFD9FF] text-[#FF92C2] capitalize">
-                                                            {{ $feedback->feedback_type }}
-                                                        </span>
-                                                    </td>
-                                                    <td class="py-3 px-4 text-sm text-gray-600">
-                                                        {{ $feedback->created_at->format('M d, Y') }}
-                                                        <div class="text-xs text-gray-500">
-                                                            {{ $feedback->created_at->format('H:i') }}
-                                                        </div>
-                                                    </td>
-                                                    <td class="py-3 px-4">
-                                                        <div class="flex flex-col sm:flex-row gap-2">
-                                                            <a href="{{ route('admin.feedback-records.show', $feedback) }}" 
-                                                               class="text-[#FF92C2] hover:text-[#ff6fb5]">
-                                                                <i class="fas fa-eye"></i>
-                                                                <span class="ml-2 sm:hidden">View</span>
-                                                            </a>
-                                                            <a href="{{ route('admin.feedback-records.edit', $feedback) }}" 
-                                                               class="text-[#FF92C2] hover:text-[#ff6fb5]">
-                                                                <i class="fas fa-edit"></i>
-                                                                <span class="ml-2 sm:hidden">Edit</span>
-                                                            </a>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="5" class="py-8 px-4 text-center text-gray-500">
-                                                        <div class="flex flex-col items-center">
-                                                            <i class="fas fa-comments text-4xl mb-4"></i>
-                                                            <p class="text-lg font-medium text-gray-900 mb-1">No feedback records found</p>
-                                                            <p class="text-gray-600">Add a new feedback record to get started</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
+                                            <tbody id="feedback-table-body">
+                                                @forelse($feedbacks as $feedback)
+                                                    <tr class="bg-white border-b border-[#FFC8FB] hover:bg-[#FFD9FF] transition-colors duration-150">
+                                                        <td class="py-3 px-4 font-medium">
+                                                            {{ $feedback->student->user->name }}
+                                                        </td>
+                                                        <td class="hidden md:table-cell py-3 px-4">
+                                                            {{ $feedback->performanceTask->title ?? 'N/A' }}
+                                                        </td>
+                                                        <td class="hidden lg:table-cell py-3 px-4">
+                                                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-[#FFD9FF] text-[#FF92C2] capitalize">
+                                                                {{ $feedback->feedback_type }}
+                                                            </span>
+                                                        </td>
+                                                        <td class="py-3 px-4 text-sm text-gray-600">
+                                                            {{ $feedback->created_at->format('M d, Y') }}
+                                                            <div class="text-xs text-gray-500">
+                                                                {{ $feedback->created_at->format('H:i') }}
+                                                            </div>
+                                                        </td>
+                                                        <td class="py-3 px-4">
+                                                            <div class="flex flex-col sm:flex-row gap-2">
+                                                                <a href="{{ route('admin.feedback-records.show', $feedback) }}" 
+                                                                class="text-[#FF92C2] hover:text-[#ff6fb5]">
+                                                                    <i class="fas fa-eye"></i>
+                                                                    <span class="ml-2 sm:hidden">View</span>
+                                                                </a>
+                                                                <a href="{{ route('admin.feedback-records.edit', $feedback) }}" 
+                                                                class="text-[#FF92C2] hover:text-[#ff6fb5]">
+                                                                    <i class="fas fa-edit"></i>
+                                                                    <span class="ml-2 sm:hidden">Edit</span>
+                                                                </a>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                @empty
+                                                    <tr>
+                                                        <td colspan="5" class="py-8 px-4 text-center text-gray-500">
+                                                            <div class="flex flex-col items-center">
+                                                                <i class="fas fa-comments text-4xl mb-4"></i>
+                                                                <p class="text-lg font-medium text-gray-900 mb-1">No feedback records found</p>
+                                                                <p class="text-gray-600">Add a new feedback record to get started</p>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                @endforelse
+                                            </tbody>
                                     </table>
                                 </div>
                             </div>

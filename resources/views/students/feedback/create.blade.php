@@ -47,15 +47,15 @@
                     <!-- Task -->
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Task</label>
-                        <select name="task_id" required class="w-full rounded-xl bg-white border border-[#FFC8FB]/70 text-gray-900 focus:border-[#FF92C2] focus:ring-2 focus:ring-[#FFD6EB] transition-colors duration-200">
+                        <select name="performance_task_id" required class="w-full rounded-xl bg-white border border-[#FFC8FB]/70 text-gray-900 focus:border-[#FF92C2] focus:ring-2 focus:ring-[#FFD6EB] transition-colors duration-200">
                             <option value="">Select Task</option>
-                            @foreach($tasks as $task)
-                                <option value="{{ $task->id }}" {{ old('task_id') == $task->id ? 'selected' : '' }}>
+                            @foreach($performanceTasks as $task)
+                                <option value="{{ $task->id }}" {{ old('performance_task_id') == $task->id ? 'selected' : '' }}>
                                     {{ $task->title }}
                                 </option>
                             @endforeach
                         </select>
-                        @error('task_id')
+                        @error('performance_task_id')
                             <p class="mt-1 text-sm text-[#E11D48]">{{ $message }}</p>
                         @enderror
                     </div>

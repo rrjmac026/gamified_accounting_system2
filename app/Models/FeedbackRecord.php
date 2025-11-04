@@ -11,7 +11,7 @@ class FeedbackRecord extends Model
 
     protected $fillable = [
         'student_id',
-        'performance_task_id',  // Changed from task_id
+        'performance_task_id',
         'feedback_type',
         'feedback_text',
         'recommendations',
@@ -24,7 +24,7 @@ class FeedbackRecord extends Model
     protected $casts = [
         'recommendations' => 'array',
         'generated_at' => 'datetime',
-        'feedback_date' => 'datetime', // Cast legacy field too
+        'feedback_date' => 'datetime',
         'is_read' => 'boolean',
         'is_anonymous' => 'boolean',
         'rating' => 'integer'
@@ -43,7 +43,7 @@ class FeedbackRecord extends Model
         return $this->belongsTo(Student::class);
     }
     // Update relationship
-    public function performanceTask()  // Changed from task()
+    public function performanceTask()
     {
         return $this->belongsTo(PerformanceTask::class, 'performance_task_id');
     }

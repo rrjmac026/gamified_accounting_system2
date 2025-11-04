@@ -69,9 +69,14 @@ class PerformanceTask extends Model
     }
 
     public function students()
-{
-    return $this->belongsToMany(Student::class, 'performance_task_student')
-        ->withPivot(['status', 'score', 'attempts']) // Removed 'completed_at'
-        ->withTimestamps();
-}
+    {
+        return $this->belongsToMany(Student::class, 'performance_task_student')
+            ->withPivot(['status', 'score', 'attempts']) // Removed 'completed_at'
+            ->withTimestamps();
+    }
+
+    public function feedbacks()
+        {
+            return $this->hasMany(FeedbackRecord::class, 'performance_task_id');
+        }
 }

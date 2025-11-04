@@ -32,7 +32,6 @@ use App\Http\Controllers\Instructors\StudentTaskController;
 use App\Http\Controllers\Instructors\TaskSubmissionController;
 use App\Http\Controllers\Instructors\InstructorSectionController;
 use App\Http\Controllers\Instructors\InstructorSubjectController;
-use App\Http\Controllers\Instructors\QuizController;
 use App\Http\Controllers\Instructors\StudentProgressesController;
 use App\Http\Controllers\Admin\DataBackupController;
 use App\Http\Controllers\Instructors\PerformanceTaskController;
@@ -314,6 +313,7 @@ Route::middleware(['auth', 'role:student'])->prefix('students')->name('students.
     // Progress & Achievements
     Route::get('/progress', [StudentProgressController::class, 'progress'])->name('progress');
     Route::get('/achievements', [StudentProgressController::class, 'achievements'])->name('achievements');
+    
     // Todo Management
     Route::prefix('todo')->group(function () {
         Route::get('/{status?}', [TodoController::class, 'index'])
@@ -325,10 +325,6 @@ Route::middleware(['auth', 'role:student'])->prefix('students')->name('students.
     Route::get('/subjects', [\App\Http\Controllers\Students\StudentSubjectController::class, 'index'])->name('subjects.index');
     Route::get('/subjects/{id}', [\App\Http\Controllers\Students\StudentSubjectController::class, 'show'])->name('subjects.show');
     
-    // Quiz Submissions
-    Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submitAnswer'])->name('quizzes.submit');
-    // List all performance tasks assigned to the student
-
     // Performance Tasks
     Route::get('/performance-tasks', [StudentPerformanceTaskController::class, 'index'])
         ->name('performance-tasks.index');
@@ -339,7 +335,6 @@ Route::middleware(['auth', 'role:student'])->prefix('students')->name('students.
     Route::get('/performance-tasks/{id}', [StudentPerformanceTaskController::class, 'show'])
         ->name('performance-tasks.show');
 
-    // Fixed: Added {id} parameter
     Route::get('/performance-tasks/{id}/step/{step}', [StudentPerformanceTaskController::class, 'step'])
         ->name('performance-tasks.step');
 
@@ -348,19 +343,29 @@ Route::middleware(['auth', 'role:student'])->prefix('students')->name('students.
 
     Route::post('/performance-tasks/submit', [StudentPerformanceTaskController::class, 'submit'])
         ->name('performance-tasks.submit');
-    Route::get('performance-tasks/{id}/step/{step}/answers', [StudentPerformanceTaskController::class, 'showAnswers'])
-    ->name('performance-tasks.show-answers');
         
+    Route::get('performance-tasks/{id}/step/{step}/answers', [StudentPerformanceTaskController::class, 'showAnswers'])
+        ->name('performance-tasks.show-answers');
+    
     // Feedback Management
-    Route::resource('feedback', FeedbackController::class);
+    Route::prefix('feedback')->name('feedback.')->group(function () {
+        Route::get('/', [FeedbackController::class, 'index'])->name('index');
+        Route::get('/create', [FeedbackController::class, 'create'])->name('create');
+        Route::post('/', [FeedbackController::class, 'store'])->name('store');
+        Route::post('/mark-all-read', [FeedbackController::class, 'markAllAsRead'])->name('mark-all-read');
+        Route::get('/task/{taskId}', [FeedbackController::class, 'byTask'])->name('by-task');
+        Route::get('/{feedback}', [FeedbackController::class, 'show'])->name('show');
+        Route::post('/{feedback}/mark-read', [FeedbackController::class, 'markAsRead'])->name('mark-read');
+        Route::get('/{feedback}/export', [FeedbackController::class, 'export'])->name('export');
+        Route::delete('/{feedback}', [FeedbackController::class, 'destroy'])->name('destroy');
+    });
     
     // Evaluation Management (Student View)
     Route::get('/evaluations/create', [EvaluationController::class, 'create'])->name('evaluations.create');
     Route::post('/evaluations', [EvaluationController::class, 'store'])->name('evaluations.store');
     Route::get('/my-evaluations', [EvaluationController::class, 'myEvaluations'])->name('evaluations.index');
     
-    
-    //Hide the Leaderboard name
+    // Hide the Leaderboard name
     Route::patch('/profile/leaderboard-privacy', [ProfileController::class, 'updateLeaderboardPrivacy'])
          ->name('updateLeaderboardPrivacy');
 });

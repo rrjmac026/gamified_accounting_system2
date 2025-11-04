@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\FeedbackRecord;
 use App\Models\Student;
-use App\Models\Task;
+use App\Models\PerformanceTask;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -16,7 +16,7 @@ class FeedbackRecordController extends Controller
     public function index()
     {
         try {
-            $feedbacks = FeedbackRecord::with(['student.user', 'task'])
+            $feedbacks = FeedbackRecord::with(['student.user', 'performanceTask'])
                 ->latest('generated_at')
                 ->paginate(15);
             return view('admin.feedback-records.index', compact('feedbacks'));
@@ -30,7 +30,7 @@ class FeedbackRecordController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'student_id' => 'required|exists:students,id',
-            'task_id' => 'required|exists:tasks,id',
+            'performance_task_id' => 'required|exists:performance_tasks,id',
             'feedback_type' => 'required|in:general,improvement,question',
             'feedback_text' => 'required|string|min:10',
             'recommendations' => 'required|string',
@@ -45,7 +45,7 @@ class FeedbackRecordController extends Controller
 
         try {
             FeedbackRecord::create($validator->validated());
-            return redirect()->route('feedback-records.index')
+            return redirect()->route('admin.feedback-records.index')
                 ->with('success', 'Feedback created successfully.');
         } catch (Exception $e) {
             Log::error('Error creating feedback: ' . $e->getMessage());
@@ -56,7 +56,7 @@ class FeedbackRecordController extends Controller
     public function show(FeedbackRecord $feedbackRecord)
     {
         try {
-            $feedbackRecord->load(['student.user', 'task']);
+            $feedbackRecord->load(['student.user', 'performanceTask']);
             // Mark as read when admin views
             if (!$feedbackRecord->is_read) {
                 $feedbackRecord->update(['is_read' => true]);
@@ -72,7 +72,7 @@ class FeedbackRecordController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'student_id' => 'required|exists:students,id',
-            'task_id' => 'required|exists:tasks,id',
+            'performance_task_id' => 'required|exists:performance_tasks,id',
             'feedback_type' => 'required|in:general,improvement,question',
             'feedback_text' => 'required|string|min:10',
             'recommendations' => 'required|string',
@@ -87,7 +87,7 @@ class FeedbackRecordController extends Controller
 
         try {
             $feedbackRecord->update($validator->validated());
-            return redirect()->route('feedback-records.index')
+            return redirect()->route('admin.feedback-records.index')
                 ->with('success', 'Feedback updated successfully.');
         } catch (Exception $e) {
             Log::error('Error updating feedback: ' . $e->getMessage());
@@ -99,7 +99,7 @@ class FeedbackRecordController extends Controller
     {
         try {
             $feedbackRecord->delete();
-            return redirect()->route('feedback-records.index')
+            return redirect()->route('admin.feedback-records.index')
                 ->with('success', 'Feedback deleted successfully.');
         } catch (Exception $e) {
             Log::error('Error deleting feedback: ' . $e->getMessage());
