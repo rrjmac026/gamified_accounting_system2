@@ -156,9 +156,6 @@
                         </div>
                         <div class="p-6 space-y-4">
                             @forelse($recentGrades as $task)
-                                @php
-                                    $studentPivot = $task->students->first()?->pivot;
-                                @endphp
                                 <a href="{{ route('students.performance-tasks.show', $task->id) }}" 
                                    class="block bg-[#FFF6FD] border border-[#FFC8FB]/30 rounded-lg p-4 hover:bg-[#FFD9FF]/30 transition-colors duration-200">
                                     <div class="flex justify-between items-start">
@@ -169,12 +166,21 @@
                                             </p>
                                         </div>
                                         <div class="text-right ml-4">
-                                            <div class="font-semibold text-lg text-[#FF92C2]">
-                                                {{ $studentPivot->score ?? 'N/A' }}/{{ $task->max_score ?? 100 }}
+                                            @php
+                                                // Max score is for the ENTIRE task, not per step
+                                                $maxPossible = $task->max_score ?? 100;
+                                                $scorePercentage = $maxPossible > 0 ? (($task->pivot->score ?? 0) / $maxPossible) * 100 : 0;
+                                                $scoreColor = $scorePercentage >= 90 ? 'text-emerald-600' : ($scorePercentage >= 70 ? 'text-amber-600' : 'text-red-600');
+                                            @endphp
+                                            <div class="font-semibold text-lg {{ $scoreColor }}">
+                                                {{ $task->pivot->score ?? 0 }}/{{ $maxPossible }}
                                             </div>
-                                            @if($studentPivot && isset($studentPivot->xp_earned))
-                                                <div class="text-sm text-emerald-600 font-medium">
-                                                    XP: +{{ $studentPivot->xp_earned }}
+                                            <div class="text-xs text-gray-500">
+                                                ({{ number_format($scorePercentage, 1) }}%)
+                                            </div>
+                                            @if(isset($task->pivot->xp_earned) && $task->pivot->xp_earned)
+                                                <div class="text-sm text-emerald-600 font-medium mt-1">
+                                                    XP: +{{ $task->pivot->xp_earned }}
                                                 </div>
                                             @endif
                                         </div>
@@ -274,12 +280,14 @@
                                    class="block p-4 bg-white rounded-lg border border-[#FFC8FB]/30 hover:bg-[#FFD9FF]/30 transition-colors duration-200">
                                     <h3 class="font-medium text-gray-900">{{ $task->title }}</h3>
                                     <p class="text-sm text-gray-600">{{ $task->subject->subject_name ?? 'No Subject' }}</p>
-                                    <div class="flex items-center mt-2 text-xs text-gray-500">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        Due {{ $task->due_date->format('M d, Y') }}
-                                    </div>
+                                    @if($task->due_date)
+                                        <div class="flex items-center mt-2 text-xs text-gray-500">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            Due {{ $task->due_date->format('M d, Y') }}
+                                        </div>
+                                    @endif
                                 </a>
                             @empty
                                 <p class="text-gray-500 text-center py-4">No upcoming tasks</p>

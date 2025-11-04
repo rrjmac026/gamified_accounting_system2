@@ -183,19 +183,19 @@ class PerformanceTaskController extends Controller
      */
     public function destroy(PerformanceTask $task)
     {
-        // Authorize: ensure the instructor owns this task
+        
         if ($task->instructor_id !== Auth::user()->instructor->id) {
             abort(403, 'Unauthorized action.');
         }
 
-        // Load section with students before deletion
+        
         $task->load('section.students.user');
         $taskTitle = $task->title;
         $students = $task->section->students ?? collect();
 
         $task->delete();
 
-        // Notify affected students
+        
         if ($students->isNotEmpty()) {
             foreach ($students as $student) {
                 SystemNotification::create([
@@ -204,7 +204,7 @@ class PerformanceTaskController extends Controller
                     'message' => "The performance task '{$taskTitle}' has been removed.",
                     'type'    => 'info',
                     'is_read' => false,
-                    'link'    => null, // No link since task is deleted
+                    'link'    => null,
                 ]);
             }
         }

@@ -378,7 +378,17 @@ class StudentManagementController extends Controller
 
     public function show(Student $student)
     {
-        $student->load(['user', 'subjects', 'badges', 'tasks']);
+        // Eager load all relationships including nested ones
+        $student->load([
+            'user', 
+            'course',
+            'sections',
+            'subjects.instructors.user',  // Add this - nested eager loading
+            'badges', 
+            'tasks',
+            'xpTransactions'
+        ]);
+        
         return view('admin.student.show', compact('student'));
     }
 

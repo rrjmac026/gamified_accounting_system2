@@ -58,38 +58,38 @@
                             <div class="inline-block min-w-full align-middle">
                                 <div class="overflow-hidden shadow-md rounded-lg">
                                     <table class="min-w-full divide-y divide-[#FFC8FB]">
-                                        <thead class="bg-[#FFC8FB] text-xs uppercase">
+                                        <thead class="bg-[#FFC8FB]">
                                             <tr>
-                                                <th scope="col" class="py-3 px-4">
+                                                <th scope="col" class="py-3 px-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                                     Section Code
                                                 </th>
-                                                <th scope="col" class="py-3 px-4">
+                                                <th scope="col" class="py-3 px-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                                     Section Name
                                                 </th>
-                                                <th scope="col" class="hidden lg:table-cell py-3 px-4">
+                                                <th scope="col" class="hidden lg:table-cell py-3 px-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                                     Subject Codes
                                                 </th>
-                                                <th scope="col" class="hidden md:table-cell py-3 px-4">
+                                                <th scope="col" class="hidden md:table-cell py-3 px-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                                     Capacity
                                                 </th>
-                                                <th scope="col" class="py-3 px-4">
+                                                <th scope="col" class="py-3 px-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                                     Students
                                                 </th>
-                                                <th scope="col" class="py-3 px-4">
+                                                <th scope="col" class="py-3 px-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                                     Actions
                                                 </th>
                                             </tr>
                                         </thead>
-                                        <tbody id="section-table-body">
+                                        <tbody id="section-table-body" class="bg-white divide-y divide-[#FFC8FB]">
                                             @forelse ($sections as $section)
-                                                <tr class="bg-white border-b border-[#FFC8FB] hover:bg-[#FFD9FF] transition-colors duration-150">
-                                                    <td class="py-3 px-4 font-medium">
+                                                <tr class="hover:bg-[#FFD9FF] transition-colors duration-150">
+                                                    <td class="py-3 px-4 text-sm font-medium text-gray-900">
                                                         {{ $section->section_code }}
                                                     </td>
-                                                    <td class="py-3 px-4">
+                                                    <td class="py-3 px-4 text-sm text-gray-700">
                                                         {{ $section->name }}
                                                     </td>
-                                                    <td class="hidden lg:table-cell py-3 px-4">
+                                                    <td class="hidden lg:table-cell py-3 px-4 text-sm">
                                                         @if($section->subjects->count())
                                                             <div class="flex flex-wrap gap-1">
                                                                 @foreach($section->subjects as $subject)
@@ -100,39 +100,40 @@
                                                                 @endforeach
                                                             </div>
                                                         @else
-                                                            <span class="text-gray-400 text-sm">No subjects assigned</span>
+                                                            <span class="text-gray-400 text-xs">No subjects assigned</span>
                                                         @endif
                                                     </td>
-                                                    <td class="hidden md:table-cell py-3 px-4">
+                                                    <td class="hidden md:table-cell py-3 px-4 text-sm text-gray-700 text-center">
                                                         {{ $section->capacity ?? 'Unlimited' }}
                                                     </td>
-                                                    <td class="py-3 px-4">
-                                                        <div class="flex items-center gap-2">
+                                                    <td class="py-3 px-4 text-center">
+                                                        <div class="flex items-center justify-center gap-2">
                                                             <i class="fas fa-users text-xs text-gray-400"></i>
-                                                            <span class="text-sm">{{ $section->students->count() }}</span>
+                                                            <span class="text-sm text-gray-700">{{ $section->students->count() }}</span>
                                                         </div>
                                                     </td>
                                                     <td class="py-3 px-4">
-                                                        <div class="flex flex-col sm:flex-row gap-2">
+                                                        <div class="flex items-center justify-center gap-3">
                                                             <a href="{{ route('admin.sections.show', $section) }}" 
-                                                               class="text-[#FF92C2] hover:text-[#ff6fb5]">
+                                                               class="text-[#FF92C2] hover:text-[#ff6fb5] transition-colors"
+                                                               title="View">
                                                                 <i class="fas fa-eye"></i>
-                                                                <span class="ml-2 sm:hidden">View</span>
                                                             </a>
                                                             <a href="{{ route('admin.sections.edit', $section) }}" 
-                                                               class="text-[#FF92C2] hover:text-[#ff6fb5]">
+                                                               class="text-[#FF92C2] hover:text-[#ff6fb5] transition-colors"
+                                                               title="Edit">
                                                                 <i class="fas fa-edit"></i>
-                                                                <span class="ml-2 sm:hidden">Edit</span>
                                                             </a>
                                                             <form action="{{ route('admin.sections.destroy', $section) }}" 
                                                                   method="POST" 
-                                                                  class="inline-flex" 
+                                                                  class="inline-block" 
                                                                   onsubmit="return confirm('Are you sure you want to delete this section?');">
                                                                 @csrf
                                                                 @method('DELETE')
-                                                                <button type="submit" class="inline-flex items-center text-red-600 hover:text-red-900">
+                                                                <button type="submit" 
+                                                                        class="text-red-600 hover:text-red-900 transition-colors"
+                                                                        title="Delete">
                                                                     <i class="fas fa-trash"></i>
-                                                                    <span class="ml-2 sm:hidden">Delete</span>
                                                                 </button>
                                                             </form>
                                                         </div>
@@ -142,9 +143,9 @@
                                                 <tr>
                                                     <td colspan="6" class="py-8 px-4 text-center text-gray-500">
                                                         <div class="flex flex-col items-center">
-                                                            <i class="fas fa-layer-group text-4xl mb-4"></i>
+                                                            <i class="fas fa-layer-group text-4xl mb-4 text-gray-300"></i>
                                                             <p class="text-lg font-medium text-gray-900 mb-1">No sections found</p>
-                                                            <p class="text-gray-600">Add a new section to get started</p>
+                                                            <p class="text-sm text-gray-600">Add a new section to get started</p>
                                                         </div>
                                                     </td>
                                                 </tr>

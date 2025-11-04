@@ -117,7 +117,9 @@
                                                 <tr class="hover:bg-[#FFD9FF]">
                                                     <td class="py-2 px-4">{{ $subject->subject_code }}</td>
                                                     <td class="py-2 px-4">{{ $subject->subject_name }}</td>
-                                                    <td class="py-2 px-4">{{ $subject->instructor->user->name ?? 'N/A' }}</td>
+                                                    <td class="py-2 px-4">
+                                                        {{ $subject->instructors->pluck('user.name')->join(', ') ?: 'N/A' }}
+                                                    </td>
                                                 </tr>
                                             @endforeach
                                         </tbody>

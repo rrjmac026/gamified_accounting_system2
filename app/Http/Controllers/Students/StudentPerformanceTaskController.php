@@ -7,6 +7,7 @@ use App\Models\PerformanceTask;
 use App\Models\PerformanceTaskSubmission;
 use App\Models\PerformanceTaskAnswerSheet;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class StudentPerformanceTaskController extends Controller
 {
@@ -16,39 +17,62 @@ class StudentPerformanceTaskController extends Controller
     public function index()
     {
         $user = auth()->user();
+        $student = $user->student;
 
-        // Fetch all tasks assigned to the student's section with relationships
-        $performanceTasks = PerformanceTask::whereHas('section.students', function ($query) use ($user) {
-            $query->where('student_id', $user->student->id);
-        })
-        ->with([
-            'section',
-            'subject',
-            'instructor'
-        ])
-        ->latest()
-        ->get();
+        // Fetch all tasks assigned to the student's section
+        $performanceTasks = PerformanceTask::whereHas('section.students', function ($query) use ($student) {
+                $query->where('student_id', $student->id);
+            })
+            ->with(['section', 'subject', 'instructor'])
+            ->latest()
+            ->get();
 
-        // Calculate progress for each task
-        $performanceTasks->each(function ($task) use ($user) {
-            // Count unique completed steps (regardless of correct/wrong status)
+        $performanceTasks->each(function ($task) use ($student) {
+            // ✅ 1. Calculate progress
             $completedSteps = PerformanceTaskSubmission::where('task_id', $task->id)
-                ->where('student_id', $user->student->id)
+                ->where('student_id', $student->id)
                 ->distinct()
                 ->pluck('step')
                 ->unique()
                 ->count();
-            
+
             $task->progress = $completedSteps;
             $task->totalSteps = 10;
-            $task->progressPercentage = ($completedSteps > 0) ? round(($completedSteps / 10) * 100, 2) : 0;
-            
-            // Add deadline status
+            $task->progressPercentage = $completedSteps > 0
+                ? round(($completedSteps / 10) * 100, 2)
+                : 0;
+
+            // ✅ 2. Fetch final grade from pivot table (if stored there)
+            $pivotData = DB::table('performance_task_student')
+                ->where('performance_task_id', $task->id)
+                ->where('student_id', $student->id)
+                ->first();
+
+            if ($pivotData) {
+                $task->score = $pivotData->score ?? 0;
+                $task->xp_earned = $pivotData->xp_earned ?? 0;
+                $task->status = $pivotData->status ?? 'in-progress';
+            } else {
+                // fallback if no pivot data yet
+                $task->score = 0;
+                $task->xp_earned = 0;
+                $task->status = 'in-progress';
+            }
+
+            // ✅ 3. Add other computed attributes
+            $task->max_score = $task->max_score ?? 1000;
+            $task->gradePercentage = $task->max_score > 0
+                ? round(($task->score / $task->max_score) * 100, 2)
+                : 0;
+
+            // ✅ 4. Add deadline badge
             $task->deadlineStatus = $this->getDeadlineStatus($task);
         });
 
         return view('students.performance-tasks.index', compact('performanceTasks'));
     }
+
+
 
     /**
      * Show progress page for the most recent active performance task
@@ -236,16 +260,19 @@ class StudentPerformanceTaskController extends Controller
                 $errorCount = $errorDetails['errorCount'];
                 $totalCells = $errorDetails['totalCells'];
 
-                // 🔥 FIX: Calculate score fresh every time
-                $calculatedScore = max(0, $task->max_score - ($errorCount * $task->deduction_per_error));
+                // 🔥 FIX: Calculate score per step (divide max_score by 10)
+                $maxScorePerStep = $task->max_score / 10; // e.g., 100 / 10 = 10 points per step
+                $deductionPerStep = $task->deduction_per_error;
                 
-                // Determine thresholds
-                $passingScore = $task->max_score * 0.7; // 70% threshold
+                $calculatedScore = max(0, $maxScorePerStep - ($errorCount * $deductionPerStep));
+                
+                // Determine thresholds based on step score
+                $passingScore = $maxScorePerStep * 0.7; // 70% of step's max score
                 $isPerfect = ($errorCount === 0);
                 $isPassing = ($calculatedScore >= $passingScore);
 
                 // 🔥 IMPORTANT: Always update score regardless of status
-                $submission->score = $calculatedScore;
+                $submission->score = round($calculatedScore, 2);
 
                 if ($isPerfect) {
                     // Award XP only on FIRST perfect score
@@ -253,8 +280,8 @@ class StudentPerformanceTaskController extends Controller
                     
                     $submission->status = 'correct';
                     $submission->remarks = $deadlineStatus['isLate']
-                        ? "Perfect! {$calculatedScore}/{$task->max_score} points (Late submission)"
-                        : "Perfect! {$calculatedScore}/{$task->max_score} points";
+                        ? "Perfect! {$calculatedScore}/{$maxScorePerStep} points (Late submission)"
+                        : "Perfect! {$calculatedScore}/{$maxScorePerStep} points";
                         
                 } elseif ($isPassing) {
                     // Award XP only on FIRST passing attempt (if never got correct before)
@@ -262,8 +289,8 @@ class StudentPerformanceTaskController extends Controller
                     
                     $submission->status = 'passed';
                     $submission->remarks = $deadlineStatus['isLate']
-                        ? "Good job! {$calculatedScore}/{$task->max_score} points. {$errorCount} error(s) found. (Late submission)"
-                        : "Good job! {$calculatedScore}/{$task->max_score} points. {$errorCount} error(s) found.";
+                        ? "Good job! {$calculatedScore}/{$maxScorePerStep} points. {$errorCount} error(s) found. (Late submission)"
+                        : "Good job! {$calculatedScore}/{$maxScorePerStep} points. {$errorCount} error(s) found.";
                         
                 } else {
                     // Failed - no XP awarded
@@ -271,8 +298,8 @@ class StudentPerformanceTaskController extends Controller
                     
                     $submission->status = 'wrong';
                     $submission->remarks = $deadlineStatus['isLate']
-                        ? "Score: {$calculatedScore}/{$task->max_score}. {$errorCount} error(s) found. Please review and retry. (Late submission)"
-                        : "Score: {$calculatedScore}/{$task->max_score}. {$errorCount} error(s) found. Please review and retry.";
+                        ? "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found. Please review and retry. (Late submission)"
+                        : "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found. Please review and retry.";
                 }
                 
             } else {
@@ -292,15 +319,25 @@ class StudentPerformanceTaskController extends Controller
             // Refresh to get updated data
             $submission->refresh();
 
+            // ===== SYNC TO PIVOT TABLE =====
+            $this->syncSubmissionToPivot($user->student->id, $task->id, $step, $submission);
+
+            // If this is the final step (step 10), calculate and store final grade
+            if ($step >= 10) {
+                $this->storeFinalGrade($user->student->id, $task);
+            }
+            // ===== END SYNC =====
+
             // Log performance metrics
             $this->logPerformance($user->student, $task, $step, $submission, $deadlineStatus['isLate'], $errorCount);
 
-            // Build success message
-            $message = "Step {$step} saved! (Attempt {$submission->attempts}/{$task->max_attempts}) - Score: {$submission->score}/{$task->max_score}";
+            // Build success message with correct per-step max score
+            $maxScorePerStep = $task->max_score / 10;
+            $message = "Step {$step} saved! (Attempt {$submission->attempts}/{$task->max_attempts}) - Score: {$submission->score}/{$maxScorePerStep}";
             
             // Show score change if it decreased
             if ($previousScore > 0 && $submission->score < $previousScore) {
-                $difference = $previousScore - $submission->score;
+                $difference = round($previousScore - $submission->score, 2);
                 $message .= " (⬇️ -{$difference} from previous attempt)";
             }
             
@@ -315,7 +352,7 @@ class StudentPerformanceTaskController extends Controller
             // Award XP based on score (proportional to performance)
             if ($awardXp && $submission->score > 0) {
                 $this->awardXpForStep($user->student, $task, $step, $deadlineStatus['isLate'], $submission->score);
-                $xpEarned = $this->calculateStepXp($step, $deadlineStatus['isLate'], $submission->score, $task->max_score);
+                $xpEarned = $this->calculateStepXp($step, $deadlineStatus['isLate'], $submission->score, $maxScorePerStep, $task->xp_reward ?? 100);
                 $message .= " 🎉 You earned {$xpEarned} XP!";
             }
 
@@ -327,7 +364,7 @@ class StudentPerformanceTaskController extends Controller
                 $this->logTaskCompletion($user->student, $task);
 
                 return redirect()->route('students.performance-tasks.index')
-                    ->with('success', 'You have completed all 10 steps! Final score: ' . $submission->score . '/' . $task->max_score);
+                    ->with('success', 'You have completed all 10 steps! Final score: ' . $submission->score . '/' . $maxScorePerStep);
             }
 
             // Proceed to next step
@@ -511,39 +548,42 @@ class StudentPerformanceTaskController extends Controller
      */
     private function awardXpForStep($student, $task, $step, $isLate = false, $score = 0)
     {
-        $xpAmount = $this->calculateStepXp($step, $isLate, $score, $task->max_score);
+        $xpAmount = $this->calculateStepXp($step, $isLate, $score, $task->max_score, $task->xp_reward ?? 100);
 
-        $student->xpTransactions()->create([
-            'amount' => $xpAmount,
-            'type' => 'earned',
-            'source' => 'performance_task',
-            'source_id' => $task->id,
-            'description' => "Step {$step}: {$score}/{$task->max_score} points - {$task->title}",
-            'processed_at' => now(),
-        ]);
+        if ($xpAmount > 0) {
+            $student->xpTransactions()->create([
+                'amount' => $xpAmount,
+                'type' => 'earned',
+                'source' => 'performance_task',
+                'source_id' => $task->id,
+                'description' => "Step {$step}: {$score}/{$task->max_score} points - {$task->title}",
+                'processed_at' => now(),
+            ]);
 
-        \Log::info("Awarded {$xpAmount} XP to student {$student->id} for PT step {$step}");
+            \Log::info("Awarded {$xpAmount} XP to student {$student->id} for PT step {$step}");
+        }
     }
 
     /**
      * Calculate XP amount based on step and timing
      */
-    private function calculateStepXp($step, $isLate = false, $score = 0, $maxScore = 100)
+    private function calculateStepXp($step, $isLate, $score, $maxScore, $taskXpReward = 100)
     {
-        $baseXp = 10; // Max XP per step
+        // Calculate XP per step as a fraction of total task XP (90% for steps, 10% for bonus)
+        $xpPerStep = ($taskXpReward * 0.9) / 10; // 90% divided across 10 steps
         
-        // Calculate percentage score
+        // Calculate percentage score for this step
         $percentage = $maxScore > 0 ? ($score / $maxScore) : 0;
         
-        // XP proportional to score
-        $xp = (int) ($baseXp * $percentage);
+        // XP proportional to score for this step
+        $xp = round($xpPerStep * $percentage, 2);
         
         // Apply late penalty (50% reduction)
         if ($isLate) {
-            $xp = (int) ($xp * 0.5);
+            $xp = round($xp * 0.5, 2);
         }
         
-        return max(0, $xp); // Ensure non-negative
+        return max(0, $xp);
     }
 
     /**
@@ -551,17 +591,21 @@ class StudentPerformanceTaskController extends Controller
      */
     private function awardCompletionBonus($student, $task)
     {
-        $bonusXp = 50; // Bonus for completing entire performance task
-
-        $student->xpTransactions()->create([
-            'amount' => $bonusXp,
-            'source' => 'performance_task',
-            'description' => "Completion Bonus: {$task->title}",
-            'reference_id' => $task->id,
-            'reference_type' => 'App\Models\PerformanceTask',
-        ]);
-
-        \Log::info("Awarded {$bonusXp} XP completion bonus to student {$student->id}");
+        // Award 10% bonus for completing all steps
+        $bonusXp = round(($task->xp_reward ?? 100) * 0.1, 2);
+        
+        if ($bonusXp > 0) {
+            $student->xpTransactions()->create([
+                'amount' => $bonusXp,
+                'type' => 'earned',
+                'source' => 'performance_task',
+                'source_id' => $task->id,
+                'description' => "Completion Bonus: {$task->title}",
+                'processed_at' => now(),
+            ]);
+            
+            \Log::info("Awarded {$bonusXp} XP completion bonus to student {$student->id}");
+        }
     }
 
     /**
@@ -728,4 +772,111 @@ class StudentPerformanceTaskController extends Controller
             'step' => $step,
         ]);
     }
+
+    private function syncSubmissionToPivot($studentId, $taskId, $step, $submission)
+    {
+        try {
+            // Check if pivot record exists
+            $exists = DB::table('performance_task_student')
+                ->where('performance_task_id', $taskId)
+                ->where('student_id', $studentId)
+                ->exists();
+
+            if ($exists) {
+                // Update existing record
+                DB::table('performance_task_student')
+                    ->where('performance_task_id', $taskId)
+                    ->where('student_id', $studentId)
+                    ->update([
+                        'status' => 'in_progress',
+                        'attempts' => DB::raw('attempts + 1'),
+                        'submitted_at' => now(),
+                        'updated_at' => now()
+                    ]);
+            } else {
+                // Create new record
+                DB::table('performance_task_student')->insert([
+                    'performance_task_id' => $taskId,
+                    'student_id' => $studentId,
+                    'status' => 'in_progress',
+                    'attempts' => 1,
+                    'submitted_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+
+            \Log::info("Synced submission to pivot table for student {$studentId}, task {$taskId}, step {$step}");
+        } catch (\Exception $e) {
+            \Log::error("Failed to sync to pivot table: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Store final grade when all steps are completed
+     */
+    private function storeFinalGrade($studentId, $task)
+    {
+        try {
+            // Get all step submissions for this student and task
+            $submissions = PerformanceTaskSubmission::where('task_id', $task->id)
+                ->where('student_id', $studentId)
+                ->get();
+
+            if ($submissions->isEmpty()) {
+                \Log::warning("No submissions found for student {$studentId} in task {$task->id}");
+                return;
+            }
+
+            // --- SCORE CALCULATION ---
+            $totalSteps = $submissions->count();
+            $sumOfScores = $submissions->sum('score');
+
+            // Each step is out of 100, but the total task score is 1000 (10 steps × 100)
+            // So total score = sum of all step scores (capped by task max_score)
+            $finalScore = min($sumOfScores, $task->max_score);
+
+            // Compute percentage based on total task max score
+            $percentage = $task->max_score > 0
+                ? round(($finalScore / $task->max_score) * 100, 2)
+                : 0;
+
+            // --- XP CALCULATION ---
+            // Sum of all XP already earned for this task (no double-award)
+            $totalEarnedXp = DB::table('xp_transactions')
+                ->where('student_id', $studentId)
+                ->where('source', 'performance_task')
+                ->where('source_id', $task->id)
+                ->sum('amount');
+
+            // Cap XP at the task’s defined XP reward
+            $cappedXp = min($totalEarnedXp, $task->xp_reward ?? 1000);
+
+            // --- SAVE FINAL GRADE ---
+            DB::table('performance_task_student')
+                ->where('performance_task_id', $task->id)
+                ->where('student_id', $studentId)
+                ->update([
+                    'status' => 'graded',
+                    'score' => round($finalScore, 2),
+                    'xp_earned' => round($cappedXp, 2),
+                    'graded_at' => now(),
+                    'feedback' => sprintf(
+                        "Task completed! Final score: %.2f / %d (%.2f%%) | XP Earned: %d",
+                        $finalScore,
+                        $task->max_score,
+                        $percentage,
+                        $cappedXp
+                    ),
+                    'updated_at' => now(),
+                ]);
+
+            // Log success
+            \Log::info("Stored final grade for student {$studentId}, task {$task->id}: {$finalScore}/{$task->max_score} ({$percentage}%), XP: {$cappedXp}");
+
+        } catch (\Exception $e) {
+            \Log::error("Failed to store final grade for student {$studentId}, task {$task->id}: " . $e->getMessage());
+        }
+    }
+
 }

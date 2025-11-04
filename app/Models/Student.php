@@ -157,9 +157,10 @@ class Student extends Model
     public function performanceTasks()
     {
         return $this->belongsToMany(PerformanceTask::class, 'performance_task_student')
-                    ->withPivot('status', 'score', 'feedback')
+                    ->withPivot('status', 'score', 'xp_earned', 'feedback', 'attempts', 'submitted_at', 'graded_at')
                     ->withTimestamps();
     }
+
 
     public function performanceTaskSubmissions()
     {
