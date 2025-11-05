@@ -14,19 +14,27 @@
                         <p class="text-sm text-gray-600">Keep learning to level up!</p>
                     </div>
                     <div class="text-right">
-                        <p class="text-2xl font-bold text-pink-600">{{ $totalXp }}</p>
+                        @php
+                            // Calculate current level and XP progress
+                            $xpPerLevel = 1000;
+                            $currentLevel = floor($totalXp / $xpPerLevel) + 1;
+                            $xpInCurrentLevel = $totalXp % $xpPerLevel;
+                            $nextLevelXp = $xpPerLevel;
+                            $progressPercentage = ($xpInCurrentLevel / $nextLevelXp) * 100;
+                        @endphp
+                        <p class="text-2xl font-bold text-pink-600">{{ $xpInCurrentLevel }}</p>
                         <p class="text-sm text-gray-500">/ {{ $nextLevelXp }} XP</p>
                     </div>
                 </div>
                 <div class="relative w-full bg-gray-200 rounded-full h-6 overflow-hidden shadow-inner">
                     <div class="bg-gradient-to-r from-pink-500 to-purple-500 h-6 rounded-full transition-all duration-1000 ease-out shadow-lg relative overflow-hidden"
-                        style="width: {{ ($totalXp / $nextLevelXp) * 100 }}%">
+                        style="width: {{ $progressPercentage }}%">
                         <div class="absolute inset-0 bg-white/30 animate-pulse"></div>
                     </div>
                 </div>
                 <div class="flex justify-between mt-2 text-xs text-gray-500">
-                    <span>Level Progress</span>
-                    <span>{{ $nextLevelXp - $totalXp }} XP to next level</span>
+                    <span>Level {{ $currentLevel }} Progress</span>
+                    <span>{{ $nextLevelXp - $xpInCurrentLevel }} XP to next level</span>
                 </div>
 
                  <!-- 🔥 XP Breakdown Section -->
@@ -87,10 +95,10 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                    <p class="text-3xl font-bold text-purple-600 mb-1">{{ $student->level }}</p>
+                    <p class="text-3xl font-bold text-purple-600 mb-1">{{ $currentLevel }}</p>
                     <p class="text-sm text-gray-600 font-medium">Level</p>
                     <div class="mt-2 h-1 bg-purple-100 rounded-full overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-purple-400 to-pink-500 rounded-full w-full animate-pulse"></div>
+                        <div class="h-full bg-gradient-to-r from-purple-400 to-pink-500 rounded-full animate-pulse" style="width: {{ $progressPercentage }}%"></div>
                     </div>
                 </div>
             </div>
