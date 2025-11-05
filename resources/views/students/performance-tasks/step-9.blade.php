@@ -273,14 +273,16 @@
                         Swipe to scroll spreadsheet
                     </div>
 
-                    <form id="saveForm" method="POST" action="{{ route('students.performance-tasks.save-step', ['id' => $performanceTask->id, 'step' => 9]) }}" class="mt-4 flex justify-end">
+                    <form id="saveForm" method="POST" action="{{ route('students.performance-tasks.save-step', ['id' => $performanceTask->id, 'step' => 9]) }}" class="mt-4">
                         @csrf
                         <input type="hidden" name="submission_data" id="submission_data">
-                        <button type="submit"
-                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition"
-                            {{ ($submission->attempts ?? 0) >= 2 ? 'disabled' : '' }}>
-                            💾 Save and Continue
-                        </button>
+                        <div class="flex justify-end">
+                            <button type="submit"
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition"
+                                {{ ($submission->attempts ?? 0) >= 2 ? 'disabled' : '' }}>
+                                💾 Save and Continue
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>

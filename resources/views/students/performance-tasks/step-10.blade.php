@@ -303,7 +303,8 @@
             ['POST-CLOSING TRIAL BALANCE', '', '', ''],
             ['December 31, 2024', '', '', ''],
             ['', '', '', ''],
-            ['Account Title', '', 'Debit', 'Credit'],
+            ['Account Title', '', 'Credit', 'Debit'],
+            ['', '', '', ''],
             ['', '', '', ''],
             ['', '', '', ''],
             ['', '', '', ''],
@@ -334,11 +335,13 @@
         // ✅ Handsontable initialization with 4 columns
         hot = new Handsontable(container, {
             data: initialData,
+            rowHeaders: true,
+            colHeaders: ['A', 'B', 'C', 'D'],
             columns: [
                 { type: 'text' },
                 { type: 'text' },
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' } },
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' } },
+                { type: 'numeric', numericFormat: { pattern: '0,0.00' } },
+                { type: 'numeric', numericFormat: { pattern: '0,0.00' } },
             ],
             rowHeaders: true,
             width: '100%',

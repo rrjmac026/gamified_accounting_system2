@@ -692,14 +692,31 @@ class StudentPerformanceTaskController extends Controller
 
     private function valuesMatch($value1, $value2)
     {
-        return $this->normalizeValue($value1) === $this->normalizeValue($value2);
+        $norm1 = $this->normalizeValue($value1);
+        $norm2 = $this->normalizeValue($value2);
+        
+        // Temporary debug logging
+        if ($norm1 !== $norm2) {
+            \Log::info("Value mismatch: '{$value1}' (normalized: '{$norm1}') vs '{$value2}' (normalized: '{$norm2}')");
+        }
+        
+        return $norm1 === $norm2;
     }
 
     private function normalizeValue($value)
     {
         if ($value === null || $value === '' || $value === 0) return '';
-        if (is_numeric($value)) return number_format((float)$value, 2, '.', '');
-        if (is_string($value)) return strtolower(trim($value));
+        
+        // ✅ Check numeric first, even if it's a string representation
+        if (is_numeric($value)) {
+            return number_format((float)$value, 2, '.', '');
+        }
+        
+        // Then check strings
+        if (is_string($value)) {
+            return strtolower(trim($value));
+        }
+        
         return (string)$value;
     }
 
