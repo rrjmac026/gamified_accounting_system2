@@ -12,8 +12,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('student_id')->constrained()->onDelete('cascade');
             $table->foreignId('subject_id')->constrained()->onDelete('cascade');
-            $table->foreignId('task_id')->nullable()->constrained()->onDelete('cascade');
-            $table->string('performance_metric'); // e.g. "score", "xp", "accuracy"
+            
+            $table->foreignId('performance_task_id')->nullable()
+                  ->constrained('performance_tasks')
+                  ->onDelete('cascade');
+            
+            $table->string('performance_metric');
             $table->decimal('value', 8, 2);
             $table->timestamp('recorded_at');
             $table->timestamps();

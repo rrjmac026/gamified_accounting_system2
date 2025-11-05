@@ -80,29 +80,37 @@
                                             @forelse ($logs as $log)
                                                 <tr class="bg-white border-b border-[#FFC8FB] hover:bg-[#FFD9FF] transition-colors duration-150">
                                                     <td class="py-3 px-4 font-medium">
-                                                        {{ $log->student->user->name }}
+                                                        {{ $log->student->user->name ?? 'N/A' }}
                                                         <div class="text-xs text-gray-500 mt-1">
                                                             {{ $log->student->student_id ?? 'N/A' }}
                                                         </div>
                                                     </td>
                                                     <td class="hidden sm:table-cell py-3 px-4">
-                                                        <span class="text-sm">{{ $log->subject->subject_name }}</span>
-                                                        <div class="text-xs text-gray-500 mt-1">
-                                                            {{ $log->subject->subject_code }}
-                                                        </div>
+                                                        @if($log->subject)
+                                                            <span class="text-sm">{{ $log->subject->subject_name }}</span>
+                                                            <div class="text-xs text-gray-500 mt-1">
+                                                                {{ $log->subject->subject_code }}
+                                                            </div>
+                                                        @else
+                                                            <span class="text-sm text-gray-400">N/A</span>
+                                                        @endif
                                                     </td>
                                                     <td class="hidden md:table-cell py-3 px-4">
-                                                        <span class="text-sm">{{ Str::limit($log->task->title, 30) }}</span>
+                                                        @if($log->performanceTask)
+                                                            <span class="text-sm">{{ Str::limit($log->performanceTask->title, 30) }}</span>
+                                                        @else
+                                                            <span class="text-sm text-gray-400">No task assigned</span>
+                                                        @endif
                                                     </td>
                                                     <td class="py-3 px-4">
                                                         <div class="flex items-center gap-2">
                                                             <i class="fas fa-chart-line text-xs text-[#FF92C2]"></i>
-                                                            <span class="text-sm font-medium">{{ $log->performance_metric }}</span>
+                                                            <span class="text-sm font-medium">{{ $log->formatted_metric }}</span>
                                                         </div>
                                                     </td>
                                                     <td class="py-3 px-4">
                                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                            {{ $log->value }}
+                                                            {{ number_format($log->value, 2) }}
                                                         </span>
                                                     </td>
                                                     <td class="hidden lg:table-cell py-3 px-4">
@@ -116,7 +124,7 @@
                                                     <td class="py-3 px-4">
                                                         <div class="flex flex-col sm:flex-row gap-2">
                                                             <a href="{{ route('admin.performance-logs.show', $log) }}" 
-                                                               class="text-[#FF92C2] hover:text-[#ff6fb5]">
+                                                            class="text-[#FF92C2] hover:text-[#ff6fb5] transition-colors duration-150">
                                                                 <i class="fas fa-eye"></i>
                                                                 <span class="ml-2 sm:hidden">View</span>
                                                             </a>
@@ -127,7 +135,7 @@
                                                 <tr>
                                                     <td colspan="7" class="py-8 px-4 text-center text-gray-500">
                                                         <div class="flex flex-col items-center">
-                                                            <i class="fas fa-chart-bar text-4xl mb-4"></i>
+                                                            <i class="fas fa-chart-bar text-4xl mb-4 text-[#FFC8FB]"></i>
                                                             <p class="text-lg font-medium text-gray-900 mb-1">No performance logs found</p>
                                                             <p class="text-gray-600">Performance data will appear here once recorded</p>
                                                         </div>

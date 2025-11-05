@@ -9,7 +9,7 @@ class PerformanceLog extends Model
     protected $fillable = [
         'student_id',
         'subject_id',
-        'task_id',
+        'performance_task_id',
         'performance_metric',
         'value',
         'recorded_at'

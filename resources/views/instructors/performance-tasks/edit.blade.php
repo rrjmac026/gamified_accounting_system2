@@ -108,6 +108,47 @@
                         </div>
                     </div>
 
+                    {{-- Scoring Configuration Section --}}
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-[#FF92C2] border-b border-[#FFC8FB] pb-2">Scoring Configuration</h3>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {{-- Max Score --}}
+                            <div>
+                                <label for="max_score" class="block text-sm font-semibold text-[#FF92C2] mb-1">
+                                    Maximum Score <span class="text-red-500">*</span>
+                                </label>
+                                <input type="number" name="max_score" id="max_score" 
+                                    value="{{ old('max_score', $task->max_score) }}" min="1"
+                                    class="w-full rounded-lg shadow-sm bg-white 
+                                            border border-[#FFC8FB] focus:border-pink-400 focus:ring focus:ring-pink-200
+                                            text-gray-800 px-4 py-2 transition-all duration-200
+                                            @error('max_score') border-red-500 @enderror" required>
+                                <p class="text-xs text-gray-500 mt-1">Perfect score for this task</p>
+                                @error('max_score')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            {{-- Deduction Per Error --}}
+                            <div>
+                                <label for="deduction_per_error" class="block text-sm font-semibold text-[#FF92C2] mb-1">
+                                    Deduction Per Error <span class="text-red-500">*</span>
+                                </label>
+                                <input type="number" name="deduction_per_error" id="deduction_per_error" 
+                                    value="{{ old('deduction_per_error', $task->deduction_per_error) }}" min="0"
+                                    class="w-full rounded-lg shadow-sm bg-white 
+                                            border border-[#FFC8FB] focus:border-pink-400 focus:ring focus:ring-pink-200
+                                            text-gray-800 px-4 py-2 transition-all duration-200
+                                            @error('deduction_per_error') border-red-500 @enderror" required>
+                                <p class="text-xs text-gray-500 mt-1">Points deducted for each error</p>
+                                @error('deduction_per_error')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+
                     {{-- Due Dates Section --}}
                     <div class="space-y-4">
                         <h3 class="text-lg font-semibold text-[#FF92C2] border-b border-[#FFC8FB] pb-2">Due Dates</h3>
@@ -234,7 +275,7 @@
                     </div>
                     <div>
                         <span class="text-gray-600">Students Assigned:</span>
-                        <span class="font-medium ml-2">{{ $task->students->count() }}</span>
+                        <span class="font-medium ml-2">{{ $task->section->students->count() }}</span>
                     </div>
                     @if($task->due_date)
                     <div>
