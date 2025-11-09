@@ -210,12 +210,12 @@
         
         // Account names list
         const accounts = [
-            'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixture', 
-            'Accumulated Depreciation - F&F', 'Land', 'Equipment', 
-            'Accumulated Depreciation - Equipment', 'Accounts Payable', 
-            'Notes Payable', 'Utilities Payable', 'Capital', 'Withdrawals',
-            'Service Revenue', 'Rent Expense', 'Utilities Expense', 
-            'Salaries Expense', 'Supplies Expense', 'Depreciation Expense', 
+            'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixture',
+            'Land', 'Equipment','Accumulated Depreciation - F&F',
+            'Accumulated Depreciation - Equipment', 'Land', 'Equipment',
+            'Accounts Payable', 'Notes Payable', 'Utilities Payable', 'Capital', 
+            'Withdrawals', 'Service Revenue', 'Rent Expense', 'Utilities Expense',
+            'Salaries Expense', 'Supplies Expense', 'Depreciation Expense',
             'Income Summary'
         ];
         

@@ -271,121 +271,64 @@
         const parsedSaved = savedData ? (typeof savedData === 'string' ? JSON.parse(savedData) : savedData) : null;
         const parsedCorrect = correctData ? (typeof correctData === 'string' ? JSON.parse(correctData) : correctData) : null;
         
-        // Define the initial empty template (without any pre-filled values)
-        const initialData = [
-            // INCOME STATEMENT - McGraw Hill Format
-            ['', 'Durano Enterprise', '', ''],
-            ['', 'Income Statement', '', ''],
-            ['', 'For the Month Ended February 29, 2024', '', ''],
-            ['', '', '', ''],
-            ['Revenues', '', '', ''],
-            ['Service revenue', '', '', ''],
-            ['Total revenues', '', '', ''],
-            ['', '', '', ''],
-            ['Expenses', '', '', ''],
-            ['Rent expense', '', '', ''],
-            ['Utilities expense', '', '', ''],
-            ['Salaries expense', '', '', ''],
-            ['Supplies expense', '', '', ''],
-            ['Depreciation expense', '', '', ''],
-            ['Total expenses', '', '', ''],
-            ['', '', '', ''],
-            ['Net income', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            
-            // STATEMENT OF OWNER'S EQUITY - McGraw Hill Format
-            ['', 'Durano Enterprise', '', ''],
-            ['', 'Statement of Owner\'s Equity', '', ''],
-            ['', 'For the Month Ended February 29, 2024', '', ''],
-            ['', '', '', ''],
-            ['Durano, Capital, February 1, 2024', '', '', ''],
-            ['Add: Investments by owner', '', '', ''],
-            ['Net income for the month', '', '', ''],
-            ['', '', '', ''],
-            ['Less: Withdrawals by owner', '', '', ''],
-            ['Increase in capital', '', '', ''],
-            ['Durano, Capital, February 29, 2024', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            
-            // BALANCE SHEET - McGraw Hill Format
-            ['', 'Durano Enterprise', '', ''],
-            ['', 'Balance Sheet', '', ''],
-            ['', 'February 29, 2024', '', ''],
-            ['', '', '', ''],
-            ['Assets', '', '', ''],
-            ['Cash', '', '', ''],
-            ['Accounts receivable', '', '', ''],
-            ['Supplies', '', '', ''],
-            ['Total current assets', '', '', ''],
-            ['', '', '', ''],
-            ['Equipment', '', '', ''],
-            ['Less: Accumulated depreciation—Equipment', '', '', ''],
-            ['', '', '', ''],
-            ['Furniture and fixtures', '', '', ''],
-            ['Less: Accumulated depreciation—Furniture and fixtures', '', '', ''],
-            ['', '', '', ''],
-            ['Land', '', '', ''],
-            ['Total property, plant and equipment', '', '', ''],
-            ['Total assets', '', '', ''],
-            ['', '', '', ''],
-            ['Liabilities', '', '', ''],
-            ['Accounts payable', '', '', ''],
-            ['Utilities payable', '', '', ''],
-            ['Notes payable', '', '', ''],
-            ['Total liabilities', '', '', ''],
-            ['', '', '', ''],
-            ['Owner\'s Equity', '', '', ''],
-            ['Durano, Capital', '', '', ''],
-            ['Total liabilities and owner\'s equity', '', '', '']
+        // Initialize with horizontal layout matching the image exactly
+        const initialData = parsedSaved || [
+            ["Durano Enterprise", null, null, null, "Durano Enterprise", null, null, null, "Durano Enterprise", null, null, null],
+            ["Income Statement", null, null, null, "Statement of Changes in Equity", null, null, null, "Balance Sheet", null, null, null],
+            ["For the month ended February 29, 2024", null, null, null, "For the month ended February 29, 2024", null, null, null, "As of February 29, 2024", null, null, null],
+            ["", "", "", "", "", "", "", "", "", "", "", ""],
+            ["Revenues:", "", "", "", "Durano, Capital, beginning", "", "", "", "Assets", "", "", ""],
+            ["Service Revenue", "", "", "", "Add: Investment", "", "", "", "Current assets", "", "", ""],
+            ["", "", "", "", "          Net Income", "", "", "", "Cash", "", "", ""],
+            ["Less: Expenses", "", "", "", "Total", "", "", "", "Accounts receivable", "", "", ""],
+            ["Rent expense", "", "", "", "Less: Durano, Withdrawals", "", "", "", "Supplies", "", "", ""],
+            ["Utilities expense", "", "", "", "Durano, Capital, ending", "", "", "", "Total current assets", "", "", ""],
+            ["Salaries expense", "", "", "", "", "", "", "", "", "", "", ""],
+            ["Supplies expense", "", "", "", "", "", "", "", "Non-current assets", "", "", ""],
+            ["Depreciation expense", "", "", "", "", "", "", "", "Furniture and fixture", "", "", ""],
+            ["Net Income", "", "", "", "", "", "", "", "Accumulated depreciation-furniture and fixture", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Equipment", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Accumulated depreciation-equipment", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Land", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Total Non-current assets", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Total Assets", "", "", ""],
+            ["", "", "", "", "", "", "", "", "", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Liabilities", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Accounts payable", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Notes payable", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Utilities payable", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Total liabilities", "", "", ""],
+            ["", "", "", "", "", "", "", "", "", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Owner's Equity", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Durano, Capital", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Total Liabilities and Owner's Equity", "", "", ""],
+            ["", "", "", "", "", "", "", "", "", "", "", ""],
+            [null, null, null, null, null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null, null, null, null, null]
         ];
 
         // Define template cells that should NEVER be graded (headers, labels, etc.)
         const templateCells = new Set([
-            // Income Statement headers and labels
-            '0-0', '0-1', '0-2', '0-3',
-            '1-0', '1-1', '1-2', '1-3', 
-            '2-0', '2-1', '2-2', '2-3',
-            '4-0', '8-0', '5-0', '6-0', '9-0', '10-0', '11-0', '12-0', '13-0', '14-0', '16-0',
-            
-            // Statement of Owner's Equity headers and labels
-            '19-0', '19-1', '19-2', '19-3',
-            '20-0', '20-1', '20-2', '20-3',
-            '21-0', '21-1', '21-2', '21-3',
-            '24-0', '25-0', '26-0', '28-0', '29-0', '30-0',
-            
-            // Balance Sheet headers and labels
-            '32-0', '32-1', '32-2', '32-3',
-            '33-0', '33-1', '33-2', '33-3',
-            '34-0', '34-1', '34-2', '34-3',
-            '35-0', '36-0', '37-0', '38-0', '40-0', '41-0', '43-0', '44-0', '46-0', '47-0', '48-0', '49-0',
-            '51-0', '52-0', '53-0', '54-0', '56-0', '57-0', '58-0'
+            // Row 0-2: Headers (all three statements)
+            '0-0', '0-1', '0-2', '0-3', '0-4', '0-5', '0-6', '0-7', '0-8', '0-9', '0-10', '0-11',
+            '1-0', '1-1', '1-2', '1-3', '1-4', '1-5', '1-6', '1-7', '1-8', '1-9', '1-10', '1-11',
+            '2-0', '2-1', '2-2', '2-3', '2-4', '2-5', '2-6', '2-7', '2-8', '2-9', '2-10', '2-11',
+            // Income Statement labels (column 0)
+            '4-0', '5-0', '7-0', '8-0', '9-0', '10-0', '11-0', '12-0', '13-0',
+            // Statement of Changes labels (column 4)
+            '4-4', '5-4', '6-4', '7-4', '8-4', '9-4',
+            // Balance Sheet labels (column 8)
+            '4-8', '5-8', '6-8', '7-8', '8-8', '9-8', '11-8', '12-8', '13-8', '14-8', '15-8', '16-8', '17-8', '18-8',
+            '20-8', '21-8', '22-8', '23-8', '24-8', '26-8', '27-8', '28-8',
+            // Separator columns (3 and 7)
+            '3-3', '3-7', '4-3', '4-7', '5-3', '5-7', '6-3', '6-7', '7-3', '7-7', '8-3', '8-7',
+            '9-3', '9-7', '10-3', '10-7', '11-3', '11-7', '12-3', '12-7', '13-3', '13-7'
         ]);
 
-        // Define table boundaries for visual separation
-        const tableBoundaries = {
-            incomeStatement: {
-                startRow: 0,
-                endRow: 18,
-                color: '#e6f3ff', // Light blue
-                borderColor: '#3b82f6' // Blue border
-            },
-            ownersEquity: {
-                startRow: 19,
-                endRow: 31,
-                color: '#f0f9ff', // Very light blue
-                borderColor: '#0ea5e9' // Sky blue border
-            },
-            balanceSheet: {
-                startRow: 32,
-                endRow: 58,
-                color: '#eff6ff', // Very light indigo
-                borderColor: '#6366f1' // Indigo border
-            }
-        };
-
-        // Function to check if a cell is a template cell (should not be graded)
+        // Function to check if a cell is a template cell
         function isTemplateCell(row, col) {
             return templateCells.has(`${row}-${col}`);
         }
@@ -399,39 +342,24 @@
             const studentValue = parsedSaved[row][col];
             const initialValue = initialData[row] ? initialData[row][col] : '';
             
-            // Student modified if value exists and is different from initial empty template
             return studentValue !== null && 
-                   studentValue !== undefined && 
-                   studentValue !== '' && 
-                   studentValue !== initialValue;
+                studentValue !== undefined && 
+                studentValue !== '' && 
+                studentValue !== initialValue;
         }
 
-        // Function to determine which table a row belongs to
-        function getTableForRow(row) {
-            if (row >= tableBoundaries.incomeStatement.startRow && row <= tableBoundaries.incomeStatement.endRow) {
-                return 'incomeStatement';
-            } else if (row >= tableBoundaries.ownersEquity.startRow && row <= tableBoundaries.ownersEquity.endRow) {
-                return 'ownersEquity';
-            } else if (row >= tableBoundaries.balanceSheet.startRow && row <= tableBoundaries.balanceSheet.endRow) {
-                return 'balanceSheet';
-            }
-            return null;
-        }
-
-        // Initialize HyperFormula with whitespace support
+        // Initialize HyperFormula
         const hyperformulaInstance = HyperFormula.buildEmpty({
             licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+            ignoreWhiteSpace: 'any',
         });
 
-        // Determine responsive dimensions
+        // Responsive dimensions
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
         const isMobile = viewportWidth < 640;
         const isTablet = viewportWidth >= 640 && viewportWidth < 1024;
-        const isDesktop = viewportWidth >= 1024;
 
-        // Calculate optimal table height
         let tableHeight;
         if (isMobile) {
             tableHeight = Math.min(Math.max(viewportHeight * 0.5, 350), 500);
@@ -441,364 +369,185 @@
             tableHeight = Math.min(Math.max(viewportHeight * 0.65, 550), 700);
         }
 
-        // Calculate optimal column widths
+        // Column widths for 12 columns
         let colWidths;
         if (isMobile) {
-            const availableWidth = Math.min(viewportWidth - 60, 440);
-            colWidths = [
-                Math.floor(availableWidth * 0.30),
-                Math.floor(availableWidth * 0.35),
-                Math.floor(availableWidth * 0.175),
-                Math.floor(availableWidth * 0.175)
-            ];
+            colWidths = Array(12).fill(100);
         } else if (isTablet) {
-            colWidths = [180, 200, 120, 120];
+            colWidths = [200, 100, 100, 20, 200, 100, 100, 20, 200, 100, 100, 120];
         } else {
-            colWidths = [220, 260, 140, 140];
+            colWidths = [240, 110, 110, 30, 240, 110, 110, 30, 240, 110, 110, 130];
         }
             
         hot = new Handsontable(container, {
-            data: parsedSaved || initialData, // Use saved data if available, otherwise empty template
+            data: initialData,
             rowHeaders: true,
-            colHeaders: [
-                'Account Title',
-                'Description',
-                'Debit (₱)',
-                'Credit (₱)'
-            ],
-            columns: [
-                { 
-                    type: 'text',
-                    renderer: function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.TextRenderer.apply(this, arguments);
-                        
-                        // Check for formula cells
-                        const cellData = instance.getDataAtCell(row, col);
-                        if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
-                            td.classList.add('formula-cell');
-                        }
-                        
-                        // Apply table-specific background colors
-                        const table = getTableForRow(row);
-                        if (table) {
-                            td.style.backgroundColor = tableBoundaries[table].color;
-                        }
-                        
-                        // Apply grading colors
-                        if (submissionStatus && parsedCorrect && studentModifiedCell(row, col) && !isTemplateCell(row, col)) {
-                            const studentValue = parsedSaved[row][col];
-                            const correctValue = parsedCorrect[row] ? parsedCorrect[row][col] : '';
-                            const normalizeValue = (val) => {
-                                if (val === null || val === undefined || val === '') return '';
-                                if (typeof val === 'string') return val.trim().toLowerCase();
-                                return val.toString();
-                            };
-                            const isCorrect = normalizeValue(studentValue) === normalizeValue(correctValue);
-                            if (isCorrect) {
-                                td.classList.add('cell-correct');
-                            } else {
-                                td.classList.add('cell-wrong');
-                            }
-                        }
-
-                        // Style statement titles
-                        if (value && value.includes('Durano Enterprise')) {
-                            td.style.fontWeight = 'bold';
-                            td.style.fontSize = '14px';
-                            td.style.textAlign = 'center';
-                        }
-                        
-                        // Style main statement headers
-                        if (value && (
-                            value.includes('Income Statement') ||
-                            value.includes('Statement of Owner\'s Equity') ||
-                            value.includes('Balance Sheet') ||
-                            value.includes('For the Month Ended') ||
-                            value.includes('February 29, 2024')
-                        )) {
-                            td.style.fontWeight = 'bold';
-                            td.style.textAlign = 'center';
-                        }
-                        
-                        // Style major categories
-                        if (value && (
-                            value === 'Revenues' ||
-                            value === 'Expenses' ||
-                            value === 'Assets' ||
-                            value === 'Liabilities' ||
-                            value === 'Owner\'s Equity' ||
-                            value === 'Total current assets' ||
-                            value === 'Total property, plant and equipment'
-                        )) {
-                            td.style.fontWeight = 'bold';
-                            if (!submissionStatus || !td.style.backgroundColor || td.style.backgroundColor === '' || td.style.backgroundColor === 'transparent') {
-                                // Keep the table-specific background color
-                                const table = getTableForRow(row);
-                                if (table) {
-                                    td.style.backgroundColor = tableBoundaries[table].color;
-                                }
-                            }
-                        }
-                        
-                        // Style total rows
-                        if (value && (
-                            value.includes('Total revenues') ||
-                            value.includes('Total expenses') ||
-                            value.includes('Net income') ||
-                            value.includes('Total assets') ||
-                            value.includes('Total liabilities') ||
-                            value.includes('Total liabilities and owner\'s equity') ||
-                            value.includes('Durano, Capital, February 29, 2024')
-                        )) {
-                            td.style.fontWeight = 'bold';
-                            td.style.borderTop = '2px solid #4b5563';
-                        }
-                        
-                        // Indent sub-accounts
-                        if (value && !value.includes('Durano') && !value.includes('Total') && 
-                            !value.includes('Revenues') && !value.includes('Expenses') && 
-                            !value.includes('Assets') && !value.includes('Liabilities') && 
-                            !value.includes('Owner\'s Equity') && value !== 'Net income' &&
-                            value !== 'Add: Investments by owner' && value !== 'Less: Withdrawals by owner' &&
-                            value !== 'Increase in capital') {
-                            td.style.paddingLeft = '20px';
+            colHeaders: ['', '', '', '', '', '', '', '', '', '', '', ''],
+            columns: Array(12).fill(null).map((_, colIndex) => ({
+                type: 'text',
+                renderer: function(instance, td, row, col, prop, value, cellProperties) {
+                    Handsontable.renderers.TextRenderer.apply(this, arguments);
+                    
+                    // Formula cells
+                    if (value && typeof value === 'string' && value.startsWith('=')) {
+                        td.classList.add('formula-cell');
+                    }
+                    
+                    // Apply grading colors only if submission has been graded
+                    if (submissionStatus && parsedCorrect && studentModifiedCell(row, col) && !isTemplateCell(row, col)) {
+                        const studentValue = parsedSaved[row][col];
+                        const correctValue = parsedCorrect[row] ? parsedCorrect[row][col] : '';
+                        const normalizeValue = (val) => {
+                            if (val === null || val === undefined || val === '') return '';
+                            if (typeof val === 'string') return val.trim().toLowerCase();
+                            return val.toString();
+                        };
+                        const isCorrect = normalizeValue(studentValue) === normalizeValue(correctValue);
+                        if (isCorrect) {
+                            td.classList.add('cell-correct');
+                        } else {
+                            td.classList.add('cell-wrong');
                         }
                     }
-                },
-                { 
-                    type: 'text',
-                    renderer: function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.TextRenderer.apply(this, arguments);
+                    
+                    // Company name and statement titles (bold, centered)
+                    if (row <= 2 && value && value.trim() !== '') {
+                        td.style.fontWeight = 'bold';
                         td.style.textAlign = 'center';
-                        
-                        // Check for formula cells
-                        const cellData = instance.getDataAtCell(row, col);
-                        if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
-                            td.classList.add('formula-cell');
-                        }
-                        
-                        // Apply table-specific background colors
-                        const table = getTableForRow(row);
-                        if (table) {
-                            td.style.backgroundColor = tableBoundaries[table].color;
-                        }
-                        
-                        // Apply grading colors
-                        if (submissionStatus && parsedCorrect && studentModifiedCell(row, col) && !isTemplateCell(row, col)) {
-                            const studentValue = parsedSaved[row][col];
-                            const correctValue = parsedCorrect[row] ? parsedCorrect[row][col] : '';
-                            const normalizeValue = (val) => {
-                                if (val === null || val === undefined || val === '') return '';
-                                if (typeof val === 'string') return val.trim().toLowerCase();
-                                return val.toString();
-                            };
-                            const isCorrect = normalizeValue(studentValue) === normalizeValue(correctValue);
-                            if (isCorrect) {
-                                td.classList.add('cell-correct');
-                            } else {
-                                td.classList.add('cell-wrong');
-                            }
-                        }
+                        td.style.fontSize = row === 0 ? '14px' : '13px';
                     }
-                },
-                { 
-                    type: 'numeric', 
-                    numericFormat: { pattern: '₱0,0.00' },
-                    renderer: function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.NumericRenderer.apply(this, arguments);
-                        
-                        // Check for formula cells
-                        const cellData = instance.getDataAtCell(row, col);
-                        if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
-                            td.classList.add('formula-cell');
-                        }
-                        
-                        // Apply table-specific background colors
-                        const table = getTableForRow(row);
-                        if (table) {
-                            td.style.backgroundColor = tableBoundaries[table].color;
-                        }
-                        
-                        // Apply grading colors
-                        if (submissionStatus && parsedCorrect && studentModifiedCell(row, col) && !isTemplateCell(row, col)) {
-                            const studentValue = parsedSaved[row][col];
-                            const correctValue = parsedCorrect[row] ? parsedCorrect[row][col] : '';
-                            const normalizeValue = (val) => {
-                                if (val === null || val === undefined || val === '') return '';
-                                if (typeof val === 'number') return val.toString();
-                                if (typeof val === 'string') return val.trim();
-                                return val.toString();
-                            };
-                            const studentVal = normalizeValue(studentValue);
-                            const correctVal = normalizeValue(correctValue);
-                            const isCorrect = parseFloat(studentVal) === parseFloat(correctVal);
-                            if (isCorrect) {
-                                td.classList.add('cell-correct');
-                            } else {
-                                td.classList.add('cell-wrong');
-                            }
-                        }
-
-                        if (instance.getDataAtCell(row, 0) && (
-                            instance.getDataAtCell(row, 0).includes('Total revenues') ||
-                            instance.getDataAtCell(row, 0).includes('Total expenses') ||
-                            instance.getDataAtCell(row, 0).includes('Net income') ||
-                            instance.getDataAtCell(row, 0).includes('Total assets') ||
-                            instance.getDataAtCell(row, 0).includes('Total liabilities') ||
-                            instance.getDataAtCell(row, 0).includes('Total liabilities and owner\'s equity') ||
-                            instance.getDataAtCell(row, 0).includes('Durano, Capital, February 29, 2024')
-                        )) {
-                            td.style.fontWeight = 'bold';
-                            td.style.borderTop = '2px solid #4b5563';
-                        }
+                    
+                    // Section headers - Income Statement
+                    if (col <= 3 && value && (value === 'Revenues:' || value === 'Less: Expenses')) {
+                        td.style.fontWeight = 'bold';
                     }
-                },
-                { 
-                    type: 'numeric', 
-                    numericFormat: { pattern: '₱0,0.00' },
-                    renderer: function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.NumericRenderer.apply(this, arguments);
-                        
-                        // Check for formula cells
-                        const cellData = instance.getDataAtCell(row, col);
-                        if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
-                            td.classList.add('formula-cell');
-                        }
-                        
-                        // Apply table-specific background colors
-                        const table = getTableForRow(row);
-                        if (table) {
-                            td.style.backgroundColor = tableBoundaries[table].color;
-                        }
-                        
-                        // Apply grading colors
-                        if (submissionStatus && parsedCorrect && studentModifiedCell(row, col) && !isTemplateCell(row, col)) {
-                            const studentValue = parsedSaved[row][col];
-                            const correctValue = parsedCorrect[row] ? parsedCorrect[row][col] : '';
-                            const normalizeValue = (val) => {
-                                if (val === null || val === undefined || val === '') return '';
-                                if (typeof val === 'number') return val.toString();
-                                if (typeof val === 'string') return val.trim();
-                                return val.toString();
-                            };
-                            const studentVal = normalizeValue(studentValue);
-                            const correctVal = normalizeValue(correctValue);
-                            const isCorrect = parseFloat(studentVal) === parseFloat(correctVal);
-                            if (isCorrect) {
-                                td.classList.add('cell-correct');
-                            } else {
-                                td.classList.add('cell-wrong');
-                            }
-                        }
-
-                        if (instance.getDataAtCell(row, 0) && (
-                            instance.getDataAtCell(row, 0).includes('Total revenues') ||
-                            instance.getDataAtCell(row, 0).includes('Total expenses') ||
-                            instance.getDataAtCell(row, 0).includes('Net income') ||
-                            instance.getDataAtCell(row, 0).includes('Total assets') ||
-                            instance.getDataAtCell(row, 0).includes('Total liabilities') ||
-                            instance.getDataAtCell(row, 0).includes('Total liabilities and owner\'s equity') ||
-                            instance.getDataAtCell(row, 0).includes('Durano, Capital, February 29, 2024')
-                        )) {
-                            td.style.fontWeight = 'bold';
-                            td.style.borderTop = '2px solid #4b5563';
-                        }
+                    
+                    // Section headers - Balance Sheet
+                    if (col >= 8 && value && (
+                        value === 'Assets' ||
+                        value === 'Liabilities' ||
+                        value === "Owner's Equity" ||
+                        value === 'Current assets' ||
+                        value === 'Non-current assets'
+                    )) {
+                        td.style.fontWeight = 'bold';
+                    }
+                    
+                    // Total rows styling
+                    const firstColValue = instance.getDataAtCell(row, 0);
+                    const middleColValue = instance.getDataAtCell(row, 4);
+                    const lastColValue = instance.getDataAtCell(row, 8);
+                    
+                    // Income Statement totals
+                    if (col <= 3 && (firstColValue === 'Net Income' || value === 'Net Income')) {
+                        td.style.fontWeight = 'bold';
+                        td.style.borderTop = '1px solid #000';
+                    }
+                    
+                    // Statement of Changes totals
+                    if (col >= 4 && col <= 7 && (
+                        middleColValue === 'Total' || 
+                        middleColValue === 'Durano, Capital, ending' ||
+                        value === 'Total' ||
+                        value === 'Durano, Capital, ending'
+                    )) {
+                        td.style.fontWeight = 'bold';
+                        td.style.borderTop = '1px solid #000';
+                    }
+                    
+                    // Balance Sheet totals
+                    if (col >= 8 && (
+                        lastColValue === 'Total current assets' ||
+                        lastColValue === 'Total Non-current assets' ||
+                        lastColValue === 'Total Assets' ||
+                        lastColValue === 'Total liabilities' ||
+                        lastColValue === "Total Liabilities and Owner's Equity" ||
+                        value === 'Total current assets' ||
+                        value === 'Total Non-current assets' ||
+                        value === 'Total Assets' ||
+                        value === 'Total liabilities' ||
+                        value === "Total Liabilities and Owner's Equity"
+                    )) {
+                        td.style.fontWeight = 'bold';
+                        td.style.borderTop = '1px solid #000';
+                    }
+                    
+                    // Double underline for final totals
+                    if (col >= 4 && col <= 7 && middleColValue === 'Durano, Capital, ending') {
+                        td.style.borderBottom = '3px double #000';
+                    }
+                    
+                    if (col >= 8 && (
+                        lastColValue === 'Total Assets' ||
+                        lastColValue === "Total Liabilities and Owner's Equity"
+                    )) {
+                        td.style.borderBottom = '3px double #000';
+                    }
+                    
+                    // Separator columns
+                    if (col === 3 || col === 7) {
+                        td.style.backgroundColor = '#f8f9fa';
+                        td.style.borderRight = '2px solid #dee2e6';
+                        td.style.width = '30px';
+                    }
+                    
+                    // Right align numbers
+                    if ((col === 1 || col === 2 || col === 5 || col === 6 || col === 9 || col === 10 || col === 11) && 
+                        value && (value.includes('₱') || value.includes(',') || !isNaN(value.replace(/[₱,()]/g, '')))) {
+                        td.style.textAlign = 'right';
                     }
                 }
-            ],
+            })),
             width: '100%',
             height: tableHeight,
             colWidths: colWidths,
             licenseKey: 'non-commercial-and-evaluation',
-            
-            // Formula support with whitespace handling
             formulas: { engine: hyperformulaInstance },
-            
-            // Handle formula input with whitespace
             beforeChange: function(changes, source) {
                 if (changes) {
                     changes.forEach(function(change) {
-                        // change[3] is the new value
                         if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
-                            // Trim leading/trailing spaces but keep internal spaces
                             change[3] = change[3].trim();
                         }
                     });
                 }
             },
-            
-            // Full feature set
             contextMenu: true,
             undo: true,
             manualColumnResize: true,
             manualRowResize: true,
-            manualColumnMove: true,
-            manualRowMove: true,
             fillHandle: true,
             autoColumnSize: false,
             autoRowSize: false,
             copyPaste: true,
-            minRows: 65,
+            minRows: 35,
+            minCols: 12,
             minSpareRows: 1,
-            stretchH: 'all',
+            stretchH: 'none',
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
             outsideClickDeselects: false,
             selectionMode: 'multiple',
             comments: true,
+            customBorders: true,
             className: 'htLeft htMiddle',
-            
             mergeCells: [
-                { row: 0, col: 1, rowspan: 1, colspan: 3 },
-                { row: 1, col: 1, rowspan: 1, colspan: 3 },
-                { row: 2, col: 1, rowspan: 1, colspan: 3 },
-                { row: 19, col: 1, rowspan: 1, colspan: 3 },
-                { row: 20, col: 1, rowspan: 1, colspan: 3 },
-                { row: 21, col: 1, rowspan: 1, colspan: 3 },
-                { row: 32, col: 1, rowspan: 1, colspan: 3 },
-                { row: 33, col: 1, rowspan: 1, colspan: 3 },
-                { row: 34, col: 1, rowspan: 1, colspan: 3 }
-            ],
-            
-            // Add custom borders for table separation
-            customBorders: [
-                // Income Statement bottom border
-                {
-                    range: {
-                        from: { row: tableBoundaries.incomeStatement.endRow, col: 0 },
-                        to: { row: tableBoundaries.incomeStatement.endRow, col: 3 }
-                    },
-                    bottom: {
-                        width: 3,
-                        color: tableBoundaries.incomeStatement.borderColor
-                    }
-                },
-                // Statement of Owner's Equity bottom border
-                {
-                    range: {
-                        from: { row: tableBoundaries.ownersEquity.endRow, col: 0 },
-                        to: { row: tableBoundaries.ownersEquity.endRow, col: 3 }
-                    },
-                    bottom: {
-                        width: 3,
-                        color: tableBoundaries.ownersEquity.borderColor
-                    }
-                },
-                // Balance Sheet bottom border
-                {
-                    range: {
-                        from: { row: tableBoundaries.balanceSheet.endRow, col: 0 },
-                        to: { row: tableBoundaries.balanceSheet.endRow, col: 3 }
-                    },
-                    bottom: {
-                        width: 3,
-                        color: tableBoundaries.balanceSheet.borderColor
-                    }
-                }
+                // Income Statement header merges
+                { row: 0, col: 0, rowspan: 1, colspan: 4 },
+                { row: 1, col: 0, rowspan: 1, colspan: 4 },
+                { row: 2, col: 0, rowspan: 1, colspan: 4 },
+                // Statement of Changes in Equity header merges
+                { row: 0, col: 4, rowspan: 1, colspan: 4 },
+                { row: 1, col: 4, rowspan: 1, colspan: 4 },
+                { row: 2, col: 4, rowspan: 1, colspan: 4 },
+                // Balance Sheet header merges
+                { row: 0, col: 8, rowspan: 1, colspan: 4 },
+                { row: 1, col: 8, rowspan: 1, colspan: 4 },
+                { row: 2, col: 8, rowspan: 1, colspan: 4 }
             ]
         });
 
-        // Improved window resize handler with debouncing
+        // Window resize handler
         let resizeTimer;
         window.addEventListener('resize', function() {
             clearTimeout(resizeTimer);
@@ -807,9 +556,7 @@
                 const newViewportHeight = window.innerHeight;
                 const newIsMobile = newViewportWidth < 640;
                 const newIsTablet = newViewportWidth >= 640 && newViewportWidth < 1024;
-                const newIsDesktop = newViewportWidth >= 1024;
                 
-                // Recalculate height
                 let newHeight;
                 if (newIsMobile) {
                     newHeight = Math.min(Math.max(newViewportHeight * 0.5, 350), 500);
@@ -819,20 +566,13 @@
                     newHeight = Math.min(Math.max(newViewportHeight * 0.65, 550), 700);
                 }
                 
-                // Recalculate column widths
                 let newColWidths;
                 if (newIsMobile) {
-                    const availableWidth = Math.min(newViewportWidth - 60, 440);
-                    newColWidths = [
-                        Math.floor(availableWidth * 0.30),
-                        Math.floor(availableWidth * 0.35),
-                        Math.floor(availableWidth * 0.175),
-                        Math.floor(availableWidth * 0.175)
-                    ];
+                    newColWidths = Array(12).fill(100);
                 } else if (newIsTablet) {
-                    newColWidths = [180, 200, 120, 120];
+                    newColWidths = [200, 100, 100, 20, 200, 100, 100, 20, 200, 100, 100, 120];
                 } else {
-                    newColWidths = [220, 260, 140, 140];
+                    newColWidths = [240, 110, 110, 30, 240, 110, 110, 30, 240, 110, 110, 130];
                 }
                 
                 hot.updateSettings({

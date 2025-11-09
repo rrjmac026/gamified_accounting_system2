@@ -297,90 +297,60 @@
         // Get saved answer key data if it exists
         const savedData = @json($sheet->correct_data ?? null);
         
-        // Initialize with McGraw Hill financial statement structure
-        const initialData = savedData ? JSON.parse(savedData) : [
-            // INCOME STATEMENT - McGraw Hill Format
-            ['', 'Durano Enterprise', '', ''],
-            ['', 'Income Statement', '', ''],
-            ['', 'For the Month Ended February 29, 2024', '', ''],
-            ['', '', '', ''],
-            ['Revenues', '', '', ''],
-            ['Service revenue', '', '', ''],
-            ['Total revenues', '', '', ''],
-            ['', '', '', ''],
-            ['Expenses', '', '', ''],
-            ['Rent expense', '', '', ''],
-            ['Utilities expense', '', '', ''],
-            ['Salaries expense', '', '', ''],
-            ['Supplies expense', '', '', ''],
-            ['Depreciation expense', '', '', ''],
-            ['Total expenses', '', '', ''],
-            ['', '', '', ''],
-            ['Net income', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            
-            // STATEMENT OF OWNER'S EQUITY - McGraw Hill Format
-            ['', 'Durano Enterprise', '', ''],
-            ['', 'Statement of Owner\'s Equity', '', ''],
-            ['', 'For the Month Ended February 29, 2024', '', ''],
-            ['', '', '', ''],
-            ['Durano, Capital, February 1, 2024', '', '', ''],
-            ['Add: Investments by owner', '', '', ''],
-            ['Net income for the month', '', '', ''],
-            ['', '', '', ''],
-            ['Less: Withdrawals by owner', '', '', ''],
-            ['Increase in capital', '', '', ''],
-            ['Durano, Capital, February 29, 2024', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            
-            // BALANCE SHEET - McGraw Hill Format
-            ['', 'Durano Enterprise', '', ''],
-            ['', 'Balance Sheet', '', ''],
-            ['', 'February 29, 2024', '', ''],
-            ['', '', '', ''],
-            ['Assets', '', '', ''],
-            ['Cash', '', '', ''],
-            ['Accounts receivable', '', '', ''],
-            ['Supplies', '', '', ''],
-            ['Total current assets', '', '', ''],
-            ['', '', '', ''],
-            ['Equipment', '', '', ''],
-            ['Less: Accumulated depreciation—Equipment', '', '', ''],
-            ['', '', '', ''],
-            ['Furniture and fixtures', '', '', ''],
-            ['Less: Accumulated depreciation—Furniture and fixtures', '', '', ''],
-            ['', '', '', ''],
-            ['Land', '', '', ''],
-            ['Total property, plant and equipment', '', '', ''],
-            ['Total assets', '', '', ''],
-            ['', '', '', ''],
-            ['Liabilities', '', '', ''],
-            ['Accounts payable', '', '', ''],
-            ['Utilities payable', '', '', ''],
-            ['Notes payable', '', '', ''],
-            ['Total liabilities', '', '', ''],
-            ['', '', '', ''],
-            ['Owner\'s Equity', '', '', ''],
-            ['Durano, Capital', '', '', ''],
-            ['Total liabilities and owner\'s equity', '', '', '']
+        // Parse saved data if it exists
+        const parsedSaved = savedData ? (typeof savedData === 'string' ? JSON.parse(savedData) : savedData) : null;
+        
+        // Initialize with horizontal layout matching the image exactly
+        const initialData = parsedSaved || [
+            ["Durano Enterprise", null, null, null, "Durano Enterprise", null, null, null, "Durano Enterprise", null, null, null],
+            ["Income Statement", null, null, null, "Statement of Changes in Equity", null, null, null, "Balance Sheet", null, null, null],
+            ["For the month ended February 29, 2024", null, null, null, "For the month ended February 29, 2024", null, null, null, "As of February 29, 2024", null, null, null],
+            ["", "", "", "", "", "", "", "", "", "", "", ""],
+            ["Revenues:", "", "", "", "Durano, Capital, beginning", "", "", "", "Assets", "", "", ""],
+            ["Service Revenue", "", "", "", "Add: Investment", "", "", "", "Current assets", "", "", ""],
+            ["", "", "", "", "          Net Income", "", "", "", "Cash", "", "", ""],
+            ["Less: Expenses", "", "", "", "Total", "", "", "", "Accounts receivable", "", "", ""],
+            ["Rent expense", "", "", "", "Less: Durano, Withdrawals", "", "", "", "Supplies", "", "", ""],
+            ["Utilities expense", "", "", "", "Durano, Capital, ending", "", "", "", "Total current assets", "", "", ""],
+            ["Salaries expense", "", "", "", "", "", "", "", "", "", "", ""],
+            ["Supplies expense", "", "", "", "", "", "", "", "Non-current assets", "", "", ""],
+            ["Depreciation expense", "", "", "", "", "", "", "", "Furniture and fixture", "", "", ""],
+            ["Net Income", "", "", "", "", "", "", "", "Accumulated depreciation-furniture and fixture", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Equipment", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Accumulated depreciation-equipment", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Land", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Total Non-current assets", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Total Assets", "", "", ""],
+            ["", "", "", "", "", "", "", "", "", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Liabilities", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Accounts payable", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Notes payable", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Utilities payable", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Total liabilities", "", "", ""],
+            ["", "", "", "", "", "", "", "", "", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Owner's Equity", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Durano, Capital", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Total Liabilities and Owner's Equity", "", "", ""],
+            ["", "", "", "", "", "", "", "", "", "", "", ""],
+            [null, null, null, null, null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null, null, null, null, null]
         ];
 
-        // Initialize HyperFormula with whitespace support
+        // Initialize HyperFormula
         const hyperformulaInstance = HyperFormula.buildEmpty({
             licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+            ignoreWhiteSpace: 'any',
         });
 
-        // Determine responsive dimensions with better calculations
+        // Responsive dimensions
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
         const isMobile = viewportWidth < 640;
         const isTablet = viewportWidth >= 640 && viewportWidth < 1024;
-        const isDesktop = viewportWidth >= 1024;
 
-        // Calculate optimal table height based on viewport
         let tableHeight;
         if (isMobile) {
             tableHeight = Math.min(Math.max(viewportHeight * 0.5, 350), 500);
@@ -390,202 +360,144 @@
             tableHeight = Math.min(Math.max(viewportHeight * 0.65, 550), 700);
         }
 
-        // Calculate optimal column widths
+        // Column widths for 12 columns
         let colWidths;
         if (isMobile) {
-            const availableWidth = Math.min(viewportWidth - 60, 440);
-            colWidths = [
-                Math.floor(availableWidth * 0.30),  // Account Title: 30%
-                Math.floor(availableWidth * 0.35),  // Description: 35%
-                Math.floor(availableWidth * 0.175), // Debit: 17.5%
-                Math.floor(availableWidth * 0.175)  // Credit: 17.5%
-            ];
+            colWidths = Array(12).fill(100);
         } else if (isTablet) {
-            colWidths = [180, 200, 120, 120];
+            colWidths = [200, 100, 100, 20, 200, 100, 100, 20, 200, 100, 100, 120];
         } else {
-            colWidths = [220, 260, 140, 140];
+            colWidths = [240, 110, 110, 30, 240, 110, 110, 30, 240, 110, 110, 130];
         }
             
         hot = new Handsontable(container, {
             data: initialData,
             rowHeaders: true,
-            colHeaders: [
-                'Account Title',
-                'Description',
-                'Debit (₱)',
-                'Credit (₱)'
-            ],
-            columns: [
-                { 
-                    type: 'text',
-                    renderer: function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.TextRenderer.apply(this, arguments);
-                        
-                        // Check for formula cells
-                        if (value && typeof value === 'string' && value.startsWith('=')) {
-                            td.classList.add('formula-cell');
-                        }
-                        
-                        // Style statement titles
-                        if (value && value.includes('Durano Enterprise')) {
-                            td.style.fontWeight = 'bold';
-                            td.style.fontSize = '14px';
-                            td.style.textAlign = 'center';
-                        }
-                        
-                        // Style main statement headers
-                        if (value && (
-                            value.includes('Income Statement') ||
-                            value.includes('Statement of Owner\'s Equity') ||
-                            value.includes('Balance Sheet') ||
-                            value.includes('For the Month Ended') ||
-                            value.includes('February 29, 2024')
-                        )) {
-                            td.style.fontWeight = 'bold';
-                            td.style.textAlign = 'center';
-                        }
-                        
-                        // Style major categories
-                        if (value && (
-                            value === 'Revenues' ||
-                            value === 'Expenses' ||
-                            value === 'Assets' ||
-                            value === 'Liabilities' ||
-                            value === 'Owner\'s Equity' ||
-                            value === 'Total current assets' ||
-                            value === 'Total property, plant and equipment'
-                        )) {
-                            td.style.fontWeight = 'bold';
-                            td.style.backgroundColor = '#f8fafc';
-                        }
-                        
-                        // Style total rows
-                        if (value && (
-                            value.includes('Total revenues') ||
-                            value.includes('Total expenses') ||
-                            value.includes('Net income') ||
-                            value.includes('Total assets') ||
-                            value.includes('Total liabilities') ||
-                            value.includes('Total liabilities and owner\'s equity') ||
-                            value.includes('Durano, Capital, February 29, 2024')
-                        )) {
-                            td.style.fontWeight = 'bold';
-                            td.style.borderTop = '2px solid #4b5563';
-                        }
-                        
-                        // Indent sub-accounts
-                        if (value && !value.includes('Durano') && !value.includes('Total') && 
-                            !value.includes('Revenues') && !value.includes('Expenses') && 
-                            !value.includes('Assets') && !value.includes('Liabilities') && 
-                            !value.includes('Owner\'s Equity') && value !== 'Net income' &&
-                            value !== 'Add: Investments by owner' && value !== 'Less: Withdrawals by owner' &&
-                            value !== 'Increase in capital') {
-                            td.style.paddingLeft = '20px';
-                        }
+            colHeaders: ['', '', '', '', '', '', '', '', '', '', '', ''],
+            columns: Array(12).fill(null).map((_, colIndex) => ({
+                type: 'text',
+                renderer: function(instance, td, row, col, prop, value, cellProperties) {
+                    Handsontable.renderers.TextRenderer.apply(this, arguments);
+                    
+                    // Formula cells
+                    if (value && typeof value === 'string' && value.startsWith('=')) {
+                        td.classList.add('formula-cell');
                     }
-                },
-                { 
-                    type: 'text',
-                    renderer: function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.TextRenderer.apply(this, arguments);
-                        
-                        // Check for formula cells
-                        if (value && typeof value === 'string' && value.startsWith('=')) {
-                            td.classList.add('formula-cell');
-                        }
-                        
+                    
+                    // Company name and statement titles (bold, centered)
+                    if (row <= 2 && value && value.trim() !== '') {
+                        td.style.fontWeight = 'bold';
                         td.style.textAlign = 'center';
+                        td.style.fontSize = row === 0 ? '14px' : '13px';
                     }
-                },
-                { 
-                    type: 'numeric', 
-                    numericFormat: { pattern: '₱0,0.00' },
-                    renderer: function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.NumericRenderer.apply(this, arguments);
-                        
-                        // Check for formula cells
-                        const cellValue = instance.getDataAtCell(row, col);
-                        if (cellValue && typeof cellValue === 'string' && cellValue.startsWith('=')) {
-                            td.classList.add('formula-cell');
-                        }
-                        
-                        if (instance.getDataAtCell(row, 0) && (
-                            instance.getDataAtCell(row, 0).includes('Total revenues') ||
-                            instance.getDataAtCell(row, 0).includes('Total expenses') ||
-                            instance.getDataAtCell(row, 0).includes('Net income') ||
-                            instance.getDataAtCell(row, 0).includes('Total assets') ||
-                            instance.getDataAtCell(row, 0).includes('Total liabilities') ||
-                            instance.getDataAtCell(row, 0).includes('Total liabilities and owner\'s equity') ||
-                            instance.getDataAtCell(row, 0).includes('Durano, Capital, February 29, 2024')
-                        )) {
-                            td.style.fontWeight = 'bold';
-                            td.style.borderTop = '2px solid #4b5563';
-                        }
+                    
+                    // Section headers - Income Statement
+                    if (col <= 3 && value && (value === 'Revenues:' || value === 'Less: Expenses')) {
+                        td.style.fontWeight = 'bold';
                     }
-                },
-                { 
-                    type: 'numeric', 
-                    numericFormat: { pattern: '₱0,0.00' },
-                    renderer: function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.NumericRenderer.apply(this, arguments);
-                        
-                        // Check for formula cells
-                        const cellValue = instance.getDataAtCell(row, col);
-                        if (cellValue && typeof cellValue === 'string' && cellValue.startsWith('=')) {
-                            td.classList.add('formula-cell');
-                        }
-                        
-                        if (instance.getDataAtCell(row, 0) && (
-                            instance.getDataAtCell(row, 0).includes('Total revenues') ||
-                            instance.getDataAtCell(row, 0).includes('Total expenses') ||
-                            instance.getDataAtCell(row, 0).includes('Net income') ||
-                            instance.getDataAtCell(row, 0).includes('Total assets') ||
-                            instance.getDataAtCell(row, 0).includes('Total liabilities') ||
-                            instance.getDataAtCell(row, 0).includes('Total liabilities and owner\'s equity') ||
-                            instance.getDataAtCell(row, 0).includes('Durano, Capital, February 29, 2024')
-                        )) {
-                            td.style.fontWeight = 'bold';
-                            td.style.borderTop = '2px solid #4b5563';
-                        }
+                    
+                    // Section headers - Balance Sheet
+                    if (col >= 8 && value && (
+                        value === 'Assets' ||
+                        value === 'Liabilities' ||
+                        value === "Owner's Equity" ||
+                        value === 'Current assets' ||
+                        value === 'Non-current assets'
+                    )) {
+                        td.style.fontWeight = 'bold';
+                    }
+                    
+                    // Total rows styling - apply to all columns in the row
+                    const firstColValue = instance.getDataAtCell(row, 0);
+                    const middleColValue = instance.getDataAtCell(row, 4);
+                    const lastColValue = instance.getDataAtCell(row, 8);
+                    
+                    // Income Statement totals (columns 0-3)
+                    if (col <= 3 && (firstColValue === 'Net Income' || value === 'Net Income')) {
+                        td.style.fontWeight = 'bold';
+                        td.style.borderTop = '1px solid #000';
+                    }
+                    
+                    // Statement of Changes totals (columns 4-7)
+                    if (col >= 4 && col <= 7 && (
+                        middleColValue === 'Total' || 
+                        middleColValue === 'Durano, Capital, ending' ||
+                        value === 'Total' ||
+                        value === 'Durano, Capital, ending'
+                    )) {
+                        td.style.fontWeight = 'bold';
+                        td.style.borderTop = '1px solid #000';
+                    }
+                    
+                    // Balance Sheet totals (columns 8-11)
+                    if (col >= 8 && (
+                        lastColValue === 'Total current assets' ||
+                        lastColValue === 'Total Non-current assets' ||
+                        lastColValue === 'Total Assets' ||
+                        lastColValue === 'Total liabilities' ||
+                        lastColValue === "Total Liabilities and Owner's Equity" ||
+                        value === 'Total current assets' ||
+                        value === 'Total Non-current assets' ||
+                        value === 'Total Assets' ||
+                        value === 'Total liabilities' ||
+                        value === "Total Liabilities and Owner's Equity"
+                    )) {
+                        td.style.fontWeight = 'bold';
+                        td.style.borderTop = '1px solid #000';
+                    }
+                    
+                    // Double underline for final totals
+                    if (col >= 4 && col <= 7 && (middleColValue === 'Durano, Capital, ending' || value === '₱1,147,500')) {
+                        td.style.borderBottom = '3px double #000';
+                    }
+                    
+                    if (col >= 8 && (
+                        lastColValue === 'Total Assets' ||
+                        lastColValue === "Total Liabilities and Owner's Equity"
+                    ) && (value === '₱1,253,000' || value === 'Total Assets' || value === "Total Liabilities and Owner's Equity")) {
+                        td.style.borderBottom = '3px double #000';
+                    }
+                    
+                    // Separator columns
+                    if (col === 3 || col === 7) {
+                        td.style.backgroundColor = '#f8f9fa';
+                        td.style.borderRight = '2px solid #dee2e6';
+                        td.style.width = '30px';
+                    }
+                    
+                    // Right align numbers in appropriate columns
+                    if ((col === 1 || col === 2 || col === 5 || col === 6 || col === 9 || col === 10 || col === 11) && 
+                        value && (value.includes('₱') || value.includes(',') || !isNaN(value.replace(/[₱,()]/g, '')))) {
+                        td.style.textAlign = 'right';
                     }
                 }
-            ],
+            })),
             width: '100%',
             height: tableHeight,
             colWidths: colWidths,
             licenseKey: 'non-commercial-and-evaluation',
-
-            // Formula support with whitespace handling
             formulas: { engine: hyperformulaInstance },
-
-            // Handle formula input with whitespace
             beforeChange: function(changes, source) {
                 if (changes) {
                     changes.forEach(function(change) {
-                        // change[3] is the new value
                         if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
-                            // Trim leading/trailing spaces but keep internal spaces
                             change[3] = change[3].trim();
                         }
                     });
                 }
             },
-
-            // Full feature set
             contextMenu: true,
             undo: true,
             manualColumnResize: true,
             manualRowResize: true,
-            manualColumnMove: true,
-            manualRowMove: true,
             fillHandle: true,
             autoColumnSize: false,
             autoRowSize: false,
             copyPaste: true,
-            minRows: 62,
-            minCols: 4,
+            minRows: 35,
+            minCols: 12,
             minSpareRows: 1,
-            stretchH: 'all',
+            stretchH: 'none',
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
             outsideClickDeselects: false,
@@ -593,21 +505,23 @@
             comments: true,
             customBorders: true,
             className: 'htLeft htMiddle',
-
             mergeCells: [
-                { row: 0, col: 1, rowspan: 1, colspan: 3 },
-                { row: 1, col: 1, rowspan: 1, colspan: 3 },
-                { row: 2, col: 1, rowspan: 1, colspan: 3 },
-                { row: 19, col: 1, rowspan: 1, colspan: 3 },
-                { row: 20, col: 1, rowspan: 1, colspan: 3 },
-                { row: 21, col: 1, rowspan: 1, colspan: 3 },
-                { row: 32, col: 1, rowspan: 1, colspan: 3 },
-                { row: 33, col: 1, rowspan: 1, colspan: 3 },
-                { row: 34, col: 1, rowspan: 1, colspan: 3 }
-            ],
+                // Income Statement header merges
+                { row: 0, col: 0, rowspan: 1, colspan: 4 },
+                { row: 1, col: 0, rowspan: 1, colspan: 4 },
+                { row: 2, col: 0, rowspan: 1, colspan: 4 },
+                // Statement of Changes in Equity header merges
+                { row: 0, col: 4, rowspan: 1, colspan: 4 },
+                { row: 1, col: 4, rowspan: 1, colspan: 4 },
+                { row: 2, col: 4, rowspan: 1, colspan: 4 },
+                // Balance Sheet header merges
+                { row: 0, col: 8, rowspan: 1, colspan: 4 },
+                { row: 1, col: 8, rowspan: 1, colspan: 4 },
+                { row: 2, col: 8, rowspan: 1, colspan: 4 }
+            ]
         });
 
-        // Improved window resize handler with debouncing
+        // Window resize handler
         let resizeTimer;
         window.addEventListener('resize', function() {
             clearTimeout(resizeTimer);
@@ -616,9 +530,7 @@
                 const newViewportHeight = window.innerHeight;
                 const newIsMobile = newViewportWidth < 640;
                 const newIsTablet = newViewportWidth >= 640 && newViewportWidth < 1024;
-                const newIsDesktop = newViewportWidth >= 1024;
                 
-                // Recalculate height
                 let newHeight;
                 if (newIsMobile) {
                     newHeight = Math.min(Math.max(newViewportHeight * 0.5, 350), 500);
@@ -628,20 +540,13 @@
                     newHeight = Math.min(Math.max(newViewportHeight * 0.65, 550), 700);
                 }
                 
-                // Recalculate column widths
                 let newColWidths;
                 if (newIsMobile) {
-                    const availableWidth = Math.min(newViewportWidth - 60, 440);
-                    newColWidths = [
-                        Math.floor(availableWidth * 0.30),
-                        Math.floor(availableWidth * 0.35),
-                        Math.floor(availableWidth * 0.175),
-                        Math.floor(availableWidth * 0.175)
-                    ];
+                    newColWidths = Array(12).fill(100);
                 } else if (newIsTablet) {
-                    newColWidths = [180, 200, 120, 120];
+                    newColWidths = [200, 100, 100, 20, 200, 100, 100, 20, 200, 100, 100, 120];
                 } else {
-                    newColWidths = [220, 260, 140, 140];
+                    newColWidths = [240, 110, 110, 30, 240, 110, 110, 30, 240, 110, 110, 130];
                 }
                 
                 hot.updateSettings({

@@ -1,10 +1,10 @@
 <x-app-layout>
-    <!-- Handsontable -->
-    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.css" />
-    <!-- Formula Parser (HyperFormula) -->
-    <script src="https://cdn.jsdelivr.net/npm/hyperformula@2.6.2/dist/hyperformula.full.min.js"></script>
-
+    <!-- Luckysheet CSS -->
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/css/pluginsCss.css' />
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/plugins.css' />
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/css/luckysheet.css' />
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/assets/iconfont/iconfont.css' />
+    
     <style>
         /* Enhanced Header Section Styles */
         .answer-key-header {
@@ -159,6 +159,29 @@
             flex-shrink: 0;
         }
 
+        /* Luckysheet Container */
+        #luckysheet {
+            margin: 0px;
+            padding: 0px;
+            position: relative;
+            width: 100%;
+            height: 600px;
+        }
+
+        /* Prevent auto-scroll on any interaction */
+        #luckysheet *,
+        #luckysheet *:focus,
+        #luckysheet a,
+        #luckysheet a:focus {
+            scroll-margin: 0 !important;
+            scroll-behavior: auto !important;
+        }
+
+        /* Keep page scroll position stable */
+        html {
+            scroll-behavior: auto !important;
+        }
+
         /* Responsive adjustments */
         @media (max-width: 640px) {
             .answer-key-header {
@@ -177,11 +200,19 @@
                 font-size: 0.75rem;
                 padding: 0.375rem 0.75rem;
             }
+
+            #luckysheet {
+                height: 450px;
+            }
         }
 
         @media (min-width: 640px) and (max-width: 1024px) {
             .header-title {
                 font-size: 2rem;
+            }
+
+            #luckysheet {
+                height: 550px;
             }
         }
 
@@ -189,56 +220,6 @@
             .header-title {
                 font-size: 2.5rem;
             }
-        }
-
-        body { overflow-x: hidden; }
-        .handsontable td { border-color: #d1d5db; }
-        .handsontable .area { background-color: rgba(147, 51, 234, 0.1); }
-        .handsontable { position: relative; z-index: 1; }
-        #spreadsheet { isolation: isolate; }
-        .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
-        
-        /* T-Account Styling */
-        .handsontable td.t-account-date {
-            background-color: #f9fafb;
-            font-size: 0.85em;
-        }
-        
-        .handsontable td.t-account-debit {
-            border-right: 2px solid #6b7280 !important;
-            background-color: #fef3c7;
-        }
-        
-        .handsontable td.t-account-credit {
-            background-color: #dbeafe;
-        }
-        .handsontable td.t-account-row-bold {
-            font-weight: 700;
-            border-bottom: 2px solid #6b7280;
-        }
-        
-        /* Highlight the vertical line between debit and credit */
-        .handsontable th {
-            font-weight: 600;
-        }
-        
-        /* Style the nested headers to look like T-accounts */
-        .handsontable thead th {
-            background-color: #f3f4f6;
-        }
-        
-        .handsontable thead tr:first-child th {
-            background-color: #e5e7eb;
-            font-weight: 700;
-            border-bottom: 2px solid #6b7280;
-        }
-        
-        @media (max-width: 640px) {
-            .handsontable { font-size: 12px; }
-            .handsontable th, .handsontable td { padding: 4px; }
-        }
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .handsontable { font-size: 13px; }
         }
     </style>
 
@@ -292,15 +273,15 @@
                     <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
                     <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
                 </svg>
-                <span>Answer Key - Step 3 of 10</span>
+                <span>Answer Key - Step 1 of 10</span>
             </div>
             
             <h1 class="header-title">
-                Answer Key: Posting Transactions (T-Accounts)
+                Answer Key: Journal Entries
             </h1>
             
             <p class="header-description">
-                Create the correct answer key using T-account format. Each account shows debits on the left and credits on the right.
+                Create the correct answer key for Journal Entries. This will be used to automatically grade student submissions.
             </p>
             
             <div class="task-info-badge">
@@ -323,21 +304,23 @@
                         Instructions for Creating Answer Key
                     </h3>
                     <p>
-                        Fill in the T-accounts below. For each account, enter debits in the left column and credits in the right column. Empty cells will be ignored during comparison.
+                        Fill in the correct answers below. Students' submissions will be compared against this answer key for grading. Empty cells will be ignored during comparison. You can use formulas just like in Excel!
                     </p>
                 </div>
             </div>
 
-            <form id="answerKeyForm" action="{{ route('instructors.performance-tasks.answer-sheets.update', ['task' => $task, 'step' => 3]) }}" method="POST">
+            <form id="answerKeyForm" action="{{ route('instructors.performance-tasks.answer-sheets.update', ['task' => $task, 'step' => 1]) }}" method="POST">
                 @csrf
                 @method('PUT')
+                
+                <!-- Spreadsheet Section -->
                 <div class="p-3 sm:p-4 lg:p-6">
                     <div class="border rounded-lg shadow-inner bg-gray-50 overflow-hidden">
-                        <div class="overflow-x-auto overflow-y-auto" style="max-height: calc(100vh - 400px); min-height: 400px;">
-                            <div id="spreadsheet" class="bg-white min-w-full"></div>
-                        </div>
+                        <div id="luckysheet"></div>
                         <input type="hidden" name="correct_data" id="correctData" required>
                     </div>
+
+                    <!-- Mobile Scroll Hint -->
                     <div class="mt-2 text-xs text-gray-500 sm:hidden text-center">
                         <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
@@ -345,6 +328,8 @@
                         Swipe to scroll spreadsheet
                     </div>
                 </div>
+
+                <!-- Action Buttons -->
                 <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
                     <div class="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
                         <a href="{{ route('instructors.performance-tasks.answer-sheets.show', $task) }}" 
@@ -366,172 +351,254 @@
         </div>
     </div>
 
+    <!-- Luckysheet JS -->
+    <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/js/plugin.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/luckysheet.umd.js"></script>
+
 <script>
-    let hot;
-
-    document.addEventListener("DOMContentLoaded", function () {
-        const container = document.getElementById('spreadsheet');
-        const savedData = @json($sheet->correct_data ?? null);
-
-        const accounts = [
-            'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixture',
-            'Land', 'Equipment','Accumulated Depreciation - F&F',
-            'Accumulated Depreciation - Equipment', 'Land', 'Equipment',
-            'Accounts Payable', 'Notes Payable', 'Utilities Payable', 'Capital', 
-            'Withdrawals', 'Service Revenue', 'Rent Expense', 'Utilities Expense',
-            'Salaries Expense', 'Supplies Expense', 'Depreciation Expense',
-            'Income Summary'
-        ];
-
-        const numCols = accounts.length * 6;
-        const initialData = savedData
-            ? JSON.parse(savedData)
-            : Array.from({ length: 15 }, () => Array(numCols).fill(''));
-
-        // Initialize HyperFormula for Excel-like formulas with whitespace support
-        const hyperformulaInstance = HyperFormula.buildEmpty({
-            licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any', // Allows spaces in formulas
-        });
-
-        // Determine responsive dimensions
-        const isMobile = window.innerWidth < 640;
-        const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-
-        const nestedHeaders = [
-            accounts.map(name => ({ label: name, colspan: 6 })),
-            Array(accounts.length).fill(['Date', '', 'Debit (₱)', 'Credit (₱)', '', 'Date']).flat()
-        ];
-
-        const columns = [];
-        for (let i = 0; i < accounts.length; i++) {
-            const baseWidth = isMobile ? 80 : (isTablet ? 90 : 100);
-            const numericWidth = isMobile ? 100 : (isTablet ? 110 : 120);
+        // Prevent page scroll jumps - must be at the very top
+        (function() {
+            let scrollPosition = 0;
             
-            columns.push(
-                { type: 'text', width: baseWidth },
-                { type: 'text', width: 40 },
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: numericWidth },
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: numericWidth },
-                { type: 'text', width: 40 },
-                { type: 'text', width: baseWidth }
-            );
-        }
+            // Store scroll position before any interaction
+            window.addEventListener('scroll', function() {
+                scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+            }, { passive: true });
 
-        hot = new Handsontable(container, {
-            data: initialData,
-            rowHeaders: true,
-            nestedHeaders: nestedHeaders,
-            columns: columns,
-            width: '100%',
-            height: isMobile ? 350 : (isTablet ? 450 : 500),
-            licenseKey: 'non-commercial-and-evaluation',
+            // Prevent hash changes from scrolling
+            if ('scrollRestoration' in history) {
+                history.scrollRestoration = 'manual';
+            }
 
-            // Formula support with whitespace handling
-            formulas: { engine: hyperformulaInstance },
+            // Override problematic scroll methods
+            const originalScrollTo = window.scrollTo;
+            const originalScrollBy = window.scrollBy;
+            
+            window.scrollTo = function(x, y) {
+                // Prevent scrolling to top (0,0)
+                if (typeof x === 'object') {
+                    if (x.top === 0 && x.left === 0) return;
+                } else if (x === 0 && y === 0) {
+                    return;
+                }
+                originalScrollTo.apply(window, arguments);
+            };
 
-            // Handle formula input with whitespace
-            beforeChange: function(changes, source) {
-                if (changes) {
-                    changes.forEach(function(change) {
-                        // change[3] is the new value
-                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
-                            // Trim leading/trailing spaces but keep internal spaces
-                            change[3] = change[3].trim();
+            window.scrollBy = function(x, y) {
+                if (x === 0 && y === 0) return;
+                originalScrollBy.apply(window, arguments);
+            };
+        })();
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // Get saved answer key data if it exists
+            const savedData = @json($sheet->correct_data ?? null);
+            
+            // Initialize cell data
+            let celldata = [];
+            
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                parsedData.forEach((row, rowIndex) => {
+                    row.forEach((cellValue, colIndex) => {
+                        if (cellValue !== null && cellValue !== '') {
+                            celldata.push({
+                                r: rowIndex,
+                                c: colIndex,
+                                v: {
+                                    v: cellValue,
+                                    m: cellValue,
+                                    ct: { fa: "General", t: "g" }
+                                }
+                            });
                         }
                     });
-                }
-            },
-
-            // Full feature set
-            contextMenu: true,
-            undo: true,
-            manualColumnResize: true,
-            manualRowResize: true,
-            manualColumnMove: true,
-            manualRowMove: true,
-            fillHandle: true,
-            autoColumnSize: false,
-            autoRowSize: false,
-            copyPaste: true,
-            minRows: 15,
-            minCols: numCols,
-            stretchH: 'none',
-            enterMoves: { row: 1, col: 0 },
-            tabMoves: { row: 0, col: 1 },
-            outsideClickDeselects: false,
-            selectionMode: 'multiple',
-            mergeCells: true,
-            comments: true,
-            customBorders: true,
-            minSpareRows: 1,
-
-            cells: function (row, col) {
-                const cellProperties = {};
-                const colIndex = col % 6;
-                const cellData = this.instance.getDataAtCell(row, col);
-
-                // Add formula cell styling
-                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
-                    cellProperties.className = (cellProperties.className || '') + ' formula-cell';
-                }
-
-                // T-account styling
-                if (colIndex === 0 || colIndex === 5) {
-                    cellProperties.className = (cellProperties.className || '') + ' t-account-date';
-                } else if (colIndex === 1 || colIndex === 4) {
-                    cellProperties.className = (cellProperties.className || '') + ' t-account-blank';
-                    cellProperties.readOnly = false;
-                } else if (colIndex === 2) {
-                    cellProperties.className = (cellProperties.className || '') + ' t-account-debit';
-                } else if (colIndex === 3) {
-                    cellProperties.className = (cellProperties.className || '') + ' t-account-credit';
-                }
-
-                return cellProperties;
-            },
-        });
-
-        // Responsive resize handler
-        let resizeTimer;
-        window.addEventListener('resize', function() {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {
-                const newIsMobile = window.innerWidth < 640;
-                const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-                const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
-                
-                const newColumns = [];
-                for (let i = 0; i < accounts.length; i++) {
-                    const baseWidth = newIsMobile ? 80 : (newIsTablet ? 90 : 100);
-                    const numericWidth = newIsMobile ? 100 : (newIsTablet ? 110 : 120);
-                    
-                    newColumns.push(
-                        { type: 'text', width: baseWidth },
-                        { type: 'text', width: 40 },
-                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: numericWidth },
-                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: numericWidth },
-                        { type: 'text', width: 40 },
-                        { type: 'text', width: baseWidth }
-                    );
-                }
-                
-                hot.updateSettings({
-                    height: newHeight,
-                    columns: newColumns
                 });
-            }, 250);
-        });
+            }
 
-        // Capture spreadsheet data on submit
-        const answerKeyForm = document.getElementById("answerKeyForm");
-        if (answerKeyForm) {
-            answerKeyForm.addEventListener("submit", function (e) {
-                e.preventDefault();
-                document.getElementById("correctData").value = JSON.stringify(hot.getData());
-                this.submit();
-            });
-        }
-    });
-</script>
+            // Configure Luckysheet
+            const options = {
+                container: 'luckysheet',
+                lang: 'en',
+                showtoolbar: true,
+                showinfobar: false,
+                showsheetbar: false,
+                showstatisticBar: false,
+                sheetFormulaBar: true,
+                enableAddRow: true,
+                enableAddCol: true,
+                userInfo: false,
+                showConfigWindowResize: true,
+                forceCalculation: false,
+                plugins: ['chart'],
+                data: [{
+                    name: "Answer Key",
+                    color: "",
+                    status: "1",
+                    order: "0",
+                    hide: 0,
+                    row: 30,
+                    column: 15,
+                    defaultRowHeight: 19,
+                    defaultColWidth: 73,
+                    celldata: celldata,
+                    config: {
+                        merge: {},
+                        rowlen: {},
+                        columnlen: {},
+                        rowhidden: {},
+                        colhidden: {},
+                        borderInfo: [],
+                        authority: {}
+                    },
+                    index: 0,
+                    jfgird_select_save: [],
+                    luckysheet_select_save: [{
+                        row: [0, 0],
+                        column: [0, 0],
+                        row_focus: 0,
+                        column_focus: 0,
+                        left: 0,
+                        width: 73,
+                        top: 0,
+                        height: 19,
+                        left_move: 0,
+                        width_move: 73,
+                        top_move: 0,
+                        height_move: 19
+                    }],
+                    calcChain: [],
+                    isPivotTable: false,
+                    pivotTable: {},
+                    filter_select: {},
+                    filter: null,
+                    luckysheet_alternateformat_save: [],
+                    luckysheet_alternateformat_save_modelCustom: [],
+                    luckysheet_conditionformat_save: {},
+                    frozen: {},
+                    chart: [],
+                    zoomRatio: 1,
+                    image: [],
+                    showGridLines: 1,
+                    dataVerification: {}
+                }],
+                title: 'Answer Key - Journal Entries',
+                myFolderUrl: '',
+                devicePixelRatio: 1,
+                allowEdit: true,
+                loadUrl: '',
+                loadSheetUrl: '',
+                gridKey: '',
+                updateUrl: '',
+                updateImageUrl: '',
+                allowUpdate: false,
+                functionButton: '',
+                showConfigWindowResize: true,
+                hook: {
+                    cellUpdated: function(r, c, oldValue, newValue, isRefresh) {
+                        // Optional: Add any custom logic when a cell is updated
+                        console.log('Cell updated:', r, c, newValue);
+                    }
+                }
+            };
+
+            // Initialize Luckysheet
+            luckysheet.create(options);
+
+            // Additional scroll prevention after Luckysheet loads
+            setTimeout(function() {
+                const luckyContainer = document.getElementById('luckysheet');
+                if (luckyContainer) {
+                    // Capture and stop all click events that might cause scrolling
+                    luckyContainer.addEventListener('mousedown', function(e) {
+                        // Prevent default only for links and anchors
+                        const target = e.target;
+                        if (target.tagName === 'A' || target.closest('a')) {
+                            e.preventDefault();
+                        }
+                    }, true);
+
+                    // Prevent focus events from scrolling
+                    luckyContainer.addEventListener('focusin', function(e) {
+                        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+                        
+                        // Restore scroll position if it changed
+                        requestAnimationFrame(function() {
+                            window.scrollTo(scrollLeft, scrollTop);
+                        });
+                    }, true);
+
+                    // Block hash navigation
+                    window.addEventListener('hashchange', function(e) {
+                        e.preventDefault();
+                        return false;
+                    }, false);
+                }
+            }, 100);
+
+            // Handle form submission
+            const answerKeyForm = document.getElementById("answerKeyForm");
+            if (answerKeyForm) {
+                answerKeyForm.addEventListener("submit", function (e) {
+                    e.preventDefault();
+                    
+                    // Get all sheet data with complete information
+                    const sheetData = luckysheet.getAllSheets()[0];
+                    const cellData = sheetData.celldata || [];
+                    const config = sheetData.config || {};
+                    const mergeInfo = config.merge || {};
+                    
+                    // Convert celldata to 2D array format (15x15 grid)
+                    const gridData = Array(15).fill().map(() => Array(15).fill(''));
+                    
+                    // Create a set to track cells that are part of a merge (but not the main cell)
+                    const mergedCells = new Set();
+                    
+                    // First pass: identify all merged cell ranges
+                    Object.keys(mergeInfo).forEach(key => {
+                        const merge = mergeInfo[key];
+                        if (merge && merge.r !== undefined && merge.c !== undefined) {
+                            const mainRow = merge.r;
+                            const mainCol = merge.c;
+                            const rowSpan = merge.rs || 1;
+                            const colSpan = merge.cs || 1;
+                            
+                            // Mark all cells except the main cell as merged
+                            for (let r = mainRow; r < mainRow + rowSpan && r < 15; r++) {
+                                for (let c = mainCol; c < mainCol + colSpan && c < 15; c++) {
+                                    // Skip the main cell itself
+                                    if (r !== mainRow || c !== mainCol) {
+                                        mergedCells.add(`${r},${c}`);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Second pass: populate grid with cell data
+                    cellData.forEach(cell => {
+                        if (cell.r < 15 && cell.c < 15 && cell.v) {
+                            // Only set value if this is not a merged sub-cell
+                            if (!mergedCells.has(`${cell.r},${cell.c}`)) {
+                                // Get the actual value (formula result if formula, or raw value)
+                                const value = cell.v.v || cell.v.m || '';
+                                gridData[cell.r][cell.c] = value;
+                            }
+                        }
+                    });
+                    
+                    // Store the data
+                    document.getElementById("correctData").value = JSON.stringify(gridData);
+                    
+                    console.log('Submitting grid data:', gridData); // Debug log
+                    console.log('Merge info:', mergeInfo); // Debug log
+                    console.log('Merged cells:', Array.from(mergedCells)); // Debug log
+                    
+                    // Submit the form
+                    this.submit();
+                });
+            }
+        });
+    </script>
 </x-app-layout>
