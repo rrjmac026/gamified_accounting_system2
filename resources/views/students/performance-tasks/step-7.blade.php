@@ -271,8 +271,8 @@
         const parsedSaved = savedData ? (typeof savedData === 'string' ? JSON.parse(savedData) : savedData) : null;
         const parsedCorrect = correctData ? (typeof correctData === 'string' ? JSON.parse(correctData) : correctData) : null;
         
-        // Initialize with horizontal layout matching the image exactly
-        const initialData = parsedSaved || [
+        // IMPORTANT: Keep the original template separate from saved data
+        const templateData = [
             ["Durano Enterprise", null, null, null, "Durano Enterprise", null, null, null, "Durano Enterprise", null, null, null],
             ["Income Statement", null, null, null, "Statement of Changes in Equity", null, null, null, "Balance Sheet", null, null, null],
             ["For the month ended February 29, 2024", null, null, null, "For the month ended February 29, 2024", null, null, null, "As of February 29, 2024", null, null, null],
@@ -310,6 +310,9 @@
             [null, null, null, null, null, null, null, null, null, null, null, null]
         ];
 
+        // Use saved data if available, otherwise use template
+        const initialData = parsedSaved || JSON.parse(JSON.stringify(templateData));
+
         // Define template cells that should NEVER be graded (headers, labels, etc.)
         const templateCells = new Set([
             // Row 0-2: Headers (all three statements)
@@ -331,21 +334,6 @@
         // Function to check if a cell is a template cell
         function isTemplateCell(row, col) {
             return templateCells.has(`${row}-${col}`);
-        }
-
-        // Function to check if student actually modified this cell
-        function studentModifiedCell(row, col) {
-            if (!parsedSaved || !parsedSaved[row] || parsedSaved[row][col] === undefined) {
-                return false;
-            }
-            
-            const studentValue = parsedSaved[row][col];
-            const initialValue = initialData[row] ? initialData[row][col] : '';
-            
-            return studentValue !== null && 
-                studentValue !== undefined && 
-                studentValue !== '' && 
-                studentValue !== initialValue;
         }
 
         // Initialize HyperFormula
@@ -393,20 +381,42 @@
                         td.classList.add('formula-cell');
                     }
                     
-                    // Apply grading colors only if submission has been graded
-                    if (submissionStatus && parsedCorrect && studentModifiedCell(row, col) && !isTemplateCell(row, col)) {
-                        const studentValue = parsedSaved[row][col];
-                        const correctValue = parsedCorrect[row] ? parsedCorrect[row][col] : '';
-                        const normalizeValue = (val) => {
-                            if (val === null || val === undefined || val === '') return '';
-                            if (typeof val === 'string') return val.trim().toLowerCase();
-                            return val.toString();
-                        };
-                        const isCorrect = normalizeValue(studentValue) === normalizeValue(correctValue);
-                        if (isCorrect) {
-                            td.classList.add('cell-correct');
-                        } else {
-                            td.classList.add('cell-wrong');
+                    // Apply grading colors ONLY if submission has been graded (has a status like 'correct' or 'incorrect')
+                    if (submissionStatus && (submissionStatus === 'correct' || submissionStatus === 'incorrect' || submissionStatus === 'partially_correct') && parsedCorrect && parsedSaved) {
+                        // Skip header rows (0-3) and separator columns (3, 7)
+                        const isHeaderRow = row <= 3;
+                        const isSeparatorCol = col === 3 || col === 7;
+                        
+                        if (!isHeaderRow && !isSeparatorCol && !isTemplateCell(row, col)) {
+                            const studentValue = parsedSaved[row]?.[col];
+                            const correctValue = parsedCorrect[row]?.[col];
+                            const templateValue = templateData[row]?.[col];
+                            
+                            // Normalize function
+                            const normalizeValue = (val) => {
+                                if (val === null || val === undefined) return '';
+                                if (val === '') return '';
+                                if (typeof val === 'string') {
+                                    // Remove currency symbols, commas, parentheses, spaces and trim
+                                    return val.replace(/[₱,\s()]/g, '').trim().toLowerCase();
+                                }
+                                if (typeof val === 'number') return val.toString();
+                                return String(val).trim().toLowerCase();
+                            };
+                            
+                            const normalizedStudent = normalizeValue(studentValue);
+                            const normalizedTemplate = normalizeValue(templateValue);
+                            
+                            // Only grade cells where student entered something different from template
+                            if (normalizedStudent !== '' && normalizedStudent !== normalizedTemplate) {
+                                const normalizedCorrect = normalizeValue(correctValue);
+                                
+                                if (normalizedStudent === normalizedCorrect) {
+                                    td.classList.add('cell-correct');
+                                } else {
+                                    td.classList.add('cell-wrong');
+                                }
+                            }
                         }
                     }
                     
