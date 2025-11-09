@@ -336,6 +336,40 @@
             return templateCells.has(`${row}-${col}`);
         }
 
+        // Function to add comma separators to numbers
+        function addCommas(value) {
+            if (!value || value === '') return value;
+            
+            // If it's a formula, don't format it
+            if (typeof value === 'string' && value.startsWith('=')) return value;
+            
+            // Remove existing formatting
+            let cleanValue = String(value).replace(/[₱,\s]/g, '');
+            
+            // Check if it's a negative number (in parentheses)
+            let isNegative = cleanValue.includes('(') || cleanValue.includes(')');
+            cleanValue = cleanValue.replace(/[()]/g, '');
+            
+            // Check if it's a valid number
+            if (isNaN(cleanValue) || cleanValue === '') return value;
+            
+            // Convert to number and back to string to handle decimals properly
+            let num = parseFloat(cleanValue);
+            if (isNaN(num)) return value;
+            
+            // Format with commas
+            let parts = num.toFixed(2).split('.');
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            let formatted = parts.join('.');
+            
+            // Add back parentheses for negative numbers
+            if (isNegative) {
+                formatted = '(' + formatted + ')';
+            }
+            
+            return formatted;
+        }
+
         // Initialize HyperFormula
         const hyperformulaInstance = HyperFormula.buildEmpty({
             licenseKey: 'internal-use-in-handsontable',
@@ -516,8 +550,21 @@
             beforeChange: function(changes, source) {
                 if (changes) {
                     changes.forEach(function(change) {
-                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
-                            change[3] = change[3].trim();
+                        const row = change[0];
+                        const col = change[1];
+                        let newValue = change[3];
+                        
+                        // Don't format formulas
+                        if (newValue && typeof newValue === 'string' && newValue.startsWith('=')) {
+                            change[3] = newValue.trim();
+                            return;
+                        }
+                        
+                        // Auto-format numbers in value columns (1, 2, 5, 6, 9, 10, 11)
+                        if (col === 1 || col === 2 || col === 5 || col === 6 || col === 9 || col === 10 || col === 11) {
+                            if (newValue && newValue !== '') {
+                                change[3] = addCommas(newValue);
+                            }
                         }
                     });
                 }
