@@ -207,7 +207,7 @@
 
         // Student's saved answers
         const savedData = @json($submission->submission_data ?? null);
-        const initialData = savedData ? JSON.parse(savedData) : Array.from({ length: 15 }, () => Array(21).fill(''));
+        const initialData = savedData ? JSON.parse(savedData) : Array.from({ length: 15 }, () => Array(22).fill(''));
 
         // Instructor's correct data
         const correctData = @json($answerSheet->correct_data ?? null);
@@ -225,13 +225,14 @@
 
         // Create columns config
         const columnsConfig = [
-            { type: 'text', width: isMobile ? 80 : 100 }, // Month
-            { type: 'text', width: isMobile ? 80 : 100 }, // Day
-            { type: 'text', width: isMobile ? 300 : 400 },
-            { type: 'text', width: isMobile ? 80 : 100 },
-            { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
-            { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
-            { type: 'text', width: isMobile ? 80 : 100 }, // Blank Column
+            { type: 'text', width: isMobile ? 60 : 80 }, // Month (Journal Date)
+            { type: 'text', width: isMobile ? 60 : 80 }, // Day (Journal Date)
+            { type: 'text', width: isMobile ? 250 : 350 }, // Account Titles
+            { type: 'text', width: isMobile ? 80 : 100 }, // Account Number
+            { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 130 }, // Debit
+            { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 130 }, // Credit
+            { type: 'text', width: isMobile ? 60 : 80 }, // Blank Column
+            { type: 'text', width: isMobile ? 80 : 100 }, // Date (Ledger)
             { type: 'text', width: isMobile ? 80 : 100 }, // Cash
             { type: 'text', width: isMobile ? 100 : 120 }, // Accounts Receivable
             { type: 'text', width: isMobile ? 80 : 100 }, // Supplies
@@ -265,6 +266,7 @@
                     'Debit (₱)', 
                     'Credit (₱)',
                     '',
+                    'Date',
                     'Cash', 
                     'Accounts Receivable', 
                     'Supplies', 
@@ -283,7 +285,7 @@
                 [
                     'Month',
                     'Day',
-                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
+                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
                 ]
             ],
 
@@ -328,7 +330,7 @@
             autoRowSize: false,
             copyPaste: true,
             minRows: 15,
-            minCols: 21,
+            minCols: 22,
             minSpareRows: 1,
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
@@ -376,12 +378,13 @@
                 hot.updateSettings({
                     height: newHeight,
                     columns: [
+                        { type: 'text', width: newIsMobile ? 60 : 80 },
+                        { type: 'text', width: newIsMobile ? 60 : 80 },
+                        { type: 'text', width: newIsMobile ? 250 : 350 },
                         { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 300 : 400 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 120 : 150 },
-                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 120 : 150 },
+                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 100 : 130 },
+                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 100 : 130 },
+                        { type: 'text', width: newIsMobile ? 60 : 80 },
                         { type: 'text', width: newIsMobile ? 80 : 100 },
                         { type: 'text', width: newIsMobile ? 80 : 100 },
                         { type: 'text', width: newIsMobile ? 100 : 120 },

@@ -336,7 +336,7 @@
         
         // Get saved answer key data if it exists
         const savedData = @json($sheet->correct_data ?? null);
-        const initialData = savedData ? JSON.parse(savedData) : Array.from({ length: 15 }, () => Array(20).fill(''));
+        const initialData = savedData ? JSON.parse(savedData) : Array.from({ length: 15 }, () => Array(22).fill(''));
 
         // Initialize HyperFormula for Excel-like formulas with whitespace support
         const hyperformulaInstance = HyperFormula.buildEmpty({
@@ -363,6 +363,7 @@
                     'Debit (₱)', 
                     'Credit (₱)',
                     '',
+                    'Date',
                     'Cash', 
                     'Accounts Receivable', 
                     'Supplies', 
@@ -381,7 +382,7 @@
                 [
                     '', 
                     '',
-                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
+                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
                 ]
             ],
             
@@ -392,6 +393,7 @@
                 { type: 'text', width: isMobile ? 80 : 100 },
                 { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
                 { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
+                { type: 'text', width: isMobile ? 80 : 100 },
                 { type: 'text', width: isMobile ? 80 : 100 },
                 { type: 'text', width: isMobile ? 80 : 100 },
                 { type: 'text', width: isMobile ? 100 : 120 },
@@ -449,7 +451,7 @@
             autoRowSize: false,
             copyPaste: true,
             minRows: 15,
-            minCols: 21,
+            minCols: 22,
             stretchH: 'none',
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
@@ -486,6 +488,7 @@
                         { type: 'text', width: newIsMobile ? 80 : 100 },
                         { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 120 : 150 },
                         { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 120 : 150 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
                         { type: 'text', width: newIsMobile ? 80 : 100 },
                         { type: 'text', width: newIsMobile ? 80 : 100 },
                         { type: 'text', width: newIsMobile ? 100 : 120 },
