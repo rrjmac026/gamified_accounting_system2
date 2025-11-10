@@ -674,10 +674,19 @@
         // Restore bold formatting if metadata exists
         if (savedMetadata) {
             savedMetadata.forEach((row, rowIndex) => {
-                if (row) {
+                if (row && Array.isArray(row)) {
                     row.forEach((cell, colIndex) => {
                         if (cell && cell.bold) {
-                            hot.setCellMeta(rowIndex, colIndex, 'className', 'bold-cell');
+                            // Get current className and add bold-cell if not already present
+                            const currentMeta = hot.getCellMeta(rowIndex, colIndex);
+                            const currentClassName = currentMeta.className || '';
+                            
+                            if (!currentClassName.includes('bold-cell')) {
+                                const newClassName = currentClassName 
+                                    ? currentClassName + ' bold-cell' 
+                                    : 'bold-cell';
+                                hot.setCellMeta(rowIndex, colIndex, 'className', newClassName);
+                            }
                         }
                     });
                 }
@@ -758,34 +767,35 @@
         setInterval(checkZoom, 500);
 
         // Capture spreadsheet data on submit with bold metadata
-        const saveForm = document.getElementById("saveForm");
-        if (saveForm) {
-            saveForm.addEventListener("submit", function (e) {
-                e.preventDefault();
-                
-                const data = hot.getData();
-                const metadata = [];
-                
-                // Capture bold formatting
-                for (let row = 0; row < data.length; row++) {
-                    metadata[row] = [];
-                    for (let col = 0; col < data[row].length; col++) {
-                        const meta = hot.getCellMeta(row, col);
-                        if (meta.className && meta.className.includes('bold-cell')) {
-                            metadata[row][col] = { bold: true };
-                        }
-                    }
-                }
-                
-                // Save data with metadata
-                document.getElementById("submission_data").value = JSON.stringify({
-                    data: data,
-                    metadata: metadata
-                });
-                
-                this.submit();
-            });
+            // Capture spreadsheet data on submit with bold metadata
+const saveForm = document.getElementById("saveForm");
+if (saveForm) {
+    saveForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        
+        const data = hot.getData();
+        const metadata = [];
+        
+        // Capture bold formatting
+        for (let row = 0; row < data.length; row++) {
+            metadata[row] = [];
+            for (let col = 0; col < data[row].length; col++) {
+                const meta = hot.getCellMeta(row, col);
+                metadata[row][col] = { 
+                    bold: !!(meta.className && meta.className.includes('bold-cell'))
+                };
+            }
         }
+        
+        // Save both data and metadata
+        document.getElementById("submission_data").value = JSON.stringify({
+            data: data,
+            metadata: metadata
+        });
+        
+        this.submit();
+    });
+}
     });
 </script>
 

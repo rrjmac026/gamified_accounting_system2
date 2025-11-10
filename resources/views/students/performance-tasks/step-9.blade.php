@@ -11,6 +11,10 @@
             vertical-align: middle;
             background-color: #ffffff;
         }
+
+        .handsontable td.bold-cell {
+            font-weight: bold !important;
+        }
         
         .handsontable thead th {
             background-color: #f3f4f6;
@@ -295,42 +299,74 @@
     document.addEventListener("DOMContentLoaded", function () {
         const container = document.getElementById('spreadsheet');
 
-        // ✅ Load saved submission data or default blank with 3 columns
-        const savedData = @json($submission->submission_data ?? null);
-        const initialData = savedData ? JSON.parse(savedData) : [
-            ['Durano Enterprise', '', ''],  // Row 0: Company name
-            ['Closing Entries', '', ''],    // Row 1: Document title
-            ['Date: ____________', '', ''], // Row 2: Date field
-            ['Account Title', 'Debit (₱)', 'Credit (₱)'], // Row 3: Column headers
-            ['', '', ''],                   // Row 4: First data row
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', '']
-        ];
+        // Parse saved data if it exists
+        const savedDataRaw = @json($submission->submission_data ?? null);
+        let initialData, savedMetadata = null;
+        
+        if (savedDataRaw) {
+            const parsedSaved = typeof savedDataRaw === 'string' ? JSON.parse(savedDataRaw) : savedDataRaw;
+            if (parsedSaved && parsedSaved.data && parsedSaved.metadata) {
+                initialData = parsedSaved.data;
+                savedMetadata = parsedSaved.metadata;
+            } else if (parsedSaved) {
+                // Old format - just the data array
+                initialData = parsedSaved;
+            }
+        }
+        
+        if (!initialData) {
+            // Load default blank data with 3 columns
+            initialData = [
+                ['Durano Enterprise', '', ''],  // Row 0: Company name
+                ['Closing Entries', '', ''],    // Row 1: Document title
+                ['Date: ____________', '', ''], // Row 2: Date field
+                ['Account Title', 'Debit (₱)', 'Credit (₱)'], // Row 3: Column headers
+                ['', '', ''],                   // Row 4: First data row
+                ['', '', ''],
+                ['', '', ''],
+                ['', '', ''],
+                ['', '', ''],
+                ['', '', ''],
+                ['', '', ''],
+                ['', '', ''],
+                ['', '', ''],
+                ['', '', ''],
+                ['', '', ''],
+                ['', '', ''],
+                ['', '', ''],
+                ['', '', ''],
+                ['', '', ''],
+                ['', '', '']
+            ];
+        }
 
-        // ✅ Initialize HyperFormula with whitespace support
+        // Parse correct data if it exists
+        const correctDataRaw = @json($answerSheet->correct_data ?? null);
+        let correctData = null, correctMetadata = null;
+        
+        if (correctDataRaw) {
+            const parsedCorrect = typeof correctDataRaw === 'string' ? JSON.parse(correctDataRaw) : correctDataRaw;
+            if (parsedCorrect && parsedCorrect.data && parsedCorrect.metadata) {
+                correctData = parsedCorrect.data;
+                correctMetadata = parsedCorrect.metadata;
+            } else if (parsedCorrect) {
+                correctData = parsedCorrect;
+            }
+        }
+
+        const submissionStatus = @json($submission->status ?? null);
+
+        // Initialize HyperFormula with whitespace support
         const hyperformulaInstance = HyperFormula.buildEmpty({
             licenseKey: 'internal-use-in-handsontable',
             ignoreWhiteSpace: 'any',
         });
 
-        // ✅ Responsive detection
+        // Responsive detection
         const isMobile = window.innerWidth < 640;
         const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
 
-        // ✅ Handsontable initialization with 3 columns
+        // Handsontable initialization with 3 columns
         hot = new Handsontable(container, {
             data: initialData,
             columns: [
@@ -359,8 +395,49 @@
                 }
             },
 
-            // Full feature set
-            contextMenu: true,
+            // Context menu with bold toggle
+            contextMenu: {
+                items: {
+                    'row_above': {},
+                    'row_below': {},
+                    'col_left': {},
+                    'col_right': {},
+                    'remove_row': {},
+                    'remove_col': {},
+                    'undo': {},
+                    'redo': {},
+                    'make_read_only': {},
+                    'alignment': {},
+                    'separator1': '---------',
+                    'bold': {
+                        name: '✓ Toggle Bold',
+                        callback: function() {
+                            const selected = this.getSelected();
+                            if (selected) {
+                                selected.forEach(([startRow, startCol, endRow, endCol]) => {
+                                    for (let row = startRow; row <= endRow; row++) {
+                                        for (let col = startCol; col <= endCol; col++) {
+                                            const meta = this.getCellMeta(row, col);
+                                            
+                                            // Toggle bold state
+                                            if (!meta.className) {
+                                                this.setCellMeta(row, col, 'className', 'bold-cell');
+                                            } else if (meta.className.includes('bold-cell')) {
+                                                this.setCellMeta(row, col, 'className', 
+                                                    meta.className.replace('bold-cell', '').trim());
+                                            } else {
+                                                this.setCellMeta(row, col, 'className', 
+                                                    meta.className + ' bold-cell');
+                                            }
+                                        }
+                                    }
+                                });
+                                this.render();
+                            }
+                        }
+                    }
+                }
+            },
             undo: true,
             manualColumnResize: true,
             manualRowResize: true,
@@ -384,12 +461,6 @@
             // Cell styling and validation
             cells: function(row, col) {
                 const cellProperties = {};
-                const cellData = this.instance.getDataAtCell(row, col);
-
-                // Formula cell styling
-                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
-                    cellProperties.className = (cellProperties.className || '') + ' formula-cell';
-                }
                 
                 // Row 0: Company name (only in Debit column)
                 if (row === 0) {
@@ -411,7 +482,7 @@
                 }
                 
                 // Row 1: Document title (only in Debit column)
-                if (row === 1) {
+                else if (row === 1) {
                     cellProperties.className = 'header-title';
                     if (col === 0 || col === 2) {
                         cellProperties.readOnly = true;
@@ -430,7 +501,7 @@
                 }
                 
                 // Row 2: Date field (only in Debit column)
-                if (row === 2) {
+                else if (row === 2) {
                     cellProperties.className = 'header-date';
                     if (col === 0 || col === 2) {
                         cellProperties.readOnly = true;
@@ -449,7 +520,7 @@
                 }
                 
                 // Row 3: Column headers (bold, centered, read-only)
-                if (row === 3) {
+                else if (row === 3) {
                     cellProperties.readOnly = true;
                     cellProperties.className = 'header-columns';
                     cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
@@ -458,39 +529,100 @@
                         td.style.textAlign = 'center';
                         td.style.backgroundColor = '#f3f4f6';
                     };
-                } else if (row > 3) {
-                    // Data rows - add validation coloring
+                }
+                
+                // Data rows - support bold and grading
+                else {
                     cellProperties.readOnly = false;
-
-                    const submissionStatus = @json($submission->status ?? null);
-                    const correctData = @json($answerSheet->correct_data ?? null);
-                    const savedData = @json($submission->submission_data ?? null);
-
-                    if (submissionStatus && correctData && savedData) {
-                        const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
-                        const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
+                    cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
+                        // Use appropriate base renderer
+                        if (col === 0) {
+                            Handsontable.renderers.TextRenderer.apply(this, arguments);
+                        } else {
+                            Handsontable.renderers.NumericRenderer.apply(this, arguments);
+                        }
                         
-                        const studentValue = parsedStudent[row]?.[col];
-                        const correctValue = parsedCorrect[row]?.[col];
+                        // Check if cell should be bold
+                        const meta = instance.getCellMeta(row, col);
+                        if (meta.className && meta.className.includes('bold-cell')) {
+                            td.style.fontWeight = 'bold';
+                        }
                         
-                        if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
-                            const normalizedStudent = String(studentValue).trim().toLowerCase();
-                            const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
+                        // Formula cell styling
+                        if (value && typeof value === 'string' && value.startsWith('=')) {
+                            td.classList.add('formula-cell');
+                        }
+                        
+                        // Check if submission is graded and apply correct/wrong styling
+                        if (submissionStatus && correctData) {
+                            const studentValue = instance.getDataAtCell(row, col);
+                            const correctValue = correctData[row]?.[col];
                             
-                            if (normalizedStudent === normalizedCorrect) {
-                                cellProperties.className = 'cell-correct';
-                            } else {
-                                cellProperties.className = 'cell-wrong';
+                            if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
+                                const normalizedStudent = String(studentValue).trim().toLowerCase();
+                                const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
+                                
+                                if (normalizedStudent === normalizedCorrect) {
+                                    td.classList.add('cell-correct');
+                                } else {
+                                    td.classList.add('cell-wrong');
+                                }
                             }
                         }
-                    }
+                    };
                 }
                 
                 return cellProperties;
             }
         });
 
-        // ✅ Responsive behavior
+        // Restore bold formatting if metadata exists
+        if (savedMetadata) {
+            savedMetadata.forEach((row, rowIndex) => {
+                if (row) {
+                    row.forEach((cell, colIndex) => {
+                        if (cell && cell.bold) {
+                            hot.setCellMeta(rowIndex, colIndex, 'className', 'bold-cell');
+                        }
+                    });
+                }
+            });
+            hot.render();
+        }
+
+        // Keyboard shortcut for bold (Ctrl+B / Cmd+B)
+        hot.addHook('beforeKeyDown', function(event) {
+            // Check for Ctrl+B (Windows/Linux) or Cmd+B (Mac)
+            if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                
+                const selected = hot.getSelected();
+                if (selected) {
+                    selected.forEach(([startRow, startCol, endRow, endCol]) => {
+                        for (let row = startRow; row <= endRow; row++) {
+                            for (let col = startCol; col <= endCol; col++) {
+                                const meta = hot.getCellMeta(row, col);
+                                
+                                // Toggle bold
+                                if (!meta.className) {
+                                    hot.setCellMeta(row, col, 'className', 'bold-cell');
+                                } else if (meta.className.includes('bold-cell')) {
+                                    hot.setCellMeta(row, col, 'className', 
+                                        meta.className.replace('bold-cell', '').trim());
+                                } else {
+                                    hot.setCellMeta(row, col, 'className', 
+                                        meta.className + ' bold-cell');
+                                }
+                            }
+                        }
+                    });
+                    hot.render();
+                }
+            }
+        });
+
+        // Responsive behavior
         let resizeTimer;
         window.addEventListener('resize', function () {
             clearTimeout(resizeTimer);
@@ -505,12 +637,32 @@
             }, 250);
         });
 
-        // ✅ Save submission data
+        // Save submission data with bold metadata
         const saveForm = document.getElementById("saveForm");
         if (saveForm) {
             saveForm.addEventListener("submit", function (e) {
                 e.preventDefault();
-                document.getElementById("submission_data").value = JSON.stringify(hot.getData());
+                
+                const data = hot.getData();
+                const metadata = [];
+                
+                // Capture bold formatting
+                for (let row = 0; row < data.length; row++) {
+                    metadata[row] = [];
+                    for (let col = 0; col < data[row].length; col++) {
+                        const meta = hot.getCellMeta(row, col);
+                        if (meta.className && meta.className.includes('bold-cell')) {
+                            metadata[row][col] = { bold: true };
+                        }
+                    }
+                }
+                
+                // Save data with metadata
+                document.getElementById("submission_data").value = JSON.stringify({
+                    data: data,
+                    metadata: metadata
+                });
+                
                 this.submit();
             });
         }

@@ -758,34 +758,45 @@
         setInterval(checkZoom, 500);
 
         // Capture spreadsheet data on submit with bold metadata
-        const saveForm = document.getElementById("saveForm");
-        if (saveForm) {
-            saveForm.addEventListener("submit", function (e) {
-                e.preventDefault();
-                
-                const data = hot.getData();
-                const metadata = [];
-                
-                // Capture bold formatting
-                for (let row = 0; row < data.length; row++) {
-                    metadata[row] = [];
-                    for (let col = 0; col < data[row].length; col++) {
-                        const meta = hot.getCellMeta(row, col);
-                        if (meta.className && meta.className.includes('bold-cell')) {
-                            metadata[row][col] = { bold: true };
+            const saveForm = document.getElementById("saveForm");
+            if (saveForm) {
+                saveForm.addEventListener("submit", function (e) {
+                    e.preventDefault();
+                    
+                    const data = hot.getData();
+                    const metadata = [];
+                    
+                    // Capture bold formatting
+                    for (let row = 0; row < data.length; row++) {
+                        metadata[row] = [];
+                        for (let col = 0; col < data[row].length; col++) {
+                            const meta = hot.getCellMeta(row, col);
+                            if (meta.className && meta.className.includes('bold-cell')) {
+                                metadata[row][col] = { bold: true };
+                            }
                         }
                     }
-                }
-                
-                // Save data with metadata
-                document.getElementById("submission_data").value = JSON.stringify({
-                    data: data,
-                    metadata: metadata
+                    
+                    // IMPORTANT: Backend expects just the data array for grading
+                    // Store metadata separately in a hidden field if needed, or merge it differently
+                    // For now, we only send the data array to maintain compatibility
+                    document.getElementById("submission_data").value = JSON.stringify(data);
+                    
+                    // If you want to preserve metadata, you could add a separate hidden field:
+                    // Create a hidden field for metadata (optional)
+                    let metadataField = document.getElementById("submission_metadata");
+                    if (!metadataField) {
+                        metadataField = document.createElement("input");
+                        metadataField.type = "hidden";
+                        metadataField.name = "submission_metadata";
+                        metadataField.id = "submission_metadata";
+                        this.appendChild(metadataField);
+                    }
+                    metadataField.value = JSON.stringify(metadata);
+                    
+                    this.submit();
                 });
-                
-                this.submit();
-            });
-        }
+            }
     });
 </script>
 

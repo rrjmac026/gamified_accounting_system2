@@ -230,14 +230,25 @@ class StudentPerformanceTaskController extends Controller
 
             // Parse submission data
             $studentData = $validated['submission_data'];
-            $studentDataArray = json_decode($studentData, true);
+            $decodedData = json_decode($studentData, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 return back()->with('error', 'Invalid submission data format.');
             }
 
-            // Update submission data and increment attempts
-            $submission->submission_data = $studentData;
+            if (isset($decodedData['data']) && isset($decodedData['metadata'])) {
+                // New format with metadata
+                $studentDataArray = $decodedData['data'];
+                $submissionMetadata = $decodedData['metadata'];
+
+                // Save full JSON including metadata
+                $submission->submission_data = $studentData;
+            } else {
+                // Old format: just array of sheet data
+                $studentDataArray = $decodedData;
+                $submission->submission_data = $studentData;
+            }
+            
             $submission->attempts = $submission->attempts + 1;
 
             // Get answer sheet
