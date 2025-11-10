@@ -532,7 +532,7 @@
                 
                 // Last row: Total row
                 if (row === lastRow) {
-                    cellProperties.className = 'total-row';
+                    cellProperties.className = (cellProperties.className || '') + ' total-row';
                     if (col === 0) {
                         cellProperties.readOnly = true;
                         cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
@@ -540,7 +540,13 @@
                             td.innerHTML = '<strong>Total</strong>';
                         };
                     } else {
-                        cellProperties.className = 'total-row total-cell-bold';
+                        cellProperties.className = (cellProperties.className || '') + ' total-cell-bold';
+                        cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
+                            Handsontable.renderers.NumericRenderer.apply(this, arguments);
+                            if (td.innerHTML) {
+                                td.innerHTML = '<strong>' + td.innerHTML + '</strong>';
+                            }
+                        };
                     }
                 }
                 
