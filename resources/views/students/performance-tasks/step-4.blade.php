@@ -567,7 +567,7 @@
             }
         });
 
-        // Handle form submission with bold metadata
+        
         const form = document.getElementById('saveForm');
         form.addEventListener('submit', function (e) {
             e.preventDefault();
@@ -575,7 +575,6 @@
             const data = hot.getData();
             const metadata = [];
             
-            // Capture bold formatting
             for (let row = 0; row < data.length; row++) {
                 metadata[row] = [];
                 for (let col = 0; col < data[row].length; col++) {
@@ -586,7 +585,6 @@
                 }
             }
             
-            // Save data with metadata
             document.getElementById('submission_data').value = JSON.stringify({
                 data: data,
                 metadata: metadata
