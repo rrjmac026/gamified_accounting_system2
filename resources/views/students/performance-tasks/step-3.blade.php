@@ -212,7 +212,7 @@
         const accounts = [
             'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixture',
             'Land', 'Equipment','Accumulated Depreciation - F&F',
-            'Accumulated Depreciation - Equipment', 'Land', 'Equipment',
+            'Accumulated Depreciation - Equipment',
             'Accounts Payable', 'Notes Payable', 'Utilities Payable', 'Capital', 
             'Withdrawals', 'Service Revenue', 'Rent Expense', 'Utilities Expense',
             'Salaries Expense', 'Supplies Expense', 'Depreciation Expense',
@@ -229,14 +229,39 @@
             Array(accounts.length).fill(['Date', '', 'Debit (₱)', 'Credit (₱)', '', 'Date']).flat()
         ];
         
+        // Custom renderer to add peso sign and handle large numbers
+        function pesoRenderer(instance, td, row, col, prop, value, cellProperties) {
+            Handsontable.renderers.NumericRenderer.apply(this, arguments);
+            
+            if (value !== null && value !== undefined && value !== '') {
+                const numValue = typeof value === 'number' ? value : parseFloat(String(value).replace(/[,₱\s]/g, ''));
+                if (!isNaN(numValue)) {
+                    td.innerHTML = '₱' + numValue.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+                }
+            }
+            
+            return td;
+        }
+        
         // Create columns config with custom renderer for T-account style
         const columns = [];
         for (let i = 0; i < accounts.length; i++) {
             columns.push(
                 { type: 'text', width: 100 },      // Date
                 { type: 'text', width: 50 },       // Blank column
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 120 }, // Debit
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 120 }, // Credit
+                { 
+                    type: 'numeric',
+                    renderer: pesoRenderer,
+                    width: 120
+                }, // Debit
+                { 
+                    type: 'numeric',
+                    renderer: pesoRenderer,
+                    width: 120
+                }, // Credit
                 { type: 'text', width: 50 },       // Blank column
                 { type: 'text', width: 100 }       // Second Date
             );
@@ -263,14 +288,26 @@
             // Formula support with whitespace handling
             formulas: { engine: hyperformulaInstance },
             
-            // Handle formula input with whitespace
+            // Handle formula input with whitespace and numeric parsing
             beforeChange: function(changes, source) {
                 if (changes) {
                     changes.forEach(function(change) {
-                        // change[3] is the new value
-                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
-                            // Trim leading/trailing spaces but keep internal spaces
-                            change[3] = change[3].trim();
+                        const [row, col, oldValue, newValue] = change;
+                        
+                        // Handle formulas
+                        if (newValue && typeof newValue === 'string' && newValue.startsWith('=')) {
+                            change[3] = newValue.trim();
+                        }
+                        // Handle numeric values - remove commas and peso signs
+                        else if (newValue && typeof newValue === 'string') {
+                            const colIndex = col % 6;
+                            // Only process numeric columns (debit and credit)
+                            if (colIndex === 2 || colIndex === 3) {
+                                const cleanValue = newValue.replace(/[,₱\s]/g, '');
+                                if (!isNaN(cleanValue) && cleanValue !== '') {
+                                    change[3] = parseFloat(cleanValue);
+                                }
+                            }
                         }
                     });
                 }
@@ -333,7 +370,16 @@
                         // Normalize values for comparison
                         const normalizeValue = (val) => {
                             if (val === null || val === undefined || val === '') return '';
-                            if (typeof val === 'string') return val.trim().toLowerCase();
+                            if (typeof val === 'string') {
+                                // Remove commas, peso signs, and whitespace for comparison
+                                const cleaned = val.trim().replace(/[,₱\s]/g, '').toLowerCase();
+                                // Try to parse as number
+                                const num = parseFloat(cleaned);
+                                if (!isNaN(num)) {
+                                    return num.toFixed(2);
+                                }
+                                return cleaned;
+                            }
                             if (typeof val === 'number') return val.toFixed(2);
                             return String(val);
                         };

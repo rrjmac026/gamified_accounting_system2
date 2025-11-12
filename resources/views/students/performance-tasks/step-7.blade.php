@@ -762,40 +762,37 @@
                 handleResize();
             }
         };
-        
-        // Check for zoom changes periodically
+
         setInterval(checkZoom, 500);
 
-        // Capture spreadsheet data on submit with bold metadata
-            // Capture spreadsheet data on submit with bold metadata
-const saveForm = document.getElementById("saveForm");
-if (saveForm) {
-    saveForm.addEventListener("submit", function (e) {
-        e.preventDefault();
-        
-        const data = hot.getData();
-        const metadata = [];
-        
-        // Capture bold formatting
-        for (let row = 0; row < data.length; row++) {
-            metadata[row] = [];
-            for (let col = 0; col < data[row].length; col++) {
-                const meta = hot.getCellMeta(row, col);
-                metadata[row][col] = { 
-                    bold: !!(meta.className && meta.className.includes('bold-cell'))
-                };
-            }
+        const saveForm = document.getElementById("saveForm");
+        if (saveForm) {
+            saveForm.addEventListener("submit", function (e) {
+                e.preventDefault();
+                
+                const data = hot.getData();
+                const metadata = [];
+                
+                // Capture bold formatting
+                for (let row = 0; row < data.length; row++) {
+                    metadata[row] = [];
+                    for (let col = 0; col < data[row].length; col++) {
+                        const meta = hot.getCellMeta(row, col);
+                        metadata[row][col] = { 
+                            bold: !!(meta.className && meta.className.includes('bold-cell'))
+                        };
+                    }
+                }
+                
+                // Save both data and metadata
+                document.getElementById("submission_data").value = JSON.stringify({
+                    data: data,
+                    metadata: metadata
+                });
+                
+                this.submit();
+            });
         }
-        
-        // Save both data and metadata
-        document.getElementById("submission_data").value = JSON.stringify({
-            data: data,
-            metadata: metadata
-        });
-        
-        this.submit();
-    });
-}
     });
 </script>
 

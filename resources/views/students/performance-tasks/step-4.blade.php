@@ -255,12 +255,29 @@
             ignoreWhiteSpace: 'any', // Allows spaces in formulas
         });
 
+        // Custom renderer to add peso sign and handle large numbers
+        function pesoRenderer(instance, td, row, col, prop, value, cellProperties) {
+            Handsontable.renderers.NumericRenderer.apply(this, arguments);
+            
+            if (value !== null && value !== undefined && value !== '') {
+                const numValue = typeof value === 'number' ? value : parseFloat(String(value).replace(/[,₱\s]/g, ''));
+                if (!isNaN(numValue)) {
+                    td.innerHTML = '₱' + numValue.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+                }
+            }
+            
+            return td;
+        }
+
         hot = new Handsontable(container, {
             data: initialData,
             columns: [
                 { type: 'text' },
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' } },
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' } },
+                { type: 'numeric', renderer: pesoRenderer },
+                { type: 'numeric', renderer: pesoRenderer },
             ],
             rowHeaders: true,
             licenseKey: 'non-commercial-and-evaluation',
@@ -270,14 +287,25 @@
             // Formula support with whitespace handling
             formulas: { engine: hyperformulaInstance },
             
-            // Handle formula input with whitespace
+            // Handle formula input with whitespace and numeric parsing
             beforeChange: function(changes, source) {
                 if (changes) {
                     changes.forEach(function(change) {
-                        // change[3] is the new value
-                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
-                            // Trim leading/trailing spaces but keep internal spaces
-                            change[3] = change[3].trim();
+                        const [row, col, oldValue, newValue] = change;
+                        
+                        // Handle formulas
+                        if (newValue && typeof newValue === 'string' && newValue.startsWith('=')) {
+                            change[3] = newValue.trim();
+                        }
+                        // Handle numeric values - remove commas and peso signs
+                        else if (newValue && typeof newValue === 'string') {
+                            // Only process numeric columns (columns 1 and 2)
+                            if (col === 1 || col === 2) {
+                                const cleanValue = newValue.replace(/[,₱\s]/g, '');
+                                if (!isNaN(cleanValue) && cleanValue !== '') {
+                                    change[3] = parseFloat(cleanValue);
+                                }
+                            }
                         }
                     });
                 }
@@ -424,7 +452,8 @@
                     } else {
                         cellProperties.className = 'total-cell-bold';
                         cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                            Handsontable.renderers.NumericRenderer.apply(this, arguments);
+                            // Use custom peso renderer
+                            pesoRenderer.apply(this, arguments);
                             if (td.innerHTML) {
                                 td.innerHTML = '<strong>' + td.innerHTML + '</strong>';
                             }
@@ -439,7 +468,7 @@
                         if (col === 0) {
                             Handsontable.renderers.TextRenderer.apply(this, arguments);
                         } else {
-                            Handsontable.renderers.NumericRenderer.apply(this, arguments);
+                            pesoRenderer.apply(this, arguments);
                         }
                         
                         // Check if cell should be bold
@@ -461,7 +490,16 @@
                             if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
                                 const normalizeValue = (val) => {
                                     if (val === null || val === undefined || val === '') return '';
-                                    if (typeof val === 'string') return val.trim().toLowerCase();
+                                    if (typeof val === 'string') {
+                                        // Remove commas, peso signs, and whitespace for comparison
+                                        const cleaned = val.trim().replace(/[,₱\s]/g, '').toLowerCase();
+                                        // Try to parse as number
+                                        const num = parseFloat(cleaned);
+                                        if (!isNaN(num)) {
+                                            return num.toFixed(2);
+                                        }
+                                        return cleaned;
+                                    }
                                     if (typeof val === 'number') return val.toFixed(2);
                                     return String(val);
                                 };
