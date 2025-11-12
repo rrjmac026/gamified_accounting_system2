@@ -382,7 +382,7 @@
         }
         
         if (!initialData) {
-            // Load default data with header rows
+            // Load default data with header rows (removed Total row)
             initialData = [
                 ['Durano Enterprise', '', ''],  // Row 0: Company name
                 ['Trial Balance', '', ''],      // Row 1: Document title
@@ -398,8 +398,7 @@
                 ['', '', ''],
                 ['', '', ''],
                 ['', '', ''],
-                ['', '', ''],
-                ['Total', '', '']               // Last row: Totals
+                ['', '', '']
             ];
         }
 
@@ -539,8 +538,6 @@
             // Custom cell styling
             cells: function(row, col) {
                 const cellProperties = {};
-                const data = this.instance.getData();
-                const lastRow = data.length - 1;
                 
                 // Row 0: Company name (only in Debit column)
                 if (row === 0) {
@@ -609,27 +606,6 @@
                         td.style.textAlign = 'center';
                         td.style.backgroundColor = '#f3f4f6';
                     };
-                }
-                
-                // Last row: Total row
-                else if (row === lastRow) {
-                    cellProperties.className = 'total-row';
-                    if (col === 0) {
-                        cellProperties.readOnly = true;
-                        cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                            Handsontable.renderers.TextRenderer.apply(this, arguments);
-                            td.innerHTML = '<strong>Total</strong>';
-                        };
-                    } else {
-                        cellProperties.className = 'total-cell-bold';
-                        cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                            // Use custom peso renderer
-                            pesoRenderer.apply(this, arguments);
-                            if (td.innerHTML) {
-                                td.innerHTML = '<strong>' + td.innerHTML + '</strong>';
-                            }
-                        };
-                    }
                 }
                 
                 // All other cells - support bold formatting
