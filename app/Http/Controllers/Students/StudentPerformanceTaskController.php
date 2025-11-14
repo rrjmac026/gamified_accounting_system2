@@ -907,4 +907,113 @@ class StudentPerformanceTaskController extends Controller
         }
     }
 
+    public function myProgress($id)
+    {
+        $user = auth()->user();
+        
+        $task = PerformanceTask::where('id', $id)
+            ->whereHas('section.students', function ($query) use ($user) {
+                $query->where('student_id', $user->student->id);
+            })
+            ->firstOrFail();
+
+        // Get all submissions for this student
+        $submissions = PerformanceTaskSubmission::where('task_id', $task->id)
+            ->where('student_id', $user->student->id)
+            ->orderBy('step')
+            ->get();
+
+        // Step titles
+        $stepTitles = [
+            1 => 'Analyze Transactions',
+            2 => 'Journalize Transactions',
+            3 => 'Post to Ledger Accounts',
+            4 => 'Prepare Trial Balance',
+            5 => 'Journalize & Post Adjusting Entries',
+            6 => 'Prepare Adjusted Trial Balance',
+            7 => 'Prepare Financial Statements',
+            8 => 'Journalize & Post Closing Entries',
+            9 => 'Prepare Post-Closing Trial Balance',
+            10 => 'Reverse (Optional Step)',
+        ];
+
+        // Prepare submission details with feedback
+        $submissionDetails = [];
+        foreach ($submissions as $submission) {
+            $submissionDetails[$submission->step] = [
+                'step_title' => $stepTitles[$submission->step] ?? "Step {$submission->step}",
+                'status' => $submission->status,
+                'score' => $submission->score,
+                'attempts' => $submission->attempts,
+                'remarks' => $submission->remarks,
+                'instructor_feedback' => $submission->instructor_feedback,
+                'feedback_given_at' => $submission->feedback_given_at,
+                'submitted_at' => $submission->created_at,
+                'updated_at' => $submission->updated_at,
+            ];
+        }
+
+        // Calculate statistics
+        $statistics = [
+            'total_score' => $submissions->sum('score'),
+            'total_attempts' => $submissions->sum('attempts'),
+            'completed_steps' => $submissions->where('status', 'correct')->count(),
+            'wrong_steps' => $submissions->where('status', 'wrong')->count(),
+            'in_progress_steps' => 10 - $submissions->whereIn('status', ['correct', 'wrong'])->count(),
+            'feedback_count' => $submissions->whereNotNull('instructor_feedback')->count(),
+        ];
+
+        return view('students.performance-tasks.my-progress', compact(
+            'task',
+            'submissionDetails',
+            'stepTitles',
+            'statistics'
+        ));
+    }
+
+    /**
+     * View instructor feedback for a specific step
+     */
+    public function viewFeedback($id, $step)
+    {
+        $user = auth()->user();
+        
+        $task = PerformanceTask::where('id', $id)
+            ->whereHas('section.students', function ($query) use ($user) {
+                $query->where('student_id', $user->student->id);
+            })
+            ->firstOrFail();
+
+        $submission = PerformanceTaskSubmission::where([
+            'task_id' => $task->id,
+            'student_id' => $user->student->id,
+            'step' => $step,
+        ])->firstOrFail();
+
+        if (!$submission->instructor_feedback) {
+            return redirect()->route('students.performance-tasks.my-progress', $task->id)
+                ->with('info', 'No instructor feedback available for this step yet.');
+        }
+
+        $stepTitles = [
+            1 => 'Analyze Transactions',
+            2 => 'Journalize Transactions',
+            3 => 'Post to Ledger Accounts',
+            4 => 'Prepare Trial Balance',
+            5 => 'Journalize & Post Adjusting Entries',
+            6 => 'Prepare Adjusted Trial Balance',
+            7 => 'Prepare Financial Statements',
+            8 => 'Journalize & Post Closing Entries',
+            9 => 'Prepare Post-Closing Trial Balance',
+            10 => 'Reverse (Optional Step)',
+        ];
+
+        return view('students.performance-tasks.view-feedback', compact(
+            'task',
+            'submission',
+            'step',
+            'stepTitles'
+        ));
+    }
+
 }

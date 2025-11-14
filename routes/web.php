@@ -271,17 +271,25 @@ Route::middleware(['auth', 'role:instructor'])
         Route::post('/{task}/step/{step}', [PerformanceTaskAnswerSheetController::class, 'store'])->name('performance-tasks.answer-sheets.store');
 
         
-    // List all performance tasks with submission overview
-    Route::get('/performance-tasks-submissions', [PerformanceTaskSubmissionController::class, 'index'])
-        ->name('performance-tasks.submissions.index');
+        // Performance Task Submissions
+        // List all performance tasks with submission overview
+        Route::get('/performance-tasks-submissions', [PerformanceTaskSubmissionController::class, 'index'])
+            ->name('performance-tasks.submissions.index');
 
-    // Show all student submissions for a specific task
-    Route::get('/performance-tasks/{task}/submissions', [PerformanceTaskSubmissionController::class, 'show'])
-        ->name('performance-tasks.submissions.show');
+        // Show all student submissions for a specific task
+        Route::get('/performance-tasks/{task}/submissions', [PerformanceTaskSubmissionController::class, 'show'])
+            ->name('performance-tasks.submissions.show');
 
-    // Show detailed submission for a single student on a specific task
-    Route::get('/performance-tasks/{task}/submissions/student/{student}', [PerformanceTaskSubmissionController::class, 'showStudent'])
-        ->name('performance-tasks.submissions.show-student');
+        // Show detailed submission for a single student on a specific task
+        Route::get('/performance-tasks/{task}/submissions/student/{student}', [PerformanceTaskSubmissionController::class, 'showStudent'])
+            ->name('performance-tasks.submissions.show-student');
+
+        // Feedback routes for student submissions
+        Route::get('/performance-tasks/{task}/submissions/student/{student}/step/{step}/feedback', [PerformanceTaskSubmissionController::class, 'feedbackForm'])
+            ->name('performance-tasks.submissions.feedback-form');
+        
+        Route::post('/performance-tasks/{task}/submissions/student/{student}/step/{step}/feedback', [PerformanceTaskSubmissionController::class, 'storeFeedback'])
+            ->name('performance-tasks.submissions.store-feedback');
 
         // Export Routes
         Route::get('/performance-tasks-submissions/export/excel', [PerformanceTaskSubmissionExportController::class, 'exportExcel'])
@@ -340,6 +348,12 @@ Route::middleware(['auth', 'role:student'])->prefix('students')->name('students.
 
     Route::post('/performance-tasks/{id}/step/{step}/save', [StudentPerformanceTaskController::class, 'saveStep'])
         ->name('performance-tasks.save-step');
+
+    Route::get('/performance-tasks/{id}/my-progress', [StudentPerformanceTaskController::class, 'myProgress'])
+        ->name('performance-tasks.my-progress');
+    
+    Route::get('/performance-tasks/{id}/step/{step}/feedback', [StudentPerformanceTaskController::class, 'viewFeedback'])
+        ->name('performance-tasks.view-feedback');
 
     Route::post('/performance-tasks/submit', [StudentPerformanceTaskController::class, 'submit'])
         ->name('performance-tasks.submit');

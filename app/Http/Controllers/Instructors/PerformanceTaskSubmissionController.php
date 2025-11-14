@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PerformanceTask;
 use App\Models\PerformanceTaskSubmission;
 use App\Models\User;
+use App\Models\PerformanceTaskAnswerSheet;
 use Illuminate\Http\Request;
 use Exception;
 use Illuminate\Support\Facades\Log;
@@ -198,6 +199,12 @@ class PerformanceTaskSubmissionController extends Controller
             // Check if student has started the task (has at least one submission)
             $hasStarted = $submissions->count() > 0;
 
+            // Create a lookup array for submissions by step number (for Blade use)
+            $submissionsByStep = [];
+            foreach ($submissions as $submission) {
+                $submissionsByStep[$submission->step] = $submission;
+            }
+
             // Pre-calculate submission details
             $submissionDetails = [];
             foreach ($submissions as $submission) {
@@ -231,26 +238,113 @@ class PerformanceTaskSubmissionController extends Controller
                 }
             }
 
-            // Overall statistics
-            $statistics = [
-                'total_score' => $submissions->sum('score'),
-                'total_attempts' => $submissions->sum('attempts'),
-                'completed_steps' => $submissions->where('status', 'correct')->count(),
-                'wrong_steps' => $submissions->where('status', 'wrong')->count(),
-                'in_progress_steps' => $hasStarted ? (10 - $submissions->whereIn('status', ['correct', 'wrong'])->count()) : 0,
-            ];
+                // Statistics calculation
+                $statistics = [
+                    'total_score' => $submissions->sum('score'),
+                    'total_attempts' => $submissions->sum('attempts'),
+                    // Completed: ANY step that has been submitted (regardless of correct/wrong)
+                    'completed_steps' => $submissions->count(),
+                    // Wrong: Steps with wrong answers
+                    'wrong_steps' => $submissions->where('status', 'wrong')->count(),
+                    // In Progress: Steps NOT yet submitted (10 total steps - submitted steps)
+                    'in_progress_steps' => $hasStarted ? (10 - $submissions->count()) : 0,
+                ];
 
             return view('instructors.performance-tasks.submissions.show-student', compact(
                 'task',
                 'student',
                 'submissionDetails',
                 'stepTitles',
-                'statistics'
+                'statistics',
+                'submissionsByStep'
             ));
 
         } catch (Exception $e) {
             Log::error('Error in PerformanceTaskSubmissionController@showStudent: ' . $e->getMessage());
             return back()->with('error', 'Unable to load student submission. Please try again.');
+        }
+    }
+
+    public function feedbackForm(PerformanceTask $task, User $student, $step)
+    {
+        try {
+            $instructor = auth()->user()->instructor;
+            
+            if ($task->instructor_id !== $instructor->id) {
+                throw new Exception('Unauthorized access to task');
+            }
+
+            $studentRecord = $student->student;
+            
+            $submission = PerformanceTaskSubmission::where([
+                'task_id' => $task->id,
+                'student_id' => $studentRecord->id,
+                'step' => $step
+            ])->firstOrFail();
+
+            // Get answer sheet for reference
+            $answerSheet = PerformanceTaskAnswerSheet::where([
+                'performance_task_id' => $task->id,
+                'step' => $step
+            ])->first();
+
+            return view('instructors.performance-tasks.submissions.feedback-form', compact(
+                'task',
+                'student',
+                'submission',
+                'answerSheet',
+                'step'
+            ));
+
+        } catch (Exception $e) {
+            Log::error('Error loading feedback form: ' . $e->getMessage());
+            return back()->with('error', 'Unable to load feedback form.');
+        }
+    }
+
+    /**
+     * Store instructor feedback for a step submission
+     */
+    public function storeFeedback(Request $request, PerformanceTask $task, User $student, $step)
+    {
+        try {
+            $instructor = auth()->user()->instructor;
+            
+            if ($task->instructor_id !== $instructor->id) {
+                throw new Exception('Unauthorized access to task');
+            }
+
+            $validated = $request->validate([
+                'instructor_feedback' => 'required|string|min:10|max:1000'
+            ]);
+
+            $studentRecord = $student->student;
+            
+            $submission = PerformanceTaskSubmission::where([
+                'task_id' => $task->id,
+                'student_id' => $studentRecord->id,
+                'step' => $step
+            ])->firstOrFail();
+
+            $submission->update([
+                'instructor_feedback' => $validated['instructor_feedback'],
+                'feedback_given_at' => now(),
+                'needs_feedback' => false
+            ]);
+
+            // Log the feedback
+            Log::info("Instructor {$instructor->id} provided feedback for student {$studentRecord->id}, task {$task->id}, step {$step}");
+
+            return redirect()
+                ->route('instructors.performance-tasks.submissions.show-student', [
+                    'task' => $task->id,
+                    'student' => $student->id
+                ])
+                ->with('success', 'Feedback saved successfully!');
+
+        } catch (Exception $e) {
+            Log::error('Error saving feedback: ' . $e->getMessage());
+            return back()->with('error', 'Unable to save feedback. Please try again.');
         }
     }
 }
