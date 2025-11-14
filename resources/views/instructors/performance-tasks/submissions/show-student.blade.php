@@ -199,7 +199,11 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {{ $details['submitted_at']->format('M d, Y g:i A') }}
+                                            @if($details['submitted_at'])
+                                                {{ $details['submitted_at']->format('M d, Y g:i A') }}
+                                            @else
+                                                <span class="text-gray-400">—</span>
+                                            @endif
                                         </td>
                                     </tr>
 

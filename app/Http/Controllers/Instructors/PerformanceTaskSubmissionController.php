@@ -195,6 +195,9 @@ class PerformanceTaskSubmissionController extends Controller
                 10 => 'Reverse (Optional Step)',
             ];
 
+            // Check if student has started the task (has at least one submission)
+            $hasStarted = $submissions->count() > 0;
+
             // Pre-calculate submission details
             $submissionDetails = [];
             foreach ($submissions as $submission) {
@@ -204,10 +207,28 @@ class PerformanceTaskSubmissionController extends Controller
                     'score' => $submission->score,
                     'attempts' => $submission->attempts,
                     'submitted_data' => $submission->submitted_data,
-                    'feedback' => $submission->remarks, // Changed from feedback to remarks
+                    'feedback' => $submission->remarks,
                     'submitted_at' => $submission->created_at,
                     'updated_at' => $submission->updated_at,
                 ];
+            }
+
+            // Add "in-progress" status for unsubmitted steps if student has started
+            if ($hasStarted) {
+                for ($step = 1; $step <= 10; $step++) {
+                    if (!isset($submissionDetails[$step])) {
+                        $submissionDetails[$step] = [
+                            'step_title' => $stepTitles[$step] ?? "Step {$step}",
+                            'status' => 'in-progress',
+                            'score' => 0,
+                            'attempts' => 0,
+                            'submitted_data' => null,
+                            'feedback' => null,
+                            'submitted_at' => null,
+                            'updated_at' => null,
+                        ];
+                    }
+                }
             }
 
             // Overall statistics
@@ -216,7 +237,7 @@ class PerformanceTaskSubmissionController extends Controller
                 'total_attempts' => $submissions->sum('attempts'),
                 'completed_steps' => $submissions->where('status', 'correct')->count(),
                 'wrong_steps' => $submissions->where('status', 'wrong')->count(),
-                'in_progress_steps' => $submissions->where('status', 'in-progress')->count(),
+                'in_progress_steps' => $hasStarted ? (10 - $submissions->whereIn('status', ['correct', 'wrong'])->count()) : 0,
             ];
 
             return view('instructors.performance-tasks.submissions.show-student', compact(
