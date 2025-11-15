@@ -101,22 +101,34 @@
                             
                             <!-- Status Card (if applicable) -->
                             @if($submission && $submission->status)
-                            <div class="flex items-center gap-3 p-3 {{ $submission->status === 'correct' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200' }} rounded-lg border">
-                                <div class="flex-shrink-0 w-10 h-10 {{ $submission->status === 'correct' ? 'bg-green-100' : 'bg-red-100' }} rounded-full flex items-center justify-center">
-                                    <svg class="w-5 h-5 {{ $submission->status === 'correct' ? 'text-green-600' : 'text-red-600' }}" fill="currentColor" viewBox="0 0 20 20">
-                                        @if($submission->status === 'correct')
+                            @php
+                                $statusColors = [
+                                    'correct' => ['bg' => 'bg-green-50', 'border' => 'border-green-200', 'icon-bg' => 'bg-green-100', 'text' => 'text-green-600', 'text-bold' => 'text-green-900'],
+                                    'passed' => ['bg' => 'bg-blue-50', 'border' => 'border-blue-200', 'icon-bg' => 'bg-blue-100', 'text' => 'text-blue-600', 'text-bold' => 'text-blue-900'],
+                                    'wrong' => ['bg' => 'bg-red-50', 'border' => 'border-red-200', 'icon-bg' => 'bg-red-100', 'text' => 'text-red-600', 'text-bold' => 'text-red-900'],
+                                    'in-progress' => ['bg' => 'bg-gray-50', 'border' => 'border-gray-200', 'icon-bg' => 'bg-gray-100', 'text' => 'text-gray-600', 'text-bold' => 'text-gray-900'],
+                                ];
+                                $currentStatus = $statusColors[$submission->status] ?? $statusColors['in-progress'];
+                            @endphp
+                            <div class="flex items-center gap-3 p-3 {{ $currentStatus['bg'] }} border {{ $currentStatus['border'] }} rounded-lg">
+                                <div class="flex-shrink-0 w-10 h-10 {{ $currentStatus['icon-bg'] }} rounded-full flex items-center justify-center">
+                                    <svg class="w-5 h-5 {{ $currentStatus['text'] }}" fill="currentColor" viewBox="0 0 20 20">
+                                        @if($submission->status === 'correct' || $submission->status === 'passed')
                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                        @else
+                                        @elseif($submission->status === 'wrong')
                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                        @else
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
                                         @endif
                                     </svg>
                                 </div>
                                 <div>
-                                    <p class="text-xs {{ $submission->status === 'correct' ? 'text-green-600' : 'text-red-600' }} font-medium">Status</p>
-                                    <p class="text-lg font-bold {{ $submission->status === 'correct' ? 'text-green-900' : 'text-red-900' }}">{{ ucfirst($submission->status) }}</p>
+                                    <p class="text-xs {{ $currentStatus['text'] }} font-medium">Status</p>
+                                    <p class="text-lg font-bold {{ $currentStatus['text-bold'] }}">{{ ucfirst($submission->status) }}</p>
                                 </div>
                             </div>
                             @endif
+
                             
                             <!-- Score Card (if applicable) -->
                             @if(isset($submission->score))

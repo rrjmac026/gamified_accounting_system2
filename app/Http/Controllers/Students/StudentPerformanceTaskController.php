@@ -209,8 +209,7 @@ class StudentPerformanceTaskController extends Controller
                 'step' => $step,
             ])->first();
 
-            // 🔥 FIXED: Check attempts BEFORE incrementing
-            // If submission exists and already at max attempts, block new submission
+            // Check attempts BEFORE incrementing
             if ($submission && $submission->attempts >= $task->max_attempts) {
                 return back()->with('error', "You have reached the maximum of {$task->max_attempts} attempts for this step. Your current score is {$submission->score}.");
             }
@@ -225,7 +224,7 @@ class StudentPerformanceTaskController extends Controller
                     'task_id' => $task->id,
                     'student_id' => $user->student->id,
                     'step' => $step,
-                    'attempts' => 0, // Start at 0, will increment to 1
+                    'attempts' => 0,
                 ]);
             }
 
@@ -241,8 +240,6 @@ class StudentPerformanceTaskController extends Controller
                 // New format with metadata
                 $studentDataArray = $decodedData['data'];
                 $submissionMetadata = $decodedData['metadata'];
-
-                // Save full JSON including metadata
                 $submission->submission_data = $studentData;
             } else {
                 // Old format: just array of sheet data
@@ -250,9 +247,9 @@ class StudentPerformanceTaskController extends Controller
                 $submission->submission_data = $studentData;
             }
             
-            // 🔥 INCREMENT ATTEMPTS HERE (after validation, before saving)
+            // INCREMENT ATTEMPTS
             $submission->attempts = $submission->attempts + 1;
-            $currentAttempt = $submission->attempts; // Store for messages
+            $currentAttempt = $submission->attempts;
 
             // Get answer sheet
             $answerSheet = PerformanceTaskAnswerSheet::where([
@@ -265,54 +262,67 @@ class StudentPerformanceTaskController extends Controller
             $totalCells = 0;
 
             if ($answerSheet && $answerSheet->correct_data) {
-                $correctData = is_string($answerSheet->correct_data)
+                // 🔥 FIX 1: Parse correct data properly
+                $correctDataRaw = is_string($answerSheet->correct_data)
                     ? json_decode($answerSheet->correct_data, true)
                     : $answerSheet->correct_data;
 
+                // 🔥 FIX 2: Extract data array if wrapped in {data, metadata} structure
+                if (is_array($correctDataRaw) && isset($correctDataRaw['data'])) {
+                    $correctData = $correctDataRaw['data'];
+                    \Log::info("Step {$step} - Extracted correct data from wrapper", [
+                        'has_metadata' => isset($correctDataRaw['metadata'])
+                    ]);
+                } else {
+                    $correctData = $correctDataRaw;
+                    \Log::info("Step {$step} - Using correct data as-is (no wrapper)");
+                }
+
+                // 🔍 Debug: Log sample data
+                \Log::info("Step {$step} - Data sample comparison", [
+                    'student_row_4' => $studentDataArray[4] ?? 'missing',
+                    'correct_row_4' => $correctData[4] ?? 'missing',
+                    'student_row_5_col_0' => $studentDataArray[5][0] ?? 'missing',
+                    'correct_row_5_col_0' => $correctData[5][0] ?? 'missing',
+                ]);
+
                 // Count errors
-                $errorDetails = $this->checkAnswersWithErrors($studentDataArray, $correctData);
+                $errorDetails = $this->checkAnswersWithErrors($studentDataArray, $correctData, $step);
                 $errorCount = $errorDetails['errorCount'];
                 $totalCells = $errorDetails['totalCells'];
 
-                // Calculate score per step (divide max_score by 10)
-                $maxScorePerStep = $task->max_score / 10; // e.g., 100 / 10 = 10 points per step
+                // Calculate score per step
+                $maxScorePerStep = $task->max_score / 10;
                 $deductionPerStep = $task->deduction_per_error;
                 
                 $calculatedScore = max(0, $maxScorePerStep - ($errorCount * $deductionPerStep));
                 
-                // Determine thresholds based on step score
-                $passingScore = $maxScorePerStep * 0.7; // 70% of step's max score
+                // Determine thresholds
+                $passingScore = $maxScorePerStep * 0.7;
                 $isPerfect = ($errorCount === 0);
                 $isPassing = ($calculatedScore >= $passingScore);
 
-                // Always update score regardless of status
+                // Update score
                 $submission->score = round($calculatedScore, 2);
 
                 if ($isPerfect) {
-                    // Award XP only on FIRST perfect score
                     $awardXp = ($previousStatus !== 'correct');
-                    
                     $submission->status = 'correct';
                     $submission->remarks = $deadlineStatus['isLate']
                         ? "Perfect! {$calculatedScore}/{$maxScorePerStep} points (Late submission)"
                         : "Perfect! {$calculatedScore}/{$maxScorePerStep} points";
                         
                 } elseif ($isPassing) {
-                    // Award XP only on FIRST passing attempt (if never got correct before)
                     $awardXp = ($previousStatus !== 'correct' && $previousStatus !== 'passed');
-                    
                     $submission->status = 'passed';
                     $submission->remarks = $deadlineStatus['isLate']
                         ? "Good job! {$calculatedScore}/{$maxScorePerStep} points. {$errorCount} error(s) found. (Late submission)"
                         : "Good job! {$calculatedScore}/{$maxScorePerStep} points. {$errorCount} error(s) found.";
                         
                 } else {
-                    // Failed - no XP awarded
                     $awardXp = false;
-                    
                     $submission->status = 'wrong';
                     
-                    // 🔥 ADD INFO ABOUT REMAINING ATTEMPTS
                     $remainingAttempts = $task->max_attempts - $currentAttempt;
                     $attemptInfo = $remainingAttempts > 0 
                         ? " You have {$remainingAttempts} attempt(s) remaining."
@@ -329,7 +339,7 @@ class StudentPerformanceTaskController extends Controller
                 $submission->remarks = 'Answer sheet not found for this step.';
             }
 
-            // Save immediately and verify
+            // Save
             $saved = $submission->save();
             
             if (!$saved) {
@@ -337,27 +347,25 @@ class StudentPerformanceTaskController extends Controller
                 return back()->with('error', 'Failed to save your submission. Please try again.');
             }
 
-            // Refresh to get updated data
             $submission->refresh();
 
             // Sync to pivot table
             $this->syncSubmissionToPivot($user->student->id, $task->id, $step, $submission);
 
-            // If this is the final step (step 10), calculate and store final grade
+            // Final step handling
             if ($step >= 10) {
                 $this->storeFinalGrade($user->student->id, $task);
             }
 
-            // Log performance metrics
+            // Log performance
             $this->logPerformance($user->student, $task, $step, $submission, $deadlineStatus['isLate'], $errorCount);
 
-            // Build success message with correct per-step max score
+            // Build success message
             $maxScorePerStep = $task->max_score / 10;
             $remainingAttempts = $task->max_attempts - $currentAttempt;
             
             $message = "Step {$step} submitted! (Attempt {$currentAttempt}/{$task->max_attempts}) - Score: {$submission->score}/{$maxScorePerStep}";
             
-            // Show score change if it decreased
             if ($previousScore > 0 && $submission->score < $previousScore) {
                 $difference = round($previousScore - $submission->score, 2);
                 $message .= " (⬇️ -{$difference} from previous)";
@@ -367,7 +375,6 @@ class StudentPerformanceTaskController extends Controller
                 $message .= " | {$errorCount} error(s) detected";
             }
             
-            // Add remaining attempts info
             if ($remainingAttempts > 0 && $submission->status === 'wrong') {
                 $message .= " | {$remainingAttempts} attempt(s) remaining";
             } elseif ($remainingAttempts === 0 && $submission->status === 'wrong') {
@@ -378,14 +385,14 @@ class StudentPerformanceTaskController extends Controller
                 $message .= " ⚠️ Late submission";
             }
 
-            // Award XP based on score (proportional to performance)
+            // Award XP
             if ($awardXp && $submission->score > 0) {
                 $this->awardXpForStep($user->student, $task, $step, $deadlineStatus['isLate'], $submission->score);
                 $xpEarned = $this->calculateStepXp($step, $deadlineStatus['isLate'], $submission->score, $maxScorePerStep, $task->xp_reward ?? 100);
                 $message .= " 🎉 You earned {$xpEarned} XP!";
             }
 
-            // Check if this is the final step
+            // Check if final step
             if ($step >= 10) {
                 if ($awardXp && $submission->score > 0) {
                     $this->awardCompletionBonus($user->student, $task);
@@ -464,16 +471,25 @@ class StudentPerformanceTaskController extends Controller
         }
     }
 
-    private function checkAnswersWithErrors($studentData, $correctData)
+    private function checkAnswersWithErrors($studentData, $correctData, $step = null)
     {
         $errorCount = 0;
         $totalCells = 0;
 
         if (!is_array($studentData) || !is_array($correctData)) {
-            return ['errorCount' => 999, 'totalCells' => 0]; // Invalid data
+            \Log::error('Invalid data format in checkAnswersWithErrors', [
+                'student_is_array' => is_array($studentData),
+                'correct_is_array' => is_array($correctData)
+            ]);
+            return ['errorCount' => 999, 'totalCells' => 0];
         }
 
         foreach ($correctData as $rowIndex => $correctRow) {
+            // 🔥 FIX: Skip header rows for Step 4 (rows 0-3 are headers)
+            if ($step === 4 && $rowIndex < 4) {
+                continue;
+            }
+            
             if (!isset($studentData[$rowIndex])) {
                 // Missing entire row counts as errors for all cells in that row
                 $errorCount += count(array_filter($correctRow, fn($val) => $val !== null && $val !== '' && $val !== 0));
@@ -493,9 +509,24 @@ class StudentPerformanceTaskController extends Controller
 
                 if (!$this->valuesMatch($studentValue, $correctValue)) {
                     $errorCount++;
+                    
+                    // 🔍 Debug: Log first few mismatches
+                    if ($errorCount <= 5) {
+                        \Log::info("Mismatch at Row {$rowIndex}, Col {$colIndex}", [
+                            'student_value' => $studentValue,
+                            'correct_value' => $correctValue,
+                            'student_normalized' => $this->normalizeValue($studentValue),
+                            'correct_normalized' => $this->normalizeValue($correctValue),
+                        ]);
+                    }
                 }
             }
         }
+
+        \Log::info("Grading completed for step {$step}", [
+            'total_errors' => $errorCount,
+            'total_cells_checked' => $totalCells,
+        ]);
 
         return [
             'errorCount' => $errorCount,
@@ -734,19 +765,25 @@ class StudentPerformanceTaskController extends Controller
 
     private function normalizeValue($value)
     {
-        if ($value === null || $value === '' || $value === 0) return '';
-        
-        // ✅ Check numeric first, even if it's a string representation
-        if (is_numeric($value)) {
-            return number_format((float)$value, 2, '.', '');
+        // Handle null, empty, or zero
+        if ($value === null || $value === '' || $value === 0) {
+            return '';
         }
         
-        // Then check strings
-        if (is_string($value)) {
-            return strtolower(trim($value));
+        // Convert to string for processing
+        $stringValue = (string)$value;
+        
+        // Try to parse as number (handles both numeric strings and actual numbers)
+        // Remove peso signs, commas, and spaces first
+        $cleaned = preg_replace('/[,₱\s]/', '', $stringValue);
+        
+        if (is_numeric($cleaned)) {
+            // It's a number - normalize to 2 decimal places
+            return number_format((float)$cleaned, 2, '.', '');
         }
         
-        return (string)$value;
+        // It's text - normalize case and whitespace
+        return strtolower(trim($stringValue));
     }
 
     public function submit()
