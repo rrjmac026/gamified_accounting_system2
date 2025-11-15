@@ -197,7 +197,7 @@
                                 </div>
                                 <div>
                                     <p class="text-xs text-amber-600 font-medium">Attempts Remaining</p>
-                                    <p class="text-lg font-bold text-amber-900">{{ 2 - ($submission->attempts ?? 0) }}/2</p>
+                                    <p class="text-lg font-bold text-amber-900">{{ $performanceTask->max_attempts - ($submission->attempts ?? 0) }}/{{ $performanceTask->max_attempts }}</p>
                                 </div>
                             </div>
                             
@@ -282,8 +282,8 @@
                         <input type="hidden" name="submission_data" id="submission_data">
                         <div class="flex justify-end">
                             <button type="submit"
-                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition"
-                                {{ ($submission->attempts ?? 0) >= 2 ? 'disabled' : '' }}>
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>
                                 💾 Save and Continue
                             </button>
                         </div>
@@ -335,7 +335,6 @@
                 ['', '', ''],
                 ['', '', ''],
                 ['', '', ''],
-                ['', '', ''],
                 ['', '', '']
             ];
         }
@@ -355,6 +354,9 @@
         }
 
         const submissionStatus = @json($submission->status ?? null);
+        const maxAttempts = @json($performanceTask->max_attempts);
+        const currentAttempts = @json($submission->attempts ?? 0);
+        const isReadOnly = currentAttempts >= maxAttempts;
 
         // Initialize HyperFormula with whitespace support
         const hyperformulaInstance = HyperFormula.buildEmpty({
@@ -378,6 +380,7 @@
             width: '100%',
             height: isMobile ? 350 : (isTablet ? 450 : 500),
             licenseKey: 'non-commercial-and-evaluation',
+            readOnly: isReadOnly,
             stretchH: 'all',
             className: 'htCenter htMiddle',
 
@@ -396,7 +399,7 @@
             },
 
             // Context menu with bold toggle
-            contextMenu: {
+            contextMenu: !isReadOnly ? {
                 items: {
                     'row_above': {},
                     'row_below': {},
@@ -437,16 +440,16 @@
                         }
                     }
                 }
-            },
-            undo: true,
+            } : false,
+            undo: !isReadOnly,
             manualColumnResize: true,
             manualRowResize: true,
-            manualColumnMove: true,
-            manualRowMove: true,
-            fillHandle: true,
+            manualColumnMove: !isReadOnly,
+            manualRowMove: !isReadOnly,
+            fillHandle: !isReadOnly,
             autoColumnSize: false,
             autoRowSize: false,
-            copyPaste: true,
+            copyPaste: !isReadOnly,
             minRows: 20,
             minCols: 3,
             enterMoves: { row: 1, col: 0 },
@@ -593,7 +596,7 @@
         // Keyboard shortcut for bold (Ctrl+B / Cmd+B)
         hot.addHook('beforeKeyDown', function(event) {
             // Check for Ctrl+B (Windows/Linux) or Cmd+B (Mac)
-            if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
+            if (!isReadOnly && (event.ctrlKey || event.metaKey) && event.key === 'b') {
                 event.preventDefault();
                 event.stopImmediatePropagation();
                 
@@ -639,7 +642,7 @@
 
         // Save submission data with bold metadata
         const saveForm = document.getElementById("saveForm");
-        if (saveForm) {
+        if (saveForm && !isReadOnly) {
             saveForm.addEventListener("submit", function (e) {
                 e.preventDefault();
                 

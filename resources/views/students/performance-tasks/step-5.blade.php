@@ -92,7 +92,7 @@
                                 </div>
                                 <div>
                                     <p class="text-xs text-amber-600 font-medium">Attempts Remaining</p>
-                                    <p class="text-lg font-bold text-amber-900">{{ 2 - ($submission->attempts ?? 0) }}/2</p>
+                                    <p class="text-lg font-bold text-amber-900">{{ $performanceTask->max_attempts - ($submission->attempts ?? 0) }}/{{ $performanceTask->max_attempts }}</p>
                                 </div>
                             </div>
                             
@@ -186,7 +186,7 @@
 
                             <button type="submit" id="submitButton" 
                                 class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:from-emerald-700 hover:to-teal-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all text-sm font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                {{ ($submission->attempts ?? 0) >= 2 ? 'disabled' : '' }}>
+                                {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                 </svg>
@@ -211,6 +211,9 @@
         // Instructor's correct data
         const correctData = @json($answerSheet->correct_data ?? null);
         const submissionStatus = @json($submission->status ?? null);
+        const maxAttempts = @json($performanceTask->max_attempts);
+        const currentAttempts = @json($submission->attempts ?? 0);
+        const isReadOnly = currentAttempts >= maxAttempts;
 
         // Initialize HyperFormula with whitespace support
         const hyperformulaInstance = HyperFormula.buildEmpty({
@@ -275,6 +278,7 @@
             stretchH: 'none',
             height: 'auto',
             licenseKey: 'non-commercial-and-evaluation',
+            readOnly: isReadOnly,
             
             // Formula support with whitespace handling
             formulas: { engine: hyperformulaInstance },
@@ -293,16 +297,16 @@
             },
             
             // Full feature set
-            contextMenu: true,
-            undo: true,
+            contextMenu: !isReadOnly,
+            undo: !isReadOnly,
             manualColumnResize: true,
             manualRowResize: true,
-            manualColumnMove: true,
-            manualRowMove: true,
-            fillHandle: true,
+            manualColumnMove: !isReadOnly,
+            manualRowMove: !isReadOnly,
+            fillHandle: !isReadOnly,
             autoColumnSize: false,
             autoRowSize: false,
-            copyPaste: true,
+            copyPaste: !isReadOnly,
             minSpareRows: 1,
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
@@ -365,11 +369,13 @@
 
         // Save submission data
         const form = document.getElementById('saveForm');
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            document.getElementById('submission_data').value = JSON.stringify(hot.getData());
-            this.submit();
-        });
+        if (form && !isReadOnly) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                document.getElementById('submission_data').value = JSON.stringify(hot.getData());
+                this.submit();
+            });
+        }
     });
 </script>
 

@@ -92,7 +92,7 @@
                                 </div>
                                 <div>
                                     <p class="text-xs text-amber-600 font-medium">Attempts Remaining</p>
-                                    <p class="text-lg font-bold text-amber-900">{{ 2 - ($submission->attempts ?? 0) }}/2</p>
+                                    <p class="text-lg font-bold text-amber-900">{{ $performanceTask->max_attempts - ($submission->attempts ?? 0) }}/{{ $performanceTask->max_attempts }}</p>
                                 </div>
                             </div>
                             
@@ -144,8 +144,8 @@
 
                         <div class="flex justify-end mt-4">
                             <button type="submit"
-                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition"
-                                {{ ($submission->attempts ?? 0) >= 2 ? 'disabled' : '' }}>
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>
                                 💾 Save and Continue
                             </button>
                         </div>
@@ -168,6 +168,9 @@
         // Instructor's correct data
         const correctData = @json($answerSheet->correct_data ?? null);
         const submissionStatus = @json($submission->status ?? null);
+        const maxAttempts = @json($performanceTask->max_attempts);
+        const currentAttempts = @json($submission->attempts ?? 0);
+        const isReadOnly = currentAttempts >= maxAttempts;
 
         // Initialize HyperFormula with whitespace support
         const hyperformulaInstance = HyperFormula.buildEmpty({
@@ -241,13 +244,14 @@
             width: '100%',
             minSpareRows: 1,
             licenseKey: 'non-commercial-and-evaluation',
+            readOnly: isReadOnly,
             
             // Formula support with whitespace handling
             formulas: { engine: hyperformulaInstance },
             
             // Handle formula input with whitespace
             beforeChange: function(changes, source) {
-                if (changes) {
+                if (!isReadOnly && changes) {
                     changes.forEach(function(change) {
                         // change[3] is the new value
                         if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
@@ -259,16 +263,16 @@
             },
             
             // Full feature set
-            contextMenu: true,
-            undo: true,
+            contextMenu: !isReadOnly,
+            undo: !isReadOnly,
             manualColumnResize: true,
             manualRowResize: true,
-            manualColumnMove: true,
-            manualRowMove: true,
-            fillHandle: true,
+            manualColumnMove: !isReadOnly,
+            manualRowMove: !isReadOnly,
+            fillHandle: !isReadOnly,
             autoColumnSize: false,
             autoRowSize: false,
-            copyPaste: true,
+            copyPaste: !isReadOnly,
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
             outsideClickDeselects: false,
@@ -366,11 +370,13 @@
 
         // Keep data synced before form submission
         const form = document.getElementById('saveForm');
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            document.getElementById('submission_data').value = JSON.stringify(hot.getData());
-            this.submit();
-        });
+        if (form && !isReadOnly) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                document.getElementById('submission_data').value = JSON.stringify(hot.getData());
+                this.submit();
+            });
+        }
     });
 </script>
 

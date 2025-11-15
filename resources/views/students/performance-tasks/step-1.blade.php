@@ -113,7 +113,7 @@
                                 </div>
                                 <div>
                                     <p class="text-xs text-amber-600 font-medium">Attempts Remaining</p>
-                                    <p class="text-lg font-bold text-amber-900">{{ 2 - ($submission->attempts ?? 0) }}/2</p>
+                                    <p class="text-lg font-bold text-amber-900">{{ $performanceTask->max_attempts - ($submission->attempts ?? 0) }}/{{ $performanceTask->max_attempts }}</p>
                                 </div>
                             </div>
                             
@@ -206,7 +206,7 @@
                             </button>
                             <button type="submit" id="submitButton" 
                             class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all text-sm font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                            {{ ($submission->attempts ?? 0) >= 2 ? 'disabled' : '' }}>
+                            {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                 </svg>
@@ -228,7 +228,9 @@
         const initialData = savedData ? JSON.parse(savedData) : Array(15).fill().map(() => Array(15).fill(''));
         const correctData = @json($answerSheet->correct_data ?? null);
         const submissionStatus = @json($submission->status ?? null);
-        const isReadOnly = @json(($submission->attempts ?? 0) >= 2);
+        const maxAttempts = @json($performanceTask->max_attempts);
+        const currentAttempts = @json($submission->attempts ?? 0);
+        const isReadOnly = currentAttempts >= maxAttempts;
         
         const isMobile = window.innerWidth < 640;
         const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
@@ -450,7 +452,7 @@
             return result;
         }
 
-        // Apply answer checking styling
+        // Apply answer styling
         function applyAnswerStyling(td, row, col, studentValue, displayValue) {
             if (submissionStatus && correctData && savedData) {
                 try {

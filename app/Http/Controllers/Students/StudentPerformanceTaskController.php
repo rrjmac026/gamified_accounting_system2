@@ -209,9 +209,10 @@ class StudentPerformanceTaskController extends Controller
                 'step' => $step,
             ])->first();
 
-            // 🔥 FIX: Check attempts BEFORE incrementing
+            // 🔥 FIXED: Check attempts BEFORE incrementing
+            // If submission exists and already at max attempts, block new submission
             if ($submission && $submission->attempts >= $task->max_attempts) {
-                return back()->with('error', "You have reached the maximum of {$task->max_attempts} attempts for this step.");
+                return back()->with('error', "You have reached the maximum of {$task->max_attempts} attempts for this step. Your current score is {$submission->score}.");
             }
 
             // Store previous status for XP logic
@@ -224,7 +225,7 @@ class StudentPerformanceTaskController extends Controller
                     'task_id' => $task->id,
                     'student_id' => $user->student->id,
                     'step' => $step,
-                    'attempts' => 0,
+                    'attempts' => 0, // Start at 0, will increment to 1
                 ]);
             }
 
@@ -249,7 +250,9 @@ class StudentPerformanceTaskController extends Controller
                 $submission->submission_data = $studentData;
             }
             
+            // 🔥 INCREMENT ATTEMPTS HERE (after validation, before saving)
             $submission->attempts = $submission->attempts + 1;
+            $currentAttempt = $submission->attempts; // Store for messages
 
             // Get answer sheet
             $answerSheet = PerformanceTaskAnswerSheet::where([
@@ -271,7 +274,7 @@ class StudentPerformanceTaskController extends Controller
                 $errorCount = $errorDetails['errorCount'];
                 $totalCells = $errorDetails['totalCells'];
 
-                // 🔥 FIX: Calculate score per step (divide max_score by 10)
+                // Calculate score per step (divide max_score by 10)
                 $maxScorePerStep = $task->max_score / 10; // e.g., 100 / 10 = 10 points per step
                 $deductionPerStep = $task->deduction_per_error;
                 
@@ -282,7 +285,7 @@ class StudentPerformanceTaskController extends Controller
                 $isPerfect = ($errorCount === 0);
                 $isPassing = ($calculatedScore >= $passingScore);
 
-                // 🔥 IMPORTANT: Always update score regardless of status
+                // Always update score regardless of status
                 $submission->score = round($calculatedScore, 2);
 
                 if ($isPerfect) {
@@ -308,9 +311,16 @@ class StudentPerformanceTaskController extends Controller
                     $awardXp = false;
                     
                     $submission->status = 'wrong';
+                    
+                    // 🔥 ADD INFO ABOUT REMAINING ATTEMPTS
+                    $remainingAttempts = $task->max_attempts - $currentAttempt;
+                    $attemptInfo = $remainingAttempts > 0 
+                        ? " You have {$remainingAttempts} attempt(s) remaining."
+                        : " No attempts remaining.";
+                    
                     $submission->remarks = $deadlineStatus['isLate']
-                        ? "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found. Please review and retry. (Late submission)"
-                        : "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found. Please review and retry.";
+                        ? "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found.{$attemptInfo} (Late submission)"
+                        : "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found.{$attemptInfo}";
                 }
                 
             } else {
@@ -319,7 +329,7 @@ class StudentPerformanceTaskController extends Controller
                 $submission->remarks = 'Answer sheet not found for this step.';
             }
 
-            // 🔥 FIX: Save immediately and verify
+            // Save immediately and verify
             $saved = $submission->save();
             
             if (!$saved) {
@@ -330,30 +340,38 @@ class StudentPerformanceTaskController extends Controller
             // Refresh to get updated data
             $submission->refresh();
 
-            // ===== SYNC TO PIVOT TABLE =====
+            // Sync to pivot table
             $this->syncSubmissionToPivot($user->student->id, $task->id, $step, $submission);
 
             // If this is the final step (step 10), calculate and store final grade
             if ($step >= 10) {
                 $this->storeFinalGrade($user->student->id, $task);
             }
-            // ===== END SYNC =====
 
             // Log performance metrics
             $this->logPerformance($user->student, $task, $step, $submission, $deadlineStatus['isLate'], $errorCount);
 
             // Build success message with correct per-step max score
             $maxScorePerStep = $task->max_score / 10;
-            $message = "Step {$step} saved! (Attempt {$submission->attempts}/{$task->max_attempts}) - Score: {$submission->score}/{$maxScorePerStep}";
+            $remainingAttempts = $task->max_attempts - $currentAttempt;
+            
+            $message = "Step {$step} submitted! (Attempt {$currentAttempt}/{$task->max_attempts}) - Score: {$submission->score}/{$maxScorePerStep}";
             
             // Show score change if it decreased
             if ($previousScore > 0 && $submission->score < $previousScore) {
                 $difference = round($previousScore - $submission->score, 2);
-                $message .= " (⬇️ -{$difference} from previous attempt)";
+                $message .= " (⬇️ -{$difference} from previous)";
             }
             
             if ($errorCount > 0) {
                 $message .= " | {$errorCount} error(s) detected";
+            }
+            
+            // Add remaining attempts info
+            if ($remainingAttempts > 0 && $submission->status === 'wrong') {
+                $message .= " | {$remainingAttempts} attempt(s) remaining";
+            } elseif ($remainingAttempts === 0 && $submission->status === 'wrong') {
+                $message .= " | ⚠️ No attempts remaining for this step";
             }
 
             if ($deadlineStatus['isLate']) {

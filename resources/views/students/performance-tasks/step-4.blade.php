@@ -95,7 +95,7 @@
                                 </div>
                                 <div>
                                     <p class="text-xs text-amber-600 font-medium">Attempts Remaining</p>
-                                    <p class="text-lg font-bold text-amber-900">{{ 2 - ($submission->attempts ?? 0) }}/2</p>
+                                    <p class="text-lg font-bold text-amber-900">{{ $performanceTask->max_attempts - ($submission->attempts ?? 0) }}/{{ $performanceTask->max_attempts }}</p>
                                 </div>
                             </div>
                             
@@ -178,7 +178,7 @@
                             </button>
                             <button type="submit"
                                 class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:from-cyan-700 hover:to-blue-700 focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 transition-all text-sm font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                {{ ($submission->attempts ?? 0) >= 2 ? 'disabled' : '' }}>
+                                {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                 </svg>
@@ -199,6 +199,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const savedDataRaw = @json($submission->submission_data ?? null);
     const correctDataRaw = @json($answerSheet->correct_data ?? null);
     const submissionStatus = @json($submission->status ?? null);
+    const maxAttempts = @json($performanceTask->max_attempts);
+    const currentAttempts = @json($submission->attempts ?? 0);
+    const isReadOnly = currentAttempts >= maxAttempts;
 
     // Parse saved data if it exists
     let initialData, savedMetadata = null;
@@ -282,6 +285,7 @@ document.addEventListener('DOMContentLoaded', function () {
         licenseKey: 'non-commercial-and-evaluation',
         height: 450,
         stretchH: 'all',
+        readOnly: isReadOnly,
         
         // Formula support with whitespace handling
         formulas: { engine: hyperformulaInstance },
@@ -311,7 +315,7 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         
         // Context menu with bold toggle
-        contextMenu: {
+        contextMenu: !isReadOnly ? {
             items: {
                 'row_above': {},
                 'row_below': {},
@@ -352,14 +356,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
             }
-        },
-        undo: true,
+        } : false,
+        undo: !isReadOnly,
         manualColumnResize: true,
         manualRowResize: true,
-        manualColumnMove: true,
-        manualRowMove: true,
-        fillHandle: true,
-        copyPaste: true,
+        manualColumnMove: !isReadOnly,
+        manualRowMove: !isReadOnly,
+        fillHandle: !isReadOnly,
+        copyPaste: !isReadOnly,
         minSpareRows: 0,
         enterMoves: { row: 1, col: 0 },
         tabMoves: { row: 0, col: 1 },
@@ -515,7 +519,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Keyboard shortcut for bold (Ctrl+B / Cmd+B)
     hot.addHook('beforeKeyDown', function(event) {
         // Check for Ctrl+B (Windows/Linux) or Cmd+B (Mac)
-        if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
+        if (!isReadOnly && (event.ctrlKey || event.metaKey) && event.key === 'b') {
             event.preventDefault();
             event.stopImmediatePropagation();
             
@@ -546,29 +550,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
     
     const form = document.getElementById('saveForm');
-    form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        
-        const data = hot.getData();
-        const metadata = [];
-        
-        for (let row = 0; row < data.length; row++) {
-            metadata[row] = [];
-            for (let col = 0; col < data[row].length; col++) {
-                const meta = hot.getCellMeta(row, col);
-                if (meta.className && meta.className.includes('bold-cell')) {
-                    metadata[row][col] = { bold: true };
+    if (form && !isReadOnly) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            
+            const data = hot.getData();
+            const metadata = [];
+            
+            for (let row = 0; row < data.length; row++) {
+                metadata[row] = [];
+                for (let col = 0; col < data[row].length; col++) {
+                    const meta = hot.getCellMeta(row, col);
+                    if (meta.className && meta.className.includes('bold-cell')) {
+                        metadata[row][col] = { bold: true };
+                    }
                 }
             }
-        }
-        
-        document.getElementById('submission_data').value = JSON.stringify({
-            data: data,
-            metadata: metadata
+            
+            document.getElementById('submission_data').value = JSON.stringify({
+                data: data,
+                metadata: metadata
+            });
+            
+            this.submit();
         });
-        
-        this.submit();
-    });
+    }
 });
 </script>
 

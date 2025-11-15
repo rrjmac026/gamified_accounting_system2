@@ -92,7 +92,7 @@
                                 </div>
                                 <div>
                                     <p class="text-xs text-amber-600 font-medium">Attempts Remaining</p>
-                                    <p class="text-lg font-bold text-amber-900">{{ 2 - ($submission->attempts ?? 0) }}/2</p>
+                                    <p class="text-lg font-bold text-amber-900">{{ $performanceTask->max_attempts - ($submission->attempts ?? 0) }}/{{ $performanceTask->max_attempts }}</p>
                                 </div>
                             </div>
                             
@@ -186,7 +186,7 @@
                                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
                                         </svg>
-                                        <span>Attempts remaining: <strong>{{ 2 - ($submission->attempts ?? 0) }}/2</strong></span>
+                                        <span>Attempts remaining: <strong>{{ $performanceTask->max_attempts - ($submission->attempts ?? 0) }}/{{ $performanceTask->max_attempts }}</strong></span>
                                     </div>
                                 </div>
                             </div>
@@ -244,11 +244,11 @@
                                 </a>
                                 <button type="submit" 
                                         class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 transition-colors text-sm sm:text-base disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                        {{ ($submission->attempts ?? 0) >= 2 ? 'disabled' : '' }}>
+                                        {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>
                                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                     </svg>
-                                    {{ ($submission->attempts ?? 0) >= 2 ? 'Maximum Attempts Reached' : 'Save and Continue' }}
+                                    {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'Maximum Attempts Reached' : 'Save and Continue' }}
                                 </button>
                             </div>
                         </div>
@@ -266,6 +266,9 @@
         const savedData = @json($submission->submission_data ?? null);
         const correctData = @json($answerSheet->correct_data ?? null);
         const submissionStatus = @json($submission->status ?? null);
+        const maxAttempts = @json($performanceTask->max_attempts);
+        const currentAttempts = @json($submission->attempts ?? 0);
+        const isReadOnly = currentAttempts >= maxAttempts;
 
         // Parse once for reuse
         const parsedSaved = savedData ? (typeof savedData === 'string' ? JSON.parse(savedData) : savedData) : null;
@@ -440,8 +443,8 @@
                         td.classList.add('formula-cell');
                     }
                     
-                    // Apply grading colors ONLY if submission has been graded
-                    if (submissionStatus && (submissionStatus === 'correct' || submissionStatus === 'incorrect' || submissionStatus === 'partially_correct') && parsedCorrect && parsedSaved) {
+                    // Apply grading colors ONLY if submission has been graded and NOT read-only
+                    if (!isReadOnly && submissionStatus && (submissionStatus === 'correct' || submissionStatus === 'incorrect' || submissionStatus === 'partially_correct') && parsedCorrect && parsedSaved) {
                         // Skip header rows (0-3) and separator columns (3, 7)
                         const isHeaderRow = row <= 3;
                         const isSeparatorCol = col === 3 || col === 7;
@@ -572,9 +575,10 @@
             height: tableHeight,
             colWidths: colWidths,
             licenseKey: 'non-commercial-and-evaluation',
+            readOnly: isReadOnly,
             formulas: { engine: hyperformulaInstance },
             beforeChange: function(changes, source) {
-                if (changes) {
+                if (!isReadOnly && changes) {
                     changes.forEach(function(change) {
                         const row = change[0];
                         const col = change[1];
@@ -595,7 +599,7 @@
                     });
                 }
             },
-            contextMenu: {
+            contextMenu: !isReadOnly ? {
                 items: {
                     'row_above': {},
                     'row_below': {},
@@ -636,14 +640,16 @@
                         }
                     }
                 }
-            },
-            undo: true,
+            } : false,
+            undo: !isReadOnly,
             manualColumnResize: true,
             manualRowResize: true,
-            fillHandle: true,
+            manualColumnMove: !isReadOnly,
+            manualRowMove: !isReadOnly,
+            fillHandle: !isReadOnly,
             autoColumnSize: false,
             autoRowSize: false,
-            copyPaste: true,
+            copyPaste: !isReadOnly,
             minRows: 35,
             minCols: 12,
             minSpareRows: 1,
@@ -697,7 +703,7 @@
         // Keyboard shortcut for bold (Ctrl+B / Cmd+B)
         hot.addHook('beforeKeyDown', function(event) {
             // Check for Ctrl+B (Windows/Linux) or Cmd+B (Mac)
-            if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
+            if (!isReadOnly && (event.ctrlKey || event.metaKey) && event.key === 'b') {
                 event.preventDefault();
                 event.stopImmediatePropagation();
                 
@@ -766,7 +772,7 @@
         setInterval(checkZoom, 500);
 
         const saveForm = document.getElementById("saveForm");
-        if (saveForm) {
+        if (saveForm && !isReadOnly) {
             saveForm.addEventListener("submit", function (e) {
                 e.preventDefault();
                 

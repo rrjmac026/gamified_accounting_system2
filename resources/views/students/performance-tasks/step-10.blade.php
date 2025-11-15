@@ -197,7 +197,7 @@
                                 </div>
                                 <div>
                                     <p class="text-xs text-amber-600 font-medium">Attempts Remaining</p>
-                                    <p class="text-lg font-bold text-amber-900">{{ 2 - ($submission->attempts ?? 0) }}/2</p>
+                                    <p class="text-lg font-bold text-amber-900">{{ $performanceTask->max_attempts - ($submission->attempts ?? 0) }}/{{ $performanceTask->max_attempts }}</p>
                                 </div>
                             </div>
                             
@@ -281,8 +281,8 @@
                         @csrf
                         <input type="hidden" name="submission_data" id="submission_data">
                         <button type="submit"
-                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition"
-                            {{ ($submission->attempts ?? 0) >= 2 ? 'disabled' : '' }}>
+                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>
                             💾 Save and Submit
                         </button>
                     </form>
@@ -322,6 +322,11 @@
             ['Totals', '', '', '']
         ];
 
+        const submissionStatus = @json($submission->status ?? null);
+        const maxAttempts = @json($performanceTask->max_attempts);
+        const currentAttempts = @json($submission->attempts ?? 0);
+        const isReadOnly = currentAttempts >= maxAttempts;
+
         // ✅ Initialize HyperFormula with whitespace support
         const hyperformulaInstance = HyperFormula.buildEmpty({
             licenseKey: 'internal-use-in-handsontable',
@@ -347,6 +352,7 @@
             width: '100%',
             height: isMobile ? 350 : (isTablet ? 450 : 600),
             licenseKey: 'non-commercial-and-evaluation',
+            readOnly: isReadOnly,
             stretchH: 'all',
             className: 'htCenter htMiddle',
 
@@ -355,7 +361,7 @@
 
             // Handle formula input
             beforeChange: function(changes, source) {
-                if (changes) {
+                if (!isReadOnly && changes) {
                     changes.forEach(function(change) {
                         if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
                             change[3] = change[3].trim();
@@ -365,16 +371,16 @@
             },
 
             // Full feature set
-            contextMenu: true,
-            undo: true,
+            contextMenu: !isReadOnly,
+            undo: !isReadOnly,
             manualColumnResize: true,
             manualRowResize: true,
-            manualColumnMove: true,
-            manualRowMove: true,
-            fillHandle: true,
+            manualColumnMove: !isReadOnly,
+            manualRowMove: !isReadOnly,
+            fillHandle: !isReadOnly,
             autoColumnSize: false,
             autoRowSize: false,
-            copyPaste: true,
+            copyPaste: !isReadOnly,
             minRows: 19,
             minCols: 4,
             enterMoves: { row: 1, col: 0 },
@@ -440,7 +446,6 @@
                 if (row > 3 && row < 18) {
                     cellProperties.readOnly = false;
 
-                    const submissionStatus = @json($submission->status ?? null);
                     const correctData = @json($answerSheet->correct_data ?? null);
                     const savedData = @json($submission->submission_data ?? null);
 
@@ -486,7 +491,7 @@
 
         // ✅ Save submission data
         const saveForm = document.getElementById("saveForm");
-        if (saveForm) {
+        if (saveForm && !isReadOnly) {
             saveForm.addEventListener("submit", function (e) {
                 e.preventDefault();
                 document.getElementById("submission_data").value = JSON.stringify(hot.getData());
