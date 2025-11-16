@@ -235,13 +235,13 @@
                         <!-- Action Buttons -->
                         <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
                             <div class="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
-                                <a href="{{ route('students.performance-tasks.index') }}" 
-                                   class="inline-flex items-center justify-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm sm:text-base">
+                                <button type="button" onclick="window.history.back()" 
+                                    class="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 bg-white text-gray-700 border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all text-sm font-medium">
                                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                                     </svg>
-                                    Back to Tasks
-                                </a>
+                                    Back
+                                </button>
                                 <button type="submit" 
                                         class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 transition-colors text-sm sm:text-base disabled:bg-gray-400 disabled:cursor-not-allowed"
                                         {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>

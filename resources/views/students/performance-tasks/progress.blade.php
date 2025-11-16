@@ -86,12 +86,17 @@
                             $isCompleted = in_array($i, $completedSteps);
                             $isNext = $i === (count($completedSteps) + 1);
                             
-                            // Check if this step has feedback
-                            $stepHasFeedback = \App\Models\PerformanceTaskSubmission::where('task_id', $performanceTask->id)
+                            // Get submission data for this step
+                            $stepSubmission = \App\Models\PerformanceTaskSubmission::where('task_id', $performanceTask->id)
                                 ->where('student_id', auth()->user()->student->id)
                                 ->where('step', $i)
-                                ->whereNotNull('instructor_feedback')
-                                ->exists();
+                                ->first();
+                            
+                            // Check if this step has feedback
+                            $stepHasFeedback = $stepSubmission && $stepSubmission->instructor_feedback;
+                            
+                            // Calculate max score per step
+                            $maxScorePerStep = $performanceTask->max_score / 10;
                         @endphp
 
                         <div class="relative group border border-gray-200 hover:border-pink-300 rounded-xl p-5 bg-gradient-to-b from-white to-pink-50 shadow-sm hover:shadow-md transition-all">
@@ -125,7 +130,7 @@
                                 @endif
                             </div>
 
-                            <p class="text-sm text-gray-600 mb-4">
+                            <p class="text-sm text-gray-600 mb-3">
                                 {{ [
                                     1 => 'Analyze Transactions',
                                     2 => 'Journalize Entries',
@@ -139,6 +144,39 @@
                                     10 => 'Prepare Post-Closing Trial Balance'
                                 ][$i] }}
                             </p>
+
+                            {{-- Score Display --}}
+                            @if($stepSubmission)
+                                <div class="mb-3 p-2 rounded-lg {{ $stepSubmission->status === 'correct' ? 'bg-green-50 border border-green-200' : ($stepSubmission->status === 'passed' ? 'bg-blue-50 border border-blue-200' : 'bg-orange-50 border border-orange-200') }}">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-medium text-gray-600">Score:</span>
+                                        <span class="text-sm font-bold {{ $stepSubmission->status === 'correct' ? 'text-green-700' : ($stepSubmission->status === 'passed' ? 'text-blue-700' : 'text-orange-700') }}">
+                                            {{ number_format($stepSubmission->score, 2) }} / {{ number_format($maxScorePerStep, 2) }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center justify-between mt-1">
+                                        <span class="text-xs font-medium text-gray-600">Attempts:</span>
+                                        <span class="text-xs text-gray-700">
+                                            {{ $stepSubmission->attempts }} / {{ $performanceTask->max_attempts }}
+                                        </span>
+                                    </div>
+                                    @if($stepSubmission->status === 'wrong' && $stepSubmission->attempts < $performanceTask->max_attempts)
+                                        <div class="mt-1 text-xs text-orange-600">
+                                            {{ $performanceTask->max_attempts - $stepSubmission->attempts }} attempt(s) left
+                                        </div>
+                                    @endif
+                                </div>
+                            @else
+                                <div class="mb-3 p-2 rounded-lg bg-gray-50 border border-gray-200">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-medium text-gray-600">Score:</span>
+                                        <span class="text-sm font-bold text-gray-400">
+                                            -- / {{ number_format($maxScorePerStep, 2) }}
+                                        </span>
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-1">Not attempted yet</div>
+                                </div>
+                            @endif
 
                             {{-- Feedback Indicator --}}
                             @if($stepHasFeedback)

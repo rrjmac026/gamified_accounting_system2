@@ -135,19 +135,48 @@
             </div>
 
             <div class="py-6">
-                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                    <div id="spreadsheet" class="overflow-x-auto"></div>
+                <!-- Main Content Card -->
+                <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                    <!-- Spreadsheet Section -->
+                    <div class="p-3 sm:p-4 lg:p-6">
+                        <div class="border-2 border-gray-300 rounded-xl shadow-inner bg-gray-50 overflow-hidden">
+                            <div class="overflow-x-auto overflow-y-auto" style="max-height: calc(100vh - 400px); min-height: 400px;">
+                                <div id="spreadsheet" class="bg-white min-w-full"></div>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Scroll Hint -->
+                        <div class="mt-3 flex items-center justify-center gap-2 text-xs text-gray-500 sm:hidden">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                            </svg>
+                            <span>Swipe to scroll spreadsheet</span>
+                        </div>
+                    </div>
 
                     <form id="saveForm" method="POST" action="{{ route('students.performance-tasks.save-step', ['id' => $performanceTask->id, 'step' => 8]) }}">
                         @csrf
-                        <input type="hidden" name="submission_data" id="submission_data">
+                        <input type="hidden" name="submission_data" id="submission_data" required>
 
-                        <div class="flex justify-end mt-4">
-                            <button type="submit"
-                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>
-                                💾 Save and Continue
-                            </button>
+                        <!-- Action Buttons -->
+                        <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
+                            <div class="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+                                <button type="button" onclick="window.history.back()" 
+                                    class="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 bg-white text-gray-700 border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all text-sm font-medium">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                                    </svg>
+                                    Back
+                                </button>
+                                <button type="submit" 
+                                    class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all text-sm font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                    {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'Maximum Attempts Reached' : 'Save and Continue' }}
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>

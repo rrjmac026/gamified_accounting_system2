@@ -277,15 +277,29 @@
                         Swipe to scroll spreadsheet
                     </div>
 
-                    <form id="saveForm" method="POST" action="{{ route('students.performance-tasks.save-step', ['id' => $performanceTask->id, 'step' => 9]) }}" class="mt-4">
+                    <form id="saveForm" method="POST" action="{{ route('students.performance-tasks.save-step', ['id' => $performanceTask->id, 'step' => 9]) }}">
                         @csrf
-                        <input type="hidden" name="submission_data" id="submission_data">
-                        <div class="flex justify-end">
-                            <button type="submit"
-                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>
-                                💾 Save and Continue
-                            </button>
+                        <input type="hidden" name="submission_data" id="submission_data" required>
+                        
+                        <!-- Action Buttons -->
+                        <div class="mt-4 p-4 bg-gray-50 border-t border-gray-200 rounded-b-lg">
+                            <div class="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+                                <a href="{{ route('students.performance-tasks.step', ['id' => $performanceTask->id, 'step' => 8]) }}" 
+                                    class="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 bg-white text-gray-700 border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all text-sm font-medium">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                                    </svg>
+                                    Back
+                                </a>
+                                <button type="submit" 
+                                    class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all text-sm font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                    {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'Maximum Attempts Reached' : 'Save and Continue' }}
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
