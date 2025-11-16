@@ -250,7 +250,6 @@
             columns: Array(15).fill({ type: 'text' }),
             colWidths: isMobile ? 100 : (isTablet ? 110 : 120),
             
-            // REMOVED HyperFormula integration to prevent #ERROR!
             contextMenu: !isReadOnly,
             undo: !isReadOnly,
             manualColumnResize: true,
@@ -263,8 +262,8 @@
             copyPaste: !isReadOnly,
             minRows: 15,
             minCols: 15,
-            maxRows: 50, // Prevent infinite recursion
-            maxCols: 20, // Prevent infinite recursion
+            maxRows: 50,
+            maxCols: 20,
             stretchH: 'none',
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
@@ -274,207 +273,39 @@
             comments: true,
             customBorders: true,
 
-            // Custom renderer for basic formula support and answer checking
-            cells: function(row, col) {
-                const cellProperties = {};
-                
-                // Custom renderer for all cells
-                cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                    // Handle basic formulas that start with =
-                    if (value && typeof value === 'string' && value.startsWith('=')) {
-                        try {
-                            const result = evaluateSimpleFormula(value, instance, row, col);
-                            if (result !== null) {
-                                // Display the calculated result
-                                Handsontable.renderers.TextRenderer.call(
-                                    this, instance, td, row, col, prop, result, cellProperties
-                                );
-                                td.style.color = '#1a73e8';
-                                td.style.fontWeight = '500';
-                                td.title = `Formula: ${value}`;
-                                td.classList.add('formula-cell');
-                                
-                                // Apply answer checking styling after formula evaluation
-                                applyAnswerStyling(td, row, col, value, result);
-                                return;
-                            }
-                        } catch (error) {
-                            // If formula evaluation fails, show the formula as text
-                            Handsontable.renderers.TextRenderer.call(
-                                this, instance, td, row, col, prop, value, cellProperties
-                            );
-                            td.style.color = '#ff4444';
-                            td.style.fontStyle = 'italic';
-                            td.title = 'Formula error';
+            // ✅ FIXED: Use afterRenderer instead of custom cells renderer
+            afterRenderer: function (TD, row, col, prop, value, cellProperties) {
+                // Apply answer checking styling AFTER cell is fully rendered
+                if (submissionStatus && correctData && savedData) {
+                    try {
+                        // Parse the correct answer data
+                        const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
+                        // Parse the student's submitted data
+                        const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
+                        
+                        // Get the values for this specific cell
+                        const studentValue = parsedStudent[row]?.[col];
+                        const correctValue = parsedCorrect[row]?.[col];
+                        
+                        // Only highlight cells that have student input
+                        if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
+                            // Normalize both values for comparison (case-insensitive, trimmed)
+                            const normalizedStudent = String(studentValue).trim().toLowerCase();
+                            const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
                             
-                            // Apply answer checking styling
-                            applyAnswerStyling(td, row, col, value, value);
-                            return;
+                            // Apply styling based on correctness
+                            if (normalizedStudent === normalizedCorrect) {
+                                TD.classList.add('cell-correct');
+                            } else {
+                                TD.classList.add('cell-wrong');
+                            }
                         }
+                    } catch (error) {
+                        console.warn('Error applying answer styling:', error);
                     }
-                    
-                    // Default rendering for non-formula cells
-                    Handsontable.renderers.TextRenderer.call(
-                        this, instance, td, row, col, prop, value, cellProperties
-                    );
-                    
-                    // Apply answer checking styling for regular cells
-                    applyAnswerStyling(td, row, col, value, value);
-                };
-                
-                return cellProperties;
-            },
-
-            // Clean up formula input
-            beforeChange: function(changes, source) {
-                if (!isReadOnly && source === 'edit' && changes) {
-                    changes.forEach(function(change) {
-                        const newValue = change[3];
-                        if (newValue && typeof newValue === 'string' && newValue.startsWith('=')) {
-                            change[3] = newValue.trim();
-                        }
-                    });
                 }
-                return true;
             }
         });
-
-        // Simple formula evaluation function
-        function evaluateSimpleFormula(formula, instance, currentRow, currentCol) {
-            if (!formula.startsWith('=')) return null;
-            
-            const expression = formula.substring(1).trim();
-            
-            try {
-                // 1. Handle basic arithmetic with numbers only
-                if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(expression)) {
-                    // Safe evaluation - only numbers and operators
-                    const result = Function(`"use strict"; return (${expression})`)();
-                    return typeof result === 'number' ? result : null;
-                }
-                
-                // 2. Handle simple cell references (A1, B2 format)
-                const cellRefMatch = expression.match(/^([A-Z]+)(\d+)$/);
-                if (cellRefMatch) {
-                    const [, colLetters, rowNum] = cellRefMatch;
-                    const colIndex = columnLetterToIndex(colLetters);
-                    const rowIndex = parseInt(rowNum) - 1;
-                    
-                    if (rowIndex >= 0 && colIndex >= 0 && rowIndex < instance.countRows() && colIndex < instance.countCols()) {
-                        const cellValue = instance.getDataAtCell(rowIndex, colIndex);
-                        const numValue = parseFloat(cellValue);
-                        return isNaN(numValue) ? 0 : numValue;
-                    }
-                    return 0;
-                }
-                
-                // 3. Handle simple arithmetic with cell references (A1+B1)
-                const arithmeticMatch = expression.match(/^([A-Z]+\d+)\s*([\+\-\*\/])\s*([A-Z]+\d+)$/);
-                if (arithmeticMatch) {
-                    const [, ref1, operator, ref2] = arithmeticMatch;
-                    
-                    const val1 = getCellValueByReference(ref1, instance);
-                    const val2 = getCellValueByReference(ref2, instance);
-                    
-                    switch (operator) {
-                        case '+': return val1 + val2;
-                        case '-': return val1 - val2;
-                        case '*': return val1 * val2;
-                        case '/': return val2 !== 0 ? val1 / val2 : '#DIV/0!';
-                    }
-                }
-                
-                // 4. Handle simple SUM function
-                const sumMatch = expression.match(/^SUM\(([A-Z]+\d+):([A-Z]+\d+)\)$/i);
-                if (sumMatch) {
-                    const [, startRef, endRef] = sumMatch;
-                    return sumRange(startRef, endRef, instance);
-                }
-                
-                return null; // Unsupported formula type
-                
-            } catch (error) {
-                console.warn('Formula evaluation error:', error, 'Formula:', formula);
-                return '#ERROR!';
-            }
-        }
-
-        // Helper function to get cell value by reference (A1, B2, etc.)
-        function getCellValueByReference(cellRef, instance) {
-            const match = cellRef.match(/^([A-Z]+)(\d+)$/);
-            if (!match) return 0;
-            
-            const [, colLetters, rowNum] = match;
-            const colIndex = columnLetterToIndex(colLetters);
-            const rowIndex = parseInt(rowNum) - 1;
-            
-            if (rowIndex >= 0 && colIndex >= 0 && rowIndex < instance.countRows() && colIndex < instance.countCols()) {
-                const cellValue = instance.getDataAtCell(rowIndex, colIndex);
-                return parseFloat(cellValue) || 0;
-            }
-            return 0;
-        }
-
-        // Helper function to sum a range
-        function sumRange(startRef, endRef, instance) {
-            const startMatch = startRef.match(/^([A-Z]+)(\d+)$/);
-            const endMatch = endRef.match(/^([A-Z]+)(\d+)$/);
-            
-            if (!startMatch || !endMatch) return 0;
-            
-            const [, startColLetters, startRowNum] = startMatch;
-            const [, endColLetters, endRowNum] = endMatch;
-            
-            const startCol = columnLetterToIndex(startColLetters);
-            const startRow = parseInt(startRowNum) - 1;
-            const endCol = columnLetterToIndex(endColLetters);
-            const endRow = parseInt(endRowNum) - 1;
-            
-            let sum = 0;
-            for (let row = startRow; row <= endRow; row++) {
-                for (let col = startCol; col <= endCol; col++) {
-                    if (row >= 0 && col >= 0 && row < instance.countRows() && col < instance.countCols()) {
-                        const cellValue = instance.getDataAtCell(row, col);
-                        sum += parseFloat(cellValue) || 0;
-                    }
-                }
-            }
-            return sum;
-        }
-
-        // Convert column letters to index (A=0, B=1, ..., Z=25, AA=26, etc.)
-        function columnLetterToIndex(letters) {
-            let result = 0;
-            for (let i = 0; i < letters.length; i++) {
-                result *= 26;
-                result += letters.charCodeAt(i) - 'A'.charCodeAt(0);
-            }
-            return result;
-        }
-
-        // Apply answer styling
-        function applyAnswerStyling(td, row, col, studentValue, displayValue) {
-            if (submissionStatus && correctData && savedData) {
-                try {
-                    const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
-                    const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
-                    const correctValue = parsedCorrect[row]?.[col];
-                    
-                    if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
-                        const normalizedStudent = String(displayValue).trim().toLowerCase();
-                        const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
-                        
-                        if (normalizedStudent === normalizedCorrect) {
-                            td.classList.add('cell-correct');
-                        } else {
-                            td.classList.add('cell-wrong');
-                        }
-                    }
-                } catch (error) {
-                    console.warn('Error applying answer styling:', error);
-                }
-            }
-        }
 
         // Responsive resize handler
         let resizeTimer;
@@ -502,19 +333,27 @@
             });
         }
 
-        // Add CSS for formula cells and answer styling
+        // Add CSS for answer styling
         const style = document.createElement('style');
         style.textContent = `
-            .formula-cell {
-                background-color: #f8f9fa !important;
-            }
             .cell-correct {
-                background-color: #d4edda !important;
-                border: 2px solid #28a745 !important;
+                background-color: #dcfce7 !important;
+                border: 2px solid #16a34a !important;
+                color: #166534 !important;
             }
             .cell-wrong {
-                background-color: #f8d7da !important;
-                border: 2px solid #dc3545 !important;
+                background-color: #fee2e2 !important;
+                border: 2px solid #dc2626 !important;
+                color: #991b1b !important;
+            }
+            /* Prevent selected cells from overriding colors */
+            .handsontable td.cell-correct.area,
+            .handsontable td.cell-correct.current {
+                background-color: #bbf7d0 !important;
+            }
+            .handsontable td.cell-wrong.area,
+            .handsontable td.cell-wrong.current {
+                background-color: #fecaca !important;
             }
         `;
         document.head.appendChild(style);

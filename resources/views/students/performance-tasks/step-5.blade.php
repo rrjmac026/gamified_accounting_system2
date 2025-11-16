@@ -221,62 +221,37 @@
             ignoreWhiteSpace: 'any', // Allows spaces in formulas
         });
 
+        // Determine responsive dimensions
+        const isMobile = window.innerWidth < 640;
+        const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+
         // Initialize Handsontable with NESTED HEADERS
         hot = new Handsontable(container, {
             data: initialData,
             rowHeaders: true,
+            width: '100%',
+            height: isMobile ? 350 : (isTablet ? 450 : 500),
             nestedHeaders: [
                 [
                     {label: 'Date', colspan: 2},
                     'Account Titles and Explanation', 
                     'Account Number', 
                     'Debit (₱)', 
-                    'Credit (₱)',
-                    'Date',
-                    'Cash', 
-                    'Accounts Receivable', 
-                    'Supplies', 
-                    'Furniture & Fixtures', 
-                    'Land', 
-                    'Equipment', 
-                    'Accounts Payable', 
-                    'Notes Payable', 
-                    'Capital', 
-                    'Withdrawal', 
-                    'Service Revenue', 
-                    'Rent Expense', 
-                    'Paid Licenses', 
-                    'Salaries Expense'
+                    'Credit (₱)'
                 ],
                 [
                     'Month', 'Day', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
                 ]
             ],
             columns: [
-                { type: 'text', width: 100 },      // Month
-                { type: 'text', width: 100 },      // Day
-                { type: 'text', width: 400 },      // Account Titles
-                { type: 'text', width: 100 },      // Account Number
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 150 }, // Debit
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: 150 }, // Credit
-                { type: 'text', width: 100 },      // Date
-                { type: 'text', width: 100 },      // Cash
-                { type: 'text', width: 120 },      // Accounts Receivable
-                { type: 'text', width: 100 },      // Supplies
-                { type: 'text', width: 120 },      // Furniture & Fixtures
-                { type: 'text', width: 100 },      // Land
-                { type: 'text', width: 100 },      // Equipment
-                { type: 'text', width: 120 },      // Accounts Payable
-                { type: 'text', width: 120 },      // Notes Payable
-                { type: 'text', width: 100 },      // Capital
-                { type: 'text', width: 100 },      // Withdrawal
-                { type: 'text', width: 120 },      // Service Revenue
-                { type: 'text', width: 120 },      // Rent Expense
-                { type: 'text', width: 100 },      // Paid Licenses
-                { type: 'text', width: 120 }       // Salaries Expense
+                { type: 'text', width: isMobile ? 80 : 100 },      // Month
+                { type: 'text', width: isMobile ? 80 : 100 },      // Day
+                { type: 'text', width: isMobile ? 250 : 400 },     // Account Titles
+                { type: 'text', width: isMobile ? 80 : 100 },      // Account Number
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 150 }, // Debit
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 150 }, // Credit
             ],
             stretchH: 'none',
-            height: 'auto',
             licenseKey: 'non-commercial-and-evaluation',
             readOnly: isReadOnly,
             
@@ -285,7 +260,7 @@
             
             // Handle formula input with whitespace
             beforeChange: function(changes, source) {
-                if (changes) {
+                if (!isReadOnly && changes) {
                     changes.forEach(function(change) {
                         // change[3] is the new value
                         if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
@@ -293,6 +268,58 @@
                             change[3] = change[3].trim();
                         }
                     });
+                }
+            },
+            
+            // ✅ REMOVED the problematic cells function
+            // Add visual indicator for formula cells only
+            cells: function(row, col) {
+                const cellProperties = {};
+                const cellData = this.instance.getDataAtCell(row, col);
+                
+                // Add visual indicator for formula cells
+                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
+                    cellProperties.className = 'formula-cell';
+                }
+                
+                return cellProperties;
+            },
+            
+            // ✅ FIXED: Use afterRenderer for answer checking (like Step 2)
+            afterRenderer: function (TD, row, col, prop, value, cellProperties) {
+                // Make the border after Credit column (now index 5) bold
+                if (col === 5) {
+                    TD.style.borderRight = '3px solid #000000';
+                }
+                
+                // Apply answer checking styling AFTER cell is fully rendered
+                if (submissionStatus && correctData && savedData) {
+                    try {
+                        // Parse the correct answer data
+                        const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
+                        // Parse the student's submitted data
+                        const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
+                        
+                        // Get the values for this specific cell
+                        const studentValue = parsedStudent[row]?.[col];
+                        const correctValue = parsedCorrect[row]?.[col];
+                        
+                        // Only highlight cells that have student input
+                        if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
+                            // Normalize both values for comparison (case-insensitive, trimmed)
+                            const normalizedStudent = String(studentValue).trim().toLowerCase();
+                            const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
+                            
+                            // Apply styling based on correctness
+                            if (normalizedStudent === normalizedCorrect) {
+                                TD.classList.add('cell-correct');
+                            } else {
+                                TD.classList.add('cell-wrong');
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('Error applying answer styling:', error);
+                    }
                 }
             },
             
@@ -307,6 +334,8 @@
             autoColumnSize: false,
             autoRowSize: false,
             copyPaste: !isReadOnly,
+            minRows: 15,
+            minCols: 21,
             minSpareRows: 1,
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
@@ -314,56 +343,44 @@
             selectionMode: 'multiple',
             mergeCells: true,
             comments: true,
-            customBorders: true,
-            
-            cells: function(row, col) {
-                const cellProperties = {};
-                const cellData = this.instance.getDataAtCell(row, col);
-                
-                // Add visual indicator for formula cells
-                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
-                    cellProperties.className = 'formula-cell';
-                }
-                
-                // Only apply correct/incorrect coloring if submission has been graded
-                if (submissionStatus && correctData && savedData) {
-                    const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
-                    const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
-                    
-                    const studentValue = parsedStudent[row]?.[col];
-                    const correctValue = parsedCorrect[row]?.[col];
-                    
-                    // Only compare non-empty cells that the STUDENT filled in
-                    if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
-                        // Normalize values for comparison (trim whitespace, case-insensitive)
-                        const normalizedStudent = String(studentValue).trim().toLowerCase();
-                        const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
-                        
-                        if (normalizedStudent === normalizedCorrect) {
-                            cellProperties.className = (cellProperties.className || '') + ' cell-correct';
-                        } else {
-                            cellProperties.className = (cellProperties.className || '') + ' cell-wrong';
-                        }
-                    }
-                }
-                
-                return cellProperties;
-            },
-            
-            afterRenderer: function (TD, row, col, prop, value, cellProperties) {
-                // Make the border after Credit column (now index 5) bold
-                if (col === 5) {
-                    TD.style.borderRight = '3px solid #000000';
-                }
-            }
+            customBorders: true
         });
 
-        // Handle window resize
+        // Responsive resize handler
         let resizeTimer;
         window.addEventListener('resize', function() {
             clearTimeout(resizeTimer);
             resizeTimer = setTimeout(function() {
-                hot.render();
+                const newIsMobile = window.innerWidth < 640;
+                const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+                const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
+                
+                hot.updateSettings({
+                    height: newHeight,
+                    columns: [
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 250 : 400 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 100 : 150 },
+                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 100 : 150 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 },
+                        { type: 'text', width: newIsMobile ? 80 : 100 },
+                        { type: 'text', width: newIsMobile ? 100 : 120 }
+                    ]
+                });
             }, 250);
         });
 
@@ -376,6 +393,34 @@
                 this.submit();
             });
         }
+
+        // Add CSS for answer styling
+        const style = document.createElement('style');
+        style.textContent = `
+            .formula-cell {
+                background-color: #f8f9fa !important;
+            }
+            .cell-correct {
+                background-color: #dcfce7 !important;
+                border: 2px solid #16a34a !important;
+                color: #166534 !important;
+            }
+            .cell-wrong {
+                background-color: #fee2e2 !important;
+                border: 2px solid #dc2626 !important;
+                color: #991b1b !important;
+            }
+            /* Prevent selected cells from overriding colors */
+            .handsontable td.cell-correct.area,
+            .handsontable td.cell-correct.current {
+                background-color: #bbf7d0 !important;
+            }
+            .handsontable td.cell-wrong.area,
+            .handsontable td.cell-wrong.current {
+                background-color: #fecaca !important;
+            }
+        `;
+        document.head.appendChild(style);
     });
 </script>
 

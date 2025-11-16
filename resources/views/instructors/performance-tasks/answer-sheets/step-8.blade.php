@@ -311,21 +311,6 @@
                     'Account Number', 
                     'Debit (₱)', 
                     'Credit (₱)',
-                    '',
-                    'Cash', 
-                    'Accounts Receivable', 
-                    'Supplies', 
-                    'Furniture & Fixtures', 
-                    'Land', 
-                    'Equipment', 
-                    'Accounts Payable', 
-                    'Notes Payable', 
-                    'Capital', 
-                    'Withdrawal', 
-                    'Service Revenue', 
-                    'Rent Expense', 
-                    'Paid Licenses', 
-                    'Salaries Expense'
                 ],
                 [
                     '', // Sub-column 1 under Date
@@ -341,21 +326,6 @@
                 { type: 'text', width: isMobile ? 80 : 100 },
                 { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
                 { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
-                { type: 'text', width: isMobile ? 80 : 100 },
-                { type: 'text', width: isMobile ? 80 : 100 },
-                { type: 'text', width: isMobile ? 100 : 120 },
-                { type: 'text', width: isMobile ? 80 : 100 },
-                { type: 'text', width: isMobile ? 100 : 120 },
-                { type: 'text', width: isMobile ? 80 : 100 },
-                { type: 'text', width: isMobile ? 80 : 100 },
-                { type: 'text', width: isMobile ? 100 : 120 },
-                { type: 'text', width: isMobile ? 100 : 120 },
-                { type: 'text', width: isMobile ? 80 : 100 },
-                { type: 'text', width: isMobile ? 80 : 100 },
-                { type: 'text', width: isMobile ? 100 : 120 },
-                { type: 'text', width: isMobile ? 100 : 120 },
-                { type: 'text', width: isMobile ? 80 : 100 },
-                { type: 'text', width: isMobile ? 100 : 120 }
             ],
 
             // Formula support with whitespace handling
@@ -435,21 +405,6 @@
                         { type: 'text', width: newIsMobile ? 80 : 100 },
                         { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 120 : 150 },
                         { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 120 : 150 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 }
                     ]
                 });
             }, 250);

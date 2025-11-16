@@ -262,12 +262,12 @@ class StudentPerformanceTaskController extends Controller
             $totalCells = 0;
 
             if ($answerSheet && $answerSheet->correct_data) {
-                // 🔥 FIX 1: Parse correct data properly
+                // Parse correct data properly
                 $correctDataRaw = is_string($answerSheet->correct_data)
                     ? json_decode($answerSheet->correct_data, true)
                     : $answerSheet->correct_data;
 
-                // 🔥 FIX 2: Extract data array if wrapped in {data, metadata} structure
+                // Extract data array if wrapped in {data, metadata} structure
                 if (is_array($correctDataRaw) && isset($correctDataRaw['data'])) {
                     $correctData = $correctDataRaw['data'];
                     \Log::info("Step {$step} - Extracted correct data from wrapper", [
@@ -278,7 +278,7 @@ class StudentPerformanceTaskController extends Controller
                     \Log::info("Step {$step} - Using correct data as-is (no wrapper)");
                 }
 
-                // 🔍 Debug: Log sample data
+                // Debug: Log sample data
                 \Log::info("Step {$step} - Data sample comparison", [
                     'student_row_4' => $studentDataArray[4] ?? 'missing',
                     'correct_row_4' => $correctData[4] ?? 'missing',
@@ -305,23 +305,25 @@ class StudentPerformanceTaskController extends Controller
                 // Update score
                 $submission->score = round($calculatedScore, 2);
 
+                // ✅ FIXED: Always update status based on current result
                 if ($isPerfect) {
-                    $awardXp = ($previousStatus !== 'correct');
                     $submission->status = 'correct';
+                    $awardXp = ($previousStatus !== 'correct');
                     $submission->remarks = $deadlineStatus['isLate']
                         ? "Perfect! {$calculatedScore}/{$maxScorePerStep} points (Late submission)"
                         : "Perfect! {$calculatedScore}/{$maxScorePerStep} points";
                         
                 } elseif ($isPassing) {
-                    $awardXp = ($previousStatus !== 'correct' && $previousStatus !== 'passed');
                     $submission->status = 'passed';
+                    $awardXp = ($previousStatus !== 'correct' && $previousStatus !== 'passed');
                     $submission->remarks = $deadlineStatus['isLate']
                         ? "Good job! {$calculatedScore}/{$maxScorePerStep} points. {$errorCount} error(s) found. (Late submission)"
                         : "Good job! {$calculatedScore}/{$maxScorePerStep} points. {$errorCount} error(s) found.";
                         
                 } else {
-                    $awardXp = false;
+                    // ✅ FORCE status to 'wrong' regardless of previous status
                     $submission->status = 'wrong';
+                    $awardXp = false;
                     
                     $remainingAttempts = $task->max_attempts - $currentAttempt;
                     $attemptInfo = $remainingAttempts > 0 
@@ -339,6 +341,18 @@ class StudentPerformanceTaskController extends Controller
                 $submission->remarks = 'Answer sheet not found for this step.';
             }
 
+            // ✅ Debug log BEFORE saving
+            \Log::info("About to save submission", [
+                'step' => $step,
+                'student_id' => $user->student->id,
+                'previous_status' => $previousStatus,
+                'new_status' => $submission->status,
+                'score' => $submission->score,
+                'errors' => $errorCount,
+                'is_dirty' => $submission->isDirty(),
+                'dirty_fields' => $submission->getDirty()
+            ]);
+
             // Save
             $saved = $submission->save();
             
@@ -348,6 +362,14 @@ class StudentPerformanceTaskController extends Controller
             }
 
             $submission->refresh();
+
+            // ✅ Debug log AFTER saving
+            \Log::info("Submission saved successfully", [
+                'step' => $step,
+                'student_id' => $user->student->id,
+                'status_in_db' => $submission->status,
+                'score_in_db' => $submission->score
+            ]);
 
             // Sync to pivot table
             $this->syncSubmissionToPivot($user->student->id, $task->id, $step, $submission);
@@ -484,40 +506,51 @@ class StudentPerformanceTaskController extends Controller
             return ['errorCount' => 999, 'totalCells' => 0];
         }
 
-        foreach ($correctData as $rowIndex => $correctRow) {
+        // Get the maximum number of rows to check
+        $maxRows = max(count($studentData), count($correctData));
+
+        for ($rowIndex = 0; $rowIndex < $maxRows; $rowIndex++) {
             // 🔥 FIX: Skip header rows for Step 4 (rows 0-3 are headers)
             if ($step === 4 && $rowIndex < 4) {
                 continue;
             }
             
-            if (!isset($studentData[$rowIndex])) {
-                // Missing entire row counts as errors for all cells in that row
-                $errorCount += count(array_filter($correctRow, fn($val) => $val !== null && $val !== '' && $val !== 0));
-                $totalCells += count($correctRow);
-                continue;
-            }
-
-            $studentRow = $studentData[$rowIndex];
-            foreach ($correctRow as $colIndex => $correctValue) {
-                // Skip empty/null cells in answer key
-                if ($correctValue === null || $correctValue === '' || $correctValue === 0) {
-                    continue;
-                }
-
-                $totalCells++;
+            $correctRow = $correctData[$rowIndex] ?? [];
+            $studentRow = $studentData[$rowIndex] ?? [];
+            
+            // Get the maximum number of columns to check
+            $maxCols = max(count($studentRow), count($correctRow));
+            
+            for ($colIndex = 0; $colIndex < $maxCols; $colIndex++) {
+                $correctValue = $correctRow[$colIndex] ?? null;
                 $studentValue = $studentRow[$colIndex] ?? null;
-
-                if (!$this->valuesMatch($studentValue, $correctValue)) {
-                    $errorCount++;
+                
+                // Normalize both values
+                $normalizedCorrect = $this->normalizeValue($correctValue);
+                $normalizedStudent = $this->normalizeValue($studentValue);
+                
+                // ✅ NEW LOGIC: Check if either value is non-empty
+                $correctHasValue = ($normalizedCorrect !== '');
+                $studentHasValue = ($normalizedStudent !== '');
+                
+                // If either the correct answer OR student answer has a value, count this cell
+                if ($correctHasValue || $studentHasValue) {
+                    $totalCells++;
                     
-                    // 🔍 Debug: Log first few mismatches
-                    if ($errorCount <= 5) {
-                        \Log::info("Mismatch at Row {$rowIndex}, Col {$colIndex}", [
-                            'student_value' => $studentValue,
-                            'correct_value' => $correctValue,
-                            'student_normalized' => $this->normalizeValue($studentValue),
-                            'correct_normalized' => $this->normalizeValue($correctValue),
-                        ]);
+                    // Check if values match
+                    if ($normalizedStudent !== $normalizedCorrect) {
+                        $errorCount++;
+                        
+                        // 🔍 Debug: Log first few mismatches
+                        if ($errorCount <= 5) {
+                            \Log::info("Mismatch at Row {$rowIndex}, Col {$colIndex}", [
+                                'student_value' => $studentValue,
+                                'correct_value' => $correctValue,
+                                'student_normalized' => $normalizedStudent,
+                                'correct_normalized' => $normalizedCorrect,
+                                'error_type' => $studentHasValue && !$correctHasValue ? 'extra_entry' : ($correctHasValue && !$studentHasValue ? 'missing_entry' : 'wrong_value')
+                            ]);
+                        }
                     }
                 }
             }

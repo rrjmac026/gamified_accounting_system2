@@ -234,22 +234,6 @@
             { type: 'text', width: isMobile ? 80 : 100 }, // Account Number
             { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 130 }, // Debit
             { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 130 }, // Credit
-            { type: 'text', width: isMobile ? 60 : 80 }, // Blank Column
-            { type: 'text', width: isMobile ? 80 : 100 }, // Date (Ledger)
-            { type: 'text', width: isMobile ? 80 : 100 }, // Cash
-            { type: 'text', width: isMobile ? 100 : 120 }, // Accounts Receivable
-            { type: 'text', width: isMobile ? 80 : 100 }, // Supplies
-            { type: 'text', width: isMobile ? 100 : 120 }, // Furniture & Fixtures
-            { type: 'text', width: isMobile ? 80 : 100 }, // Land
-            { type: 'text', width: isMobile ? 80 : 100 }, // Equipment
-            { type: 'text', width: isMobile ? 100 : 120 }, // Accounts Payable
-            { type: 'text', width: isMobile ? 100 : 120 }, // Notes Payable
-            { type: 'text', width: isMobile ? 80 : 100 }, // Capital
-            { type: 'text', width: isMobile ? 80 : 100 }, // Withdrawal
-            { type: 'text', width: isMobile ? 100 : 120 }, // Service Revenue
-            { type: 'text', width: isMobile ? 100 : 120 }, // Rent Expense
-            { type: 'text', width: isMobile ? 80 : 100 }, // Paid Licenses
-            { type: 'text', width: isMobile ? 100 : 120 }, // Salaries Expense
         ];
 
         // Initialize Handsontable with nested headers
@@ -269,22 +253,6 @@
                     'Account Number', 
                     'Debit (₱)', 
                     'Credit (₱)',
-                    '',
-                    'Date',
-                    'Cash', 
-                    'Accounts Receivable', 
-                    'Supplies', 
-                    'Furniture & Fixtures', 
-                    'Land', 
-                    'Equipment', 
-                    'Accounts Payable', 
-                    'Notes Payable', 
-                    'Capital', 
-                    'Withdrawal', 
-                    'Service Revenue', 
-                    'Rent Expense', 
-                    'Paid Licenses', 
-                    'Salaries Expense'
                 ],
                 [
                     'Month',
@@ -388,22 +356,7 @@
                         { type: 'text', width: newIsMobile ? 80 : 100 },
                         { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 100 : 130 },
                         { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 100 : 130 },
-                        { type: 'text', width: newIsMobile ? 60 : 80 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 }
+
                     ]
                 });
             }, 250);
