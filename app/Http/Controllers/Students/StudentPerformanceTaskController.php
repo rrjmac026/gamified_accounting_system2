@@ -260,6 +260,7 @@ class StudentPerformanceTaskController extends Controller
             $awardXp = false;
             $errorCount = 0;
             $totalCells = 0;
+            $maxScorePerStep = $task->max_score / 10;
 
             if ($answerSheet && $answerSheet->correct_data) {
                 // Parse correct data properly
@@ -280,10 +281,8 @@ class StudentPerformanceTaskController extends Controller
 
                 // Debug: Log sample data
                 \Log::info("Step {$step} - Data sample comparison", [
-                    'student_row_4' => $studentDataArray[4] ?? 'missing',
-                    'correct_row_4' => $correctData[4] ?? 'missing',
-                    'student_row_5_col_0' => $studentDataArray[5][0] ?? 'missing',
-                    'correct_row_5_col_0' => $correctData[5][0] ?? 'missing',
+                    'student_row_0' => $studentDataArray[0] ?? 'missing',
+                    'correct_row_0' => $correctData[0] ?? 'missing',
                 ]);
 
                 // Count errors
@@ -291,39 +290,10 @@ class StudentPerformanceTaskController extends Controller
                 $errorCount = $errorDetails['errorCount'];
                 $totalCells = $errorDetails['totalCells'];
 
-                // Calculate score per step
-                $maxScorePerStep = $task->max_score / 10;
-                $deductionPerStep = $task->deduction_per_error;
-                
-                $calculatedScore = max(0, $maxScorePerStep - ($errorCount * $deductionPerStep));
-                
-                // Determine thresholds
-                $passingScore = $maxScorePerStep * 0.7;
-                $isPerfect = ($errorCount === 0);
-                $isPassing = ($calculatedScore >= $passingScore);
-
-                // Update score
-                $submission->score = round($calculatedScore, 2);
-
-                // ✅ FIXED: Always update status based on current result
-                if ($isPerfect) {
-                    $submission->status = 'correct';
-                    $awardXp = ($previousStatus !== 'correct');
-                    $submission->remarks = $deadlineStatus['isLate']
-                        ? "Perfect! {$calculatedScore}/{$maxScorePerStep} points (Late submission)"
-                        : "Perfect! {$calculatedScore}/{$maxScorePerStep} points";
-                        
-                } elseif ($isPassing) {
-                    $submission->status = 'passed';
-                    $awardXp = ($previousStatus !== 'correct' && $previousStatus !== 'passed');
-                    $submission->remarks = $deadlineStatus['isLate']
-                        ? "Good job! {$calculatedScore}/{$maxScorePerStep} points. {$errorCount} error(s) found. (Late submission)"
-                        : "Good job! {$calculatedScore}/{$maxScorePerStep} points. {$errorCount} error(s) found.";
-                        
-                } else {
-                    // ✅ FORCE status to 'wrong' regardless of previous status
+                // ✅ NEW: Check for cell count mismatch (automatic fail)
+                if (isset($errorDetails['cellCountMismatch']) && $errorDetails['cellCountMismatch']) {
                     $submission->status = 'wrong';
-                    $awardXp = false;
+                    $submission->score = 0;
                     
                     $remainingAttempts = $task->max_attempts - $currentAttempt;
                     $attemptInfo = $remainingAttempts > 0 
@@ -331,8 +301,54 @@ class StudentPerformanceTaskController extends Controller
                         : " No attempts remaining.";
                     
                     $submission->remarks = $deadlineStatus['isLate']
-                        ? "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found.{$attemptInfo} (Late submission)"
-                        : "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found.{$attemptInfo}";
+                        ? "Wrong number of entries detected. Your submission has extra or missing data. Score: 0/{$maxScorePerStep}.{$attemptInfo} (Late submission)"
+                        : "Wrong number of entries detected. Your submission has extra or missing data. Score: 0/{$maxScorePerStep}.{$attemptInfo}";
+                    
+                    $awardXp = false;
+                    
+                } else {
+                    // Normal grading logic
+                    $deductionPerStep = $task->deduction_per_error;
+                    
+                    $calculatedScore = max(0, $maxScorePerStep - ($errorCount * $deductionPerStep));
+                    
+                    // Determine thresholds
+                    $passingScore = $maxScorePerStep * 0.7;
+                    $isPerfect = ($errorCount === 0);
+                    $isPassing = ($calculatedScore >= $passingScore);
+
+                    // Update score
+                    $submission->score = round($calculatedScore, 2);
+
+                    // ✅ Update status based on current result
+                    if ($isPerfect) {
+                        $submission->status = 'correct';
+                        $awardXp = ($previousStatus !== 'correct');
+                        $submission->remarks = $deadlineStatus['isLate']
+                            ? "Perfect! {$calculatedScore}/{$maxScorePerStep} points (Late submission)"
+                            : "Perfect! {$calculatedScore}/{$maxScorePerStep} points";
+                            
+                    } elseif ($isPassing) {
+                        $submission->status = 'passed';
+                        $awardXp = ($previousStatus !== 'correct' && $previousStatus !== 'passed');
+                        $submission->remarks = $deadlineStatus['isLate']
+                            ? "Good job! {$calculatedScore}/{$maxScorePerStep} points. {$errorCount} error(s) found. (Late submission)"
+                            : "Good job! {$calculatedScore}/{$maxScorePerStep} points. {$errorCount} error(s) found.";
+                            
+                    } else {
+                        // ✅ FORCE status to 'wrong'
+                        $submission->status = 'wrong';
+                        $awardXp = false;
+                        
+                        $remainingAttempts = $task->max_attempts - $currentAttempt;
+                        $attemptInfo = $remainingAttempts > 0 
+                            ? " You have {$remainingAttempts} attempt(s) remaining."
+                            : " No attempts remaining.";
+                        
+                        $submission->remarks = $deadlineStatus['isLate']
+                            ? "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found.{$attemptInfo} (Late submission)"
+                            : "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found.{$attemptInfo}";
+                    }
                 }
                 
             } else {
@@ -383,7 +399,6 @@ class StudentPerformanceTaskController extends Controller
             $this->logPerformance($user->student, $task, $step, $submission, $deadlineStatus['isLate'], $errorCount);
 
             // Build success message
-            $maxScorePerStep = $task->max_score / 10;
             $remainingAttempts = $task->max_attempts - $currentAttempt;
             
             $message = "Step {$step} submitted! (Attempt {$currentAttempt}/{$task->max_attempts}) - Score: {$submission->score}/{$maxScorePerStep}";
@@ -503,14 +518,57 @@ class StudentPerformanceTaskController extends Controller
                 'student_is_array' => is_array($studentData),
                 'correct_is_array' => is_array($correctData)
             ]);
-            return ['errorCount' => 999, 'totalCells' => 0];
+            return ['errorCount' => 999, 'totalCells' => 1]; // Avoid division by zero
+        }
+
+        // ✅ STRICT VALIDATION: Count all non-empty cells first
+        $studentCellCount = 0;
+        $correctCellCount = 0;
+        
+        foreach ($studentData as $row) {
+            foreach ($row as $cell) {
+                if ($this->normalizeValue($cell) !== '') {
+                    $studentCellCount++;
+                }
+            }
+        }
+        
+        foreach ($correctData as $row) {
+            foreach ($row as $cell) {
+                if ($this->normalizeValue($cell) !== '') {
+                    $correctCellCount++;
+                }
+            }
+        }
+        
+        \Log::info("Cell count comparison", [
+            'step' => $step,
+            'student_cells' => $studentCellCount,
+            'correct_cells' => $correctCellCount,
+        ]);
+        
+        // ✅ CRITICAL: If cell counts don't match, fail immediately with score 0
+        if ($studentCellCount !== $correctCellCount) {
+            \Log::warning("Cell count mismatch - automatic fail", [
+                'step' => $step,
+                'expected' => $correctCellCount,
+                'got' => $studentCellCount,
+                'difference' => abs($studentCellCount - $correctCellCount),
+            ]);
+            
+            // Return huge error count to force score to 0
+            return [
+                'errorCount' => 999999, // Guaranteed to zero out the score
+                'totalCells' => max($correctCellCount, 1),
+                'cellCountMismatch' => true,
+            ];
         }
 
         // Get the maximum number of rows to check
         $maxRows = max(count($studentData), count($correctData));
 
         for ($rowIndex = 0; $rowIndex < $maxRows; $rowIndex++) {
-            // 🔥 FIX: Skip header rows for Step 4 (rows 0-3 are headers)
+            // Skip header rows for Step 4
             if ($step === 4 && $rowIndex < 4) {
                 continue;
             }
@@ -529,26 +587,22 @@ class StudentPerformanceTaskController extends Controller
                 $normalizedCorrect = $this->normalizeValue($correctValue);
                 $normalizedStudent = $this->normalizeValue($studentValue);
                 
-                // ✅ NEW LOGIC: Check if either value is non-empty
+                // Only count cells that SHOULD have an answer
                 $correctHasValue = ($normalizedCorrect !== '');
-                $studentHasValue = ($normalizedStudent !== '');
                 
-                // If either the correct answer OR student answer has a value, count this cell
-                if ($correctHasValue || $studentHasValue) {
+                if ($correctHasValue) {
                     $totalCells++;
                     
-                    // Check if values match
+                    // Check if student's answer matches
                     if ($normalizedStudent !== $normalizedCorrect) {
                         $errorCount++;
                         
-                        // 🔍 Debug: Log first few mismatches
                         if ($errorCount <= 5) {
                             \Log::info("Mismatch at Row {$rowIndex}, Col {$colIndex}", [
                                 'student_value' => $studentValue,
                                 'correct_value' => $correctValue,
                                 'student_normalized' => $normalizedStudent,
                                 'correct_normalized' => $normalizedCorrect,
-                                'error_type' => $studentHasValue && !$correctHasValue ? 'extra_entry' : ($correctHasValue && !$studentHasValue ? 'missing_entry' : 'wrong_value')
                             ]);
                         }
                     }
@@ -559,11 +613,13 @@ class StudentPerformanceTaskController extends Controller
         \Log::info("Grading completed for step {$step}", [
             'total_errors' => $errorCount,
             'total_cells_checked' => $totalCells,
+            'student_total_cells' => $studentCellCount,
+            'correct_total_cells' => $correctCellCount,
         ]);
 
         return [
             'errorCount' => $errorCount,
-            'totalCells' => $totalCells
+            'totalCells' => $totalCells,
         ];
     }
 
