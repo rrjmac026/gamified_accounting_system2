@@ -443,43 +443,78 @@
                         td.classList.add('formula-cell');
                     }
                     
-                    // Apply grading colors ONLY if submission has been graded
-                    if (submissionStatus && (submissionStatus === 'correct' || submissionStatus === 'incorrect' || submissionStatus === 'partially_correct') && parsedCorrect && parsedSaved) {
+                    // ✅ IMPROVED: Apply grading colors ONLY if submission has been graded
+                    if (!isReadOnly && submissionStatus && (submissionStatus === 'correct' || submissionStatus === 'incorrect' || submissionStatus === 'partially_correct') && parsedCorrect && parsedSaved) {
                         // Skip header rows (0-3) and separator columns (3, 7)
                         const isHeaderRow = row <= 3;
                         const isSeparatorCol = col === 3 || col === 7;
                         
                         if (!isHeaderRow && !isSeparatorCol && !isTemplateCell(row, col)) {
-                            // Get the actual data - handle both formats
+                            // Get the actual data (not metadata wrapper)
                             const studentData = parsedSaved.data || parsedSaved;
-                            const correctDataArray = parsedCorrect.data || parsedCorrect;
+                            const correctAnswerData = parsedCorrect.data || parsedCorrect;
                             
                             const studentValue = studentData[row]?.[col];
-                            const correctValue = correctDataArray[row]?.[col];
+                            const correctValue = correctAnswerData[row]?.[col];
                             const templateValue = templateData[row]?.[col];
                             
-                            // Normalize function
+                            // ✅ IMPROVED: Better normalization function
                             const normalizeValue = (val) => {
                                 if (val === null || val === undefined) return '';
                                 if (val === '') return '';
-                                if (typeof val === 'string') {
-                                    return val.replace(/[₱,\s()]/g, '').trim().toLowerCase();
+                                
+                                // Convert to string and handle all number formats
+                                let strVal = String(val).trim();
+                                
+                                // Remove currency symbols, commas, spaces, and parentheses
+                                strVal = strVal.replace(/[₱$,\s()]/g, '');
+                                
+                                // Handle decimal points
+                                if (strVal.includes('.')) {
+                                    // Parse as float and format consistently
+                                    const numVal = parseFloat(strVal);
+                                    if (!isNaN(numVal)) {
+                                        return numVal.toFixed(2);
+                                    }
                                 }
-                                if (typeof val === 'number') return val.toString();
-                                return String(val).trim().toLowerCase();
+                                
+                                // For non-numeric values, just lowercase
+                                return strVal.toLowerCase();
                             };
                             
                             const normalizedStudent = normalizeValue(studentValue);
                             const normalizedTemplate = normalizeValue(templateValue);
+                            const normalizedCorrect = normalizeValue(correctValue);
                             
-                            // Only grade cells where student entered something different from template
-                            if (normalizedStudent !== '' && normalizedStudent !== normalizedTemplate) {
-                                const normalizedCorrect = normalizeValue(correctValue);
+                            // ✅ CRITICAL FIX: Only grade cells where:
+                            // 1. Student entered something (not empty)
+                            // 2. Student's answer is different from template
+                            // 3. There's a correct answer to compare against
+                            const hasStudentInput = normalizedStudent !== '';
+                            const isDifferentFromTemplate = normalizedStudent !== normalizedTemplate;
+                            const hasCorrectAnswer = normalizedCorrect !== '';
+                            
+                            if (hasStudentInput && isDifferentFromTemplate && hasCorrectAnswer) {
+                                // ✅ IMPROVED: More lenient comparison for numbers
+                                let isCorrect = false;
                                 
-                                if (normalizedStudent === normalizedCorrect) {
+                                if (!isNaN(normalizedStudent) && !isNaN(normalizedCorrect)) {
+                                    // Numeric comparison with tolerance
+                                    const studentNum = parseFloat(normalizedStudent);
+                                    const correctNum = parseFloat(normalizedCorrect);
+                                    const tolerance = 0.01; // Allow 1 cent difference
+                                    isCorrect = Math.abs(studentNum - correctNum) <= tolerance;
+                                } else {
+                                    // String comparison
+                                    isCorrect = normalizedStudent === normalizedCorrect;
+                                }
+                                
+                                if (isCorrect) {
                                     td.classList.add('cell-correct');
+                                    td.classList.remove('cell-wrong');
                                 } else {
                                     td.classList.add('cell-wrong');
+                                    td.classList.remove('cell-correct');
                                 }
                             }
                         }

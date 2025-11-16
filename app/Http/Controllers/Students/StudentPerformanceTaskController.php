@@ -308,32 +308,41 @@ class StudentPerformanceTaskController extends Controller
                     
                 } else {
                     // Normal grading logic
-                    $deductionPerStep = $task->deduction_per_error;
+                    // ✅ Calculate how many WRONG attempts were made before this one
+                    $wrongAttemptsBefore = ($currentAttempt > 1) ? ($currentAttempt - 1) : 0;
                     
-                    $calculatedScore = max(0, $maxScorePerStep - ($errorCount * $deductionPerStep));
+                    // Apply cumulative penalty for previous wrong attempts
+                    $cumulativePenalty = $wrongAttemptsBefore * $task->deduction_per_error;
                     
-                    // Determine thresholds
-                    $passingScore = $maxScorePerStep * 0.7;
+                    // Calculate base score from current attempt
+                    $errorCount = $errorDetails['errorCount'];
                     $isPerfect = ($errorCount === 0);
-                    $isPassing = ($calculatedScore >= $passingScore);
+                    
+                    // Start with max score, then subtract cumulative penalty
+                    $calculatedScore = max(0, $maxScorePerStep - $cumulativePenalty);
+                    
+                    // Determine thresholds based on REMAINING possible score
+                    $passingScore = $calculatedScore * 0.7;
 
                     // Update score
                     $submission->score = round($calculatedScore, 2);
 
                     // ✅ Update status based on current result
-                    if ($isPerfect) {
+                    if ($isPerfect && $calculatedScore > 0) {
                         $submission->status = 'correct';
                         $awardXp = ($previousStatus !== 'correct');
+                        $deductionInfo = ($cumulativePenalty > 0) ? " (-{$cumulativePenalty} penalty from previous attempts)" : "";
                         $submission->remarks = $deadlineStatus['isLate']
-                            ? "Perfect! {$calculatedScore}/{$maxScorePerStep} points (Late submission)"
-                            : "Perfect! {$calculatedScore}/{$maxScorePerStep} points";
+                            ? "Perfect! {$calculatedScore}/{$maxScorePerStep} points{$deductionInfo} (Late submission)"
+                            : "Perfect! {$calculatedScore}/{$maxScorePerStep} points{$deductionInfo}";
                             
-                    } elseif ($isPassing) {
+                    } elseif ($calculatedScore >= $passingScore && $calculatedScore > 0) {
                         $submission->status = 'passed';
                         $awardXp = ($previousStatus !== 'correct' && $previousStatus !== 'passed');
+                        $deductionInfo = ($cumulativePenalty > 0) ? " (-{$cumulativePenalty} penalty from previous attempts)" : "";
                         $submission->remarks = $deadlineStatus['isLate']
-                            ? "Good job! {$calculatedScore}/{$maxScorePerStep} points. {$errorCount} error(s) found. (Late submission)"
-                            : "Good job! {$calculatedScore}/{$maxScorePerStep} points. {$errorCount} error(s) found.";
+                            ? "Good job! {$calculatedScore}/{$maxScorePerStep} points{$deductionInfo}. {$errorCount} error(s) found. (Late submission)"
+                            : "Good job! {$calculatedScore}/{$maxScorePerStep} points{$deductionInfo}. {$errorCount} error(s) found.";
                             
                     } else {
                         // ✅ FORCE status to 'wrong'
@@ -345,9 +354,14 @@ class StudentPerformanceTaskController extends Controller
                             ? " You have {$remainingAttempts} attempt(s) remaining."
                             : " No attempts remaining.";
                         
+                        $futureMaxScore = max(0, $maxScorePerStep - ($currentAttempt * $task->deduction_per_error));
+                        $penaltyWarning = ($remainingAttempts > 0 && $futureMaxScore > 0) 
+                            ? " Next attempt max score: {$futureMaxScore}/{$maxScorePerStep}."
+                            : "";
+                        
                         $submission->remarks = $deadlineStatus['isLate']
-                            ? "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found.{$attemptInfo} (Late submission)"
-                            : "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found.{$attemptInfo}";
+                            ? "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found.{$attemptInfo}{$penaltyWarning} (Late submission)"
+                            : "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found.{$attemptInfo}{$penaltyWarning}";
                     }
                 }
                 
