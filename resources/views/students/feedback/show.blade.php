@@ -1,5 +1,6 @@
 <!-- Feedback Show Page -->
 <x-app-layout>
+    <!-- Student side -->
     <div class="py-12">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-[#FFF0FA] overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 sm:rounded-lg">

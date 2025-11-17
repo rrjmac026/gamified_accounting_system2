@@ -12,6 +12,7 @@ class FeedbackRecord extends Model
     protected $fillable = [
         'student_id',
         'performance_task_id',
+        'step',
         'feedback_type',
         'feedback_text',
         'recommendations',
@@ -22,12 +23,12 @@ class FeedbackRecord extends Model
     ];
 
     protected $casts = [
+        'step' => 'integer',
         'recommendations' => 'array',
         'generated_at' => 'datetime',
-        'feedback_date' => 'datetime',
         'is_read' => 'boolean',
         'is_anonymous' => 'boolean',
-        'rating' => 'integer'
+        'rating' => 'integer',
     ];
 
     // Set default values

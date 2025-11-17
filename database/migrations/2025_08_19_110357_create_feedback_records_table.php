@@ -19,6 +19,7 @@ return new class extends Migration
                   ->nullable()
                   ->constrained('performance_tasks')
                   ->onDelete('set null');
+            $table->integer('step')->nullable();
             
             // Main feedback fields
             $table->enum('feedback_type', ['general', 'improvement', 'question'])->default('general');

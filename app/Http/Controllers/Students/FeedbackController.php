@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Students;
 use App\Http\Controllers\Controller;
 use App\Models\FeedbackRecord;
 use App\Models\PerformanceTask;
+use App\Models\PerformanceTaskSubmission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -13,17 +14,83 @@ use Exception;
 class FeedbackController extends Controller
 {
     /**
-     * Show the student's submitted feedback records.
+     * Show the student's performance tasks with completed steps for feedback
      */
     public function index()
     {
         try {
-            $feedbacks = FeedbackRecord::with(['performanceTask'])
-                ->where('student_id', Auth::user()->student->id)
-                ->latest()
-                ->paginate(10);
+            $student = Auth::user()->student;
+            
+            // Get all tasks assigned to student's section
+            $tasksQuery = PerformanceTask::whereHas('section.students', function ($query) use ($student) {
+                $query->where('student_id', $student->id);
+            })->with(['subject', 'instructor']);
+            
+            if ($student->section_id) {
+                $tasksQuery->where('section_id', $student->section_id);
+            }
+            
+            $tasks = $tasksQuery->latest()->get();
+            
+            // Step titles mapping
+            $stepTitles = [
+                1 => 'Analyze Transactions',
+                2 => 'Journalize Transactions',
+                3 => 'Post to Ledger Accounts',
+                4 => 'Prepare Trial Balance',
+                5 => 'Journalize & Post Adjusting Entries',
+                6 => 'Prepare Adjusted Trial Balance',
+                7 => 'Prepare Financial Statements',
+                8 => 'Journalize & Post Closing Entries',
+                9 => 'Prepare Post-Closing Trial Balance',
+                10 => 'Reverse (Optional Step)',
+            ];
+            
+            // Prepare task data with step completion status
+            $taskData = [];
+            foreach ($tasks as $task) {
+                // Get all submissions for this task
+                $submissions = PerformanceTaskSubmission::where([
+                    'task_id' => $task->id,
+                    'student_id' => $student->id
+                ])->get()->keyBy('step');
+                
+                // Get existing feedbacks for this task
+                $existingFeedbacks = FeedbackRecord::where([
+                    'student_id' => $student->id,
+                    'performance_task_id' => $task->id
+                ])->get()->keyBy('step');
+                
+                $steps = [];
+                for ($i = 1; $i <= 10; $i++) {
+                    $submission = $submissions->get($i);
+                    $feedback = $existingFeedbacks->get($i);
+                    
+                    $steps[$i] = [
+                        'number' => $i,
+                        'title' => $stepTitles[$i],
+                        'is_completed' => $submission !== null,
+                        'status' => $submission ? $submission->status : null,
+                        'score' => $submission ? $submission->score : 0,
+                        'has_feedback' => $feedback !== null,
+                        'feedback' => $feedback,
+                        'can_submit_feedback' => $submission !== null && $feedback === null,
+                    ];
+                }
+                
+                $completedStepsCount = collect($steps)->filter(fn($s) => $s['is_completed'])->count();
+                
+                $taskData[] = [
+                    'task' => $task,
+                    'steps' => $steps,
+                    'completed_steps' => $completedStepsCount,
+                    'total_steps' => 10,
+                    'progress_percentage' => ($completedStepsCount / 10) * 100,
+                ];
+            }
 
-            return view('students.feedback.index', compact('feedbacks'));
+            return view('students.feedback.index', compact('taskData', 'stepTitles'));
+            
         } catch (Exception $e) {
             Log::error('Error fetching feedback records: ' . $e->getMessage());
             return redirect()->back()
@@ -31,63 +98,72 @@ class FeedbackController extends Controller
         }
     }
 
-    public function create()
+    /**
+     * Show form to create feedback for a specific step
+     */
+    public function create(Request $request)
     {
         try {
             $student = Auth::user()->student;
+            $taskId = $request->query('task_id');
+            $step = $request->query('step');
             
-            // Debug: Log student info
-            Log::info('Feedback Create - Student ID: ' . $student->id);
-            Log::info('Feedback Create - Section ID: ' . $student->section_id);
-            
-            // Get all submissions for this student
-            $allSubmissions = \App\Models\PerformanceTaskSubmission::where('student_id', $student->id)
-                ->select('task_id', 'step')
-                ->get();
-            
-            Log::info('Feedback Create - Total submissions: ' . $allSubmissions->count());
-            Log::info('Feedback Create - Submissions: ' . $allSubmissions->toJson());
-            
-            // Group by task_id and count distinct steps
-            $taskStepCounts = $allSubmissions->groupBy('task_id')->map(function($submissions) {
-                return $submissions->pluck('step')->unique()->count();
-            });
-            
-            Log::info('Feedback Create - Task step counts: ' . $taskStepCounts->toJson());
-            
-            // Get tasks where student completed all 10 steps
-            $completedTaskIds = $taskStepCounts->filter(function($stepCount) {
-                return $stepCount >= 10;
-            })->keys()->toArray();
-            
-            Log::info('Feedback Create - Completed task IDs: ' . json_encode($completedTaskIds));
-
-            if (empty($completedTaskIds)) {
+            if (!$taskId || !$step) {
                 return redirect()->route('students.feedback.index')
-                    ->with('info', 'No completed tasks available for feedback. You need to complete all 10 steps of a performance task first.');
+                    ->with('error', 'Invalid request. Please select a step from the feedback page.');
             }
-
-            // Get completed tasks (check section_id only if it exists)
-            $tasksQuery = PerformanceTask::whereIn('id', $completedTaskIds)
-                ->with(['subject', 'instructor']);
             
-            // Only filter by section if student has a section assigned
+            // Verify task exists and is accessible
+            $taskQuery = PerformanceTask::where('id', $taskId);
             if ($student->section_id) {
-                $tasksQuery->where('section_id', $student->section_id);
+                $taskQuery->where('section_id', $student->section_id);
             }
+            $task = $taskQuery->first();
             
-            $tasks = $tasksQuery->get();
-            
-            Log::info('Feedback Create - Tasks found: ' . $tasks->count());
-
-            if ($tasks->isEmpty()) {
+            if (!$task) {
                 return redirect()->route('students.feedback.index')
-                    ->with('info', 'No completed tasks available for feedback at this time.');
+                    ->with('error', 'Performance task not found.');
             }
+            
+            // Verify step is completed
+            $submission = PerformanceTaskSubmission::where([
+                'task_id' => $taskId,
+                'student_id' => $student->id,
+                'step' => $step
+            ])->first();
+            
+            if (!$submission) {
+                return redirect()->route('students.feedback.index')
+                    ->with('error', 'You must complete this step before submitting feedback.');
+            }
+            
+            // Check if feedback already exists
+            $existingFeedback = FeedbackRecord::where([
+                'student_id' => $student->id,
+                'performance_task_id' => $taskId,
+                'step' => $step
+            ])->exists();
+            
+            if ($existingFeedback) {
+                return redirect()->route('students.feedback.index')
+                    ->with('error', 'You have already submitted feedback for this step.');
+            }
+            
+            $stepTitles = [
+                1 => 'Analyze Transactions',
+                2 => 'Journalize Transactions',
+                3 => 'Post to Ledger Accounts',
+                4 => 'Prepare Trial Balance',
+                5 => 'Journalize & Post Adjusting Entries',
+                6 => 'Prepare Adjusted Trial Balance',
+                7 => 'Prepare Financial Statements',
+                8 => 'Journalize & Post Closing Entries',
+                9 => 'Prepare Post-Closing Trial Balance',
+                10 => 'Reverse (Optional Step)',
+            ];
 
-            // Pass as 'performanceTasks' to match the view variable name
-            $performanceTasks = $tasks;
-            return view('students.feedback.create', compact('performanceTasks'));
+            return view('students.feedback.create', compact('task', 'step', 'stepTitles', 'submission'));
+            
         } catch (Exception $e) {
             Log::error('Error loading feedback creation form: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
@@ -97,13 +173,13 @@ class FeedbackController extends Controller
     }
 
     /**
-     * Store a new feedback record from student.
+     * Store a new feedback record for a specific step
      */
     public function store(Request $request)
     {
-        // Validate the request
         $validated = $request->validate([
             'performance_task_id' => 'required|exists:performance_tasks,id',
+            'step' => 'required|integer|min:1|max:10',
             'feedback_type' => 'required|in:general,improvement,question',
             'feedback_text' => 'required|string|min:10|max:5000',
             'recommendations' => 'nullable|string|max:2000',
@@ -114,49 +190,33 @@ class FeedbackController extends Controller
         try {
             $student = Auth::user()->student;
             
-            // Validate task exists and is accessible to student
-            $taskQuery = PerformanceTask::where('id', $request->performance_task_id);
-            
-            // Only check section if student has one assigned
-            if ($student->section_id) {
-                $taskQuery->where('section_id', $student->section_id);
-            }
-            
-            $task = $taskQuery->first();
-
-            if (!$task) {
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error', 'Invalid task selected.');
-            }
-
-            // Verify student has completed all 10 steps
-            $completedSteps = \App\Models\PerformanceTaskSubmission::where([
+            // Verify step is completed
+            $submission = PerformanceTaskSubmission::where([
                 'task_id' => $request->performance_task_id,
-                'student_id' => $student->id
-            ])
-            ->distinct()
-            ->count('step');
+                'student_id' => $student->id,
+                'step' => $request->step
+            ])->first();
 
-            if ($completedSteps < 10) {
+            if (!$submission) {
                 return redirect()->back()
                     ->withInput()
-                    ->with('error', 'You must complete all 10 steps before submitting feedback for this task.');
+                    ->with('error', 'You must complete this step before submitting feedback.');
             }
 
             // Check for duplicate feedback
             $existingFeedback = FeedbackRecord::where([
                 'student_id' => $student->id,
-                'performance_task_id' => $request->performance_task_id
+                'performance_task_id' => $request->performance_task_id,
+                'step' => $request->step
             ])->exists();
 
             if ($existingFeedback) {
                 return redirect()->back()
                     ->withInput()
-                    ->with('error', 'You have already submitted feedback for this task.');
+                    ->with('error', 'You have already submitted feedback for this step.');
             }
 
-            // Convert recommendations string to array
+            // Convert recommendations to array
             $recommendations = array_filter(
                 explode("\n", str_replace("\r", "", $request->recommendations ?? ''))
             );
@@ -164,6 +224,7 @@ class FeedbackController extends Controller
             FeedbackRecord::create([
                 'student_id' => $student->id,
                 'performance_task_id' => $request->performance_task_id,
+                'step' => $request->step,
                 'feedback_type' => $request->feedback_type,
                 'feedback_text' => $request->feedback_text,
                 'recommendations' => $recommendations,
@@ -174,7 +235,7 @@ class FeedbackController extends Controller
             ]);
 
             return redirect()->route('students.feedback.index')
-                ->with('success', 'Your feedback has been submitted successfully.');
+                ->with('success', 'Your feedback for Step ' . $request->step . ' has been submitted successfully.');
 
         } catch (Exception $e) {
             Log::error('Error storing feedback: ' . $e->getMessage());
@@ -193,10 +254,22 @@ class FeedbackController extends Controller
                     ->with('error', 'You are not authorized to view this feedback.');
             }
 
-            // Load the relationship
             $feedback->load('performanceTask');
+            
+            $stepTitles = [
+                1 => 'Analyze Transactions',
+                2 => 'Journalize Transactions',
+                3 => 'Post to Ledger Accounts',
+                4 => 'Prepare Trial Balance',
+                5 => 'Journalize & Post Adjusting Entries',
+                6 => 'Prepare Adjusted Trial Balance',
+                7 => 'Prepare Financial Statements',
+                8 => 'Journalize & Post Closing Entries',
+                9 => 'Prepare Post-Closing Trial Balance',
+                10 => 'Reverse (Optional Step)',
+            ];
 
-            return view('students.feedback.show', compact('feedback'));
+            return view('students.feedback.show', compact('feedback', 'stepTitles'));
 
         } catch (Exception $e) {
             Log::error('Error showing feedback: ' . $e->getMessage());
