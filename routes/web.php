@@ -38,6 +38,7 @@ use App\Http\Controllers\Instructors\PerformanceTaskController;
 use App\Http\Controllers\Instructors\PerformanceTaskAnswerSheetController;
 use App\Http\Controllers\Instructors\PerformanceTaskSubmissionController;
 use App\Http\Controllers\Instructors\PerformanceTaskSubmissionExportController;
+use App\Http\Controllers\Instructors\InstructorFeedbackRecordController;
 
 
 // ============================================================================
@@ -298,8 +299,11 @@ Route::middleware(['auth', 'role:instructor'])
         Route::get('/performance-tasks-submissions/export/pdf', [PerformanceTaskSubmissionExportController::class, 'exportPdf'])
             ->name('performance-tasks.submissions.export.pdf');
 
-});
+        Route::resource('feedback-records', InstructorFeedbackRecordController::class)
+        ->names('feedback-records')
+        ->only(['index', 'show']);
 
+});
 
 // Student Progress Routes (Instructor Side)
 Route::middleware(['auth', 'role:instructor'])->group(function () {
