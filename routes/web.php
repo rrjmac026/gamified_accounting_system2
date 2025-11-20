@@ -297,6 +297,10 @@ Route::middleware(['auth', 'role:instructor'])
         Route::get('/performance-tasks-submissions', [PerformanceTaskSubmissionController::class, 'index'])
             ->name('performance-tasks.submissions.index');
 
+        Route::get('/performance-tasks/{task}/submissions/{student}/answer-sheet/{step}', 
+            [PerformanceTaskSubmissionController::class, 'viewAnswerSheet'])
+            ->name('performance-tasks.submissions.answer-sheet');
+
         // Show all student submissions for a specific task
         Route::get('/performance-tasks/{task}/submissions', [PerformanceTaskSubmissionController::class, 'show'])
             ->name('performance-tasks.submissions.show');

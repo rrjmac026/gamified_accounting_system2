@@ -161,6 +161,94 @@ class PerformanceTaskSubmissionController extends Controller
     }
 
     /**
+ * View answer sheet for a specific step
+ */
+    public function viewAnswerSheet(PerformanceTask $task, User $student, $step)
+    {
+        try {
+            $instructor = auth()->user()->instructor;
+            
+            // Verify ownership
+            if ($task->instructor_id !== $instructor->id) {
+                throw new Exception('Unauthorized access to task');
+            }
+
+            // Validate step number
+            if ($step < 1 || $step > 10) {
+                throw new Exception('Invalid step number');
+            }
+
+            // Get the answer sheet for this step
+            $answerSheet = PerformanceTaskAnswerSheet::where([
+                'performance_task_id' => $task->id,
+                'step' => $step
+            ])->first();
+
+            // Check if answer sheet exists
+            if (!$answerSheet) {
+                return back()->with('error', "No answer sheet found for Step {$step}.");
+            }
+
+            // Check if correct_data exists
+            if (!$answerSheet->correct_data) {
+                return back()->with('error', "Answer sheet for Step {$step} has no data.");
+            }
+
+            // Get step title
+            $stepTitles = [
+                1 => 'Analyze Transactions',
+                2 => 'Journalize Transactions',
+                3 => 'Post to Ledger Accounts',
+                4 => 'Prepare Trial Balance',
+                5 => 'Journalize & Post Adjusting Entries',
+                6 => 'Prepare Adjusted Trial Balance',
+                7 => 'Prepare Financial Statements',
+                8 => 'Journalize & Post Closing Entries',
+                9 => 'Prepare Post-Closing Trial Balance',
+                10 => 'Reverse (Optional Step)',
+            ];
+
+            $stepTitle = $stepTitles[$step] ?? "Step {$step}";
+
+            // ✅ Get student's submission for this step
+            $studentRecord = $student->student;
+            
+            $submission = PerformanceTaskSubmission::where([
+                'task_id' => $task->id,
+                'student_id' => $studentRecord->id,
+                'step' => $step
+            ])->first();
+
+            // ✅ Log activity
+            $this->logActivity('viewed answer sheet comparison', [
+                'instructor_id' => $instructor->id,
+                'task_id' => $task->id,
+                'student_id' => $studentRecord->id,
+                'step' => $step,
+                'has_submission' => $submission ? true : false,
+            ]);
+
+            return view('instructors.performance-tasks.submissions.answer-sheets.view', compact(
+                'task',
+                'student',
+                'answerSheet',
+                'submission',
+                'step',
+                'stepTitle'
+            ));
+
+        } catch (Exception $e) {
+            Log::error('Error viewing answer sheet: ' . $e->getMessage(), [
+                'task_id' => $task->id ?? null,
+                'student_id' => $student->id ?? null,
+                'step' => $step ?? null,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('error', 'Unable to load answer sheet. Please try again.');
+        }
+    }
+
+    /**
      * View details of a single student's submission for a specific task
      */
     public function showStudent(PerformanceTask $task, User $student)
