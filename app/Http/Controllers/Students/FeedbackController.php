@@ -9,10 +9,13 @@ use App\Models\PerformanceTaskSubmission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Traits\Loggable; // << added
 use Exception;
 
 class FeedbackController extends Controller
 {
+    use Loggable; // << added
+
     /**
      * Show the student's performance tasks with completed steps for feedback
      */
@@ -89,6 +92,12 @@ class FeedbackController extends Controller
                 ];
             }
 
+            // Activity log for viewing feedback index
+            $this->logActivity('viewed feedback index', [
+                'student_id' => $student->id ?? null,
+                'tasks_count' => count($tasks),
+            ]);
+
             return view('students.feedback.index', compact('taskData', 'stepTitles'));
             
         } catch (Exception $e) {
@@ -162,6 +171,13 @@ class FeedbackController extends Controller
                 10 => 'Reverse (Optional Step)',
             ];
 
+            // Activity log for creating feedback form
+            $this->logActivity('opened feedback creation form', [
+                'student_id' => $student->id ?? null,
+                'task_id' => $taskId,
+                'step' => $step,
+            ]);
+
             return view('students.feedback.create', compact('task', 'step', 'stepTitles', 'submission'));
             
         } catch (Exception $e) {
@@ -234,6 +250,16 @@ class FeedbackController extends Controller
                 'is_anonymous' => $request->boolean('is_anonymous', false)
             ]);
 
+            // Activity log for submitting feedback
+            $this->logActivity('submitted feedback', [
+                'student_id' => $student->id,
+                'task_id' => $request->performance_task_id,
+                'step' => $request->step,
+                'feedback_type' => $request->feedback_type,
+                'rating' => $request->rating,
+                'is_anonymous' => $request->boolean('is_anonymous', false),
+            ]);
+
             return redirect()->route('students.feedback.index')
                 ->with('success', 'Your feedback for Step ' . $request->step . ' has been submitted successfully.');
 
@@ -268,6 +294,14 @@ class FeedbackController extends Controller
                 9 => 'Prepare Post-Closing Trial Balance',
                 10 => 'Reverse (Optional Step)',
             ];
+
+            // Activity log for viewing feedback
+            $this->logActivity('viewed feedback', [
+                'student_id' => $feedback->student_id,
+                'task_id' => $feedback->performance_task_id,
+                'step' => $feedback->step,
+                'feedback_type' => $feedback->feedback_type,
+            ]);
 
             return view('students.feedback.show', compact('feedback', 'stepTitles'));
 

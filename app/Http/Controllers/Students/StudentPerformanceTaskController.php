@@ -8,9 +8,12 @@ use App\Models\PerformanceTaskSubmission;
 use App\Models\PerformanceTaskAnswerSheet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Traits\Loggable;
 
 class StudentPerformanceTaskController extends Controller
 {
+	use Loggable;
+
     /**
      * Show list of performance tasks assigned to the logged-in student
      */
@@ -106,6 +109,12 @@ class StudentPerformanceTaskController extends Controller
             'task_id' => $performanceTask->id,
             'student_id' => $user->student->id,
         ])->pluck('step')->toArray();
+
+        // lightweight activity log
+		$this->logActivity('viewed performance task progress', [
+			'student_id' => $user->student->id ?? null,
+			'task_id' => $performanceTask->id ?? null,
+		]);
 
         return view('students.performance-tasks.progress', compact('performanceTask', 'completedSteps', 'deadlineStatus'));
     }
@@ -400,6 +409,16 @@ class StudentPerformanceTaskController extends Controller
                 'status_in_db' => $submission->status,
                 'score_in_db' => $submission->score
             ]);
+
+            // Structured activity log for submission
+			$this->logActivity('submitted performance task step', [
+				'student_id' => $user->student->id ?? null,
+				'task_id' => $task->id ?? null,
+				'step' => $step,
+				'status' => $submission->status ?? null,
+				'score' => $submission->score ?? null,
+				'attempts' => $submission->attempts ?? null,
+			]);
 
             // Sync to pivot table
             $this->syncSubmissionToPivot($user->student->id, $task->id, $step, $submission);
@@ -950,6 +969,13 @@ class StudentPerformanceTaskController extends Controller
             return back()->with('error', 'Answer sheet not available for this step.');
         }
 
+        // activity log when student views the correct answers
+		$this->logActivity('viewed answer sheet', [
+			'student_id' => $user->student->id ?? null,
+			'task_id' => $performanceTask->id ?? null,
+			'step' => $step,
+		]);
+
         // ✅ Use ONE view for all steps
         return view("students.performance-tasks.answers.view", [
             'performanceTask' => $performanceTask,
@@ -1059,6 +1085,15 @@ class StudentPerformanceTaskController extends Controller
 
             // Log success
             \Log::info("Stored final grade for student {$studentId}, task {$task->id}: {$finalScore}/{$task->max_score} ({$percentage}%), XP: {$cappedXp}");
+
+            // activity log for final grade
+			$this->logActivity('stored final grade', [
+				'student_id' => $studentId,
+				'task_id' => $task->id,
+				'final_score' => round($finalScore, 2),
+				'percentage' => $percentage,
+				'xp_earned' => round($cappedXp, 2),
+			]);
 
         } catch (\Exception $e) {
             \Log::error("Failed to store final grade for student {$studentId}, task {$task->id}: " . $e->getMessage());

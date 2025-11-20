@@ -10,6 +10,7 @@ use App\Models\Section;
 use App\Models\Subject;
 use App\Models\Student;
 use App\Models\SystemNotification;
+use App\Models\ActivityLog;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class PerformanceTaskController extends Controller
@@ -77,7 +78,18 @@ class PerformanceTaskController extends Controller
         ]);
 
         // Load the section with students
-        $task->load('section.students.user');
+        $task->load('section.students.user', 'subject', 'section');
+
+        // ✅ Log performance task creation
+        $this->logActivity('created performance task', $task->id, [
+            'title' => $task->title,
+            'subject' => $task->subject->subject_name ?? 'N/A',
+            'section' => $task->section->section_name ?? 'N/A',
+            'xp_reward' => $task->xp_reward,
+            'max_score' => $task->max_score,
+            'due_date' => $task->due_date,
+            'students_notified' => $task->section->students->count(),
+        ]);
 
         // Notify all students in the section
         foreach ($task->section->students as $student) {
@@ -109,6 +121,11 @@ class PerformanceTaskController extends Controller
             'subject',
             'section.students',
             'instructor'
+        ]);
+
+        // ✅ Log viewing performance task
+        $this->logActivity('viewed performance task', $task->id, [
+            'title' => $task->title,
         ]);
 
         return view('instructors.performance-tasks.show', compact('task'));
@@ -157,10 +174,30 @@ class PerformanceTaskController extends Controller
             'deduction_per_error' => 'required|integer|min:0',
         ]);
 
+        // ✅ Capture changes before update
+        $changes = [];
+        foreach ($validated as $key => $value) {
+            if ($task->{$key} != $value) {
+                $changes[$key] = [
+                    'old' => $task->{$key},
+                    'new' => $value,
+                ];
+            }
+        }
+
         $task->update($validated);
 
         // Load the section with students
-        $task->load('section.students.user');
+        $task->load('section.students.user', 'subject', 'section');
+
+        // ✅ Log performance task update
+        $this->logActivity('updated performance task', $task->id, [
+            'title' => $task->title,
+            'subject' => $task->subject->subject_name ?? 'N/A',
+            'section' => $task->section->section_name ?? 'N/A',
+            'changes' => $changes,
+            'students_notified' => $task->section->students->count(),
+        ]);
 
         // Notify students about updates
         foreach ($task->section->students as $student) {
@@ -183,19 +220,30 @@ class PerformanceTaskController extends Controller
      */
     public function destroy(PerformanceTask $task)
     {
-        
         if ($task->instructor_id !== Auth::user()->instructor->id) {
             abort(403, 'Unauthorized action.');
         }
 
-        
-        $task->load('section.students.user');
+        $task->load('section.students.user', 'subject', 'section');
         $taskTitle = $task->title;
+        $taskId = $task->id;
         $students = $task->section->students ?? collect();
+
+        // ✅ Capture task data before deletion
+        $taskData = [
+            'title' => $taskTitle,
+            'subject' => $task->subject->subject_name ?? 'N/A',
+            'section' => $task->section->section_name ?? 'N/A',
+            'xp_reward' => $task->xp_reward,
+            'max_score' => $task->max_score,
+            'students_affected' => $students->count(),
+        ];
 
         $task->delete();
 
-        
+        // ✅ Log performance task deletion
+        $this->logActivity('deleted performance task', $taskId, $taskData);
+
         if ($students->isNotEmpty()) {
             foreach ($students as $student) {
                 SystemNotification::create([
@@ -211,5 +259,22 @@ class PerformanceTaskController extends Controller
 
         return redirect()->route('instructors.performance-tasks.index')
             ->with('success', 'Performance task deleted successfully.');
+    }
+
+    /**
+     * Simple logging helper for performance task actions
+     */
+    protected function logActivity(string $action, ?int $taskId, array $details = []): void
+    {
+        ActivityLog::create([
+            'user_id' => Auth::id(),
+            'action' => $action,
+            'model_type' => 'PerformanceTask',
+            'model_id' => $taskId,
+            'details' => $details,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'performed_at' => now(),
+        ]);
     }
 }

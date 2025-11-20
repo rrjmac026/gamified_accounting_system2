@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use App\Models\User;
+use App\Models\ActivityLog;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -34,8 +35,21 @@ class AuthenticatedSessionController extends Controller
             Auth::logout(); // temporarily logout the user
             session(['2fa:user:id' => $user->id]); // store user ID in session
 
+            // Log 2FA challenge initiated
+            $this->logActivity('2fa challenge initiated', $user->id, [
+                'email' => $user->email,
+                'role' => $user->role,
+            ]);
+
             return redirect()->route('two-factor.challenge');
         }
+
+        // ✅ Log successful login
+        $this->logActivity('user logged in', $user->id, [
+            'email' => $user->email,
+            'role' => $user->role,
+            'name' => $user->name,
+        ]);
 
         // ✅ Otherwise, continue to normal login flow
         $request->session()->regenerate();
@@ -62,11 +76,38 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $user = Auth::user();
+
+        // ✅ Log logout before destroying session
+        if ($user) {
+            $this->logActivity('user logged out', $user->id, [
+                'email' => $user->email,
+                'role' => $user->role,
+            ]);
+        }
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    /**
+     * Simple logging helper for auth events
+     */
+    protected function logActivity(string $action, ?int $userId, array $details = []): void
+    {
+        ActivityLog::create([
+            'user_id' => $userId,
+            'action' => $action,
+            'model_type' => 'User',
+            'model_id' => $userId,
+            'details' => $details,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'performed_at' => now(),
+        ]);
     }
 }
