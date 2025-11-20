@@ -211,12 +211,20 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     
     // Reports
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::get('/reports/students', [ReportController::class, 'generateStudentReport'])->name('reports.students');
-    Route::get('/reports/students/export', [ReportController::class, 'exportStudentReport'])->name('reports.students.export');
-    Route::get('/reports/instructors', [ReportController::class, 'generateInstructorReport'])->name('reports.instructors');
-    Route::get('/reports/tasks', [ReportController::class, 'generateTaskReport'])->name('reports.tasks');
-    Route::get('/reports/activities', [ReportController::class, 'generateActivityReport'])->name('reports.activities');
-    Route::get('/reports/evaluations', [ReportController::class, 'generateEvaluationReport'])->name('reports.evaluations');
+        
+        // Reports Routes
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        
+        // Export Routes
+        Route::get('/reports/export-grades-excel', [ReportController::class, 'exportGradesExcel'])
+            ->name('reports.export-grades-excel');
+        
+        Route::get('/reports/export-grades-pdf', [ReportController::class, 'exportGradesPdf'])
+            ->name('reports.export-grades-pdf');
+        
+        // AJAX Route for fetching instructor sections
+        Route::get('/reports/instructor/{instructor}/sections', [ReportController::class, 'getInstructorSections'])
+            ->name('reports.instructor-sections');
     
     // Evaluations (Admin View)
     Route::get('/evaluations', [EvaluationController::class, 'index'])->name('evaluations.index');
