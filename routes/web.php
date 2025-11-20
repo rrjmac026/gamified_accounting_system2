@@ -212,15 +212,21 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Reports
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         
-        // Reports Routes
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-        
-        // Export Routes
+    
+        // Export Grades Routes
         Route::get('/reports/export-grades-excel', [ReportController::class, 'exportGradesExcel'])
             ->name('reports.export-grades-excel');
         
         Route::get('/reports/export-grades-pdf', [ReportController::class, 'exportGradesPdf'])
             ->name('reports.export-grades-pdf');
+        
+        // Export Feedback Routes
+        Route::get('/reports/export-feedback-excel', [ReportController::class, 'exportFeedbackExcel'])
+            ->name('reports.export-feedback-excel');
+        
+        Route::get('/reports/export-feedback-pdf', [ReportController::class, 'exportFeedbackPdf'])
+            ->name('reports.export-feedback-pdf');
         
         // AJAX Route for fetching instructor sections
         Route::get('/reports/instructor/{instructor}/sections', [ReportController::class, 'getInstructorSections'])
