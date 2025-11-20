@@ -188,19 +188,23 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     
     //Settings
     Route::prefix('backups')->name('backups.')->group(function () {
-            // Main backup pages
-            Route::get('/', [DataBackupController::class, 'index'])->name('index');
-            Route::get('/{backup}', [DataBackupController::class, 'show'])->name('show'); // Optional: view backup details
-            
-            // Backup operations  
-            Route::post('/', [DataBackupController::class, 'store'])->name('store');
-            Route::get('/{backup}/download', [DataBackupController::class, 'download'])->name('download');
-            Route::delete('/{backup}', [DataBackupController::class, 'destroy'])->name('destroy');
-            
-            // Additional management routes
-            Route::post('/cleanup', [DataBackupController::class, 'cleanup'])->name('cleanup');
-            Route::get('/{backup}/status', [DataBackupController::class, 'status'])->name('status'); // For AJAX status checks
-        });
+        // Main pages
+        Route::get('/', [DataBackupController::class, 'index'])->name('index');
+        
+        // Backup operations  
+        Route::post('/', [DataBackupController::class, 'store'])->name('store');
+        Route::get('/{backup}/download', [DataBackupController::class, 'download'])->name('download');
+        Route::delete('/{backup}', [DataBackupController::class, 'destroy'])->name('destroy');
+        
+        // Additional management routes
+        Route::post('/cleanup', [DataBackupController::class, 'cleanup'])->name('cleanup');
+        Route::get('/{backup}/status', [DataBackupController::class, 'status'])->name('status');
+        
+        // System diagnostics and quick actions
+        Route::get('/test-system', [DataBackupController::class, 'testBackup'])->name('test');
+        Route::get('/statistics', [DataBackupController::class, 'statistics'])->name('statistics');
+        Route::post('/quick-backup', [DataBackupController::class, 'quickBackup'])->name('quick');
+    });
     
     // Activity Logs
     Route::resource('/activity-logs', ActivityLogController::class);
@@ -231,6 +235,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/subjects/{subject}/assign-instructors', [SubjectController::class, 'showAssignInstructorsForm'])
         ->name('subjects.showAssignInstructorsForm');
 });
+
+
 
 // ============================================================================
 // INSTRUCTOR ROUTES

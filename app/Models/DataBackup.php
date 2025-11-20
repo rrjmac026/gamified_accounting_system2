@@ -52,11 +52,11 @@ class DataBackup extends Model
         return $this->retention_until && $this->retention_until->isPast();
     }
 
-    public function getFormattedSizeAttribute(): string
+    public function getFormattedSizeAttribute()
     {
-        if (!$this->file_size) return 'N/A';
+        if (!$this->file_size) return '0 B';
         
-        $units = ['B', 'KB', 'MB', 'GB'];
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
         $bytes = $this->file_size;
         
         for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
