@@ -75,7 +75,7 @@
                                         class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF92C2] focus:ring focus:ring-[#FF92C2] focus:ring-opacity-50 transition">
                                     <option value="">All Sections</option>
                                     @foreach($sections as $section)
-                                        <option value="{{ $section->id }}">{{ $section->name }} - {{ $section->course->name ?? 'N/A' }}</option>
+                                        <option value="{{ $section->id }}">{{ $section->name }} - {{ $section->course->course_name ?? 'N/A' }}</option>
                                     @endforeach
                                 </select>
                                 <p class="mt-1 text-xs text-gray-500">Select an instructor to filter sections taught by them</p>

@@ -8,12 +8,15 @@ use App\Models\PerformanceTaskSubmission;
 use App\Models\User;
 use App\Models\SystemNotification;
 use App\Models\PerformanceTaskAnswerSheet;
+use App\Traits\Loggable;
 use Illuminate\Http\Request;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
 class PerformanceTaskSubmissionController extends Controller
 {
+    use Loggable;
+
     /**
      * Show all submissions across all performance tasks for this instructor
      */
@@ -338,8 +341,14 @@ class PerformanceTaskSubmissionController extends Controller
             // Create notification for the student
             $this->notifyStudentAboutFeedback($student, $task, $step, $instructor);
 
-            // Log the feedback
-            Log::info("Instructor {$instructor->id} provided feedback for student {$studentRecord->id}, task {$task->id}, step {$step}");
+            // ✅ Log the feedback using Loggable trait
+            $this->logActivity('provided feedback on performance task submission', [
+                'task_id' => $task->id,
+                'task_title' => $task->title,
+                'student_id' => $studentRecord->id,
+                'step' => $step,
+                'feedback_length' => strlen($validated['instructor_feedback']),
+            ]);
 
             return redirect()
                 ->route('instructors.performance-tasks.submissions.show-student', [
