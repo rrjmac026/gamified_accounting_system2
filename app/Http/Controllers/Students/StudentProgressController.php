@@ -13,28 +13,34 @@ class StudentProgressController extends Controller
         $student = auth()->user()->student;
 
         // eager load related models we'll use
-        $student->load('xpTransactions', 'tasks.submissions', 'badges');
+        $student->load('xpTransactions', 'badges');
 
         // total xp (xpTransactions table)
         $totalXp = (int) $student->xpTransactions()->sum('amount');
 
-        // tasks completed (same logic as your dashboard)
-        $tasksCompleted = $student->tasks->filter(function ($task) {
-            $submission = $task->submissions->first();
-            return $task->pivot->status === 'submitted' ||
-                   ($submission && $submission->score !== null);
-        })->count();
+        // ✅ Count completed performance tasks from pivot table
+        $tasksCompleted = \DB::table('performance_task_student')
+            ->where('student_id', $student->id)
+            ->where('status', 'graded')
+            ->count();
+
+        // ✅ FIX: Calculate total score from graded performance tasks
+        $totalScore = \DB::table('performance_task_student')
+            ->where('student_id', $student->id)
+            ->where('status', 'graded')
+            ->sum('score');
 
         // xp breakdown by source (make plain array for easy blade use)
         $xpBreakdown = $student->xpTransactions()
             ->selectRaw('source, SUM(amount) as total')
             ->groupBy('source')
             ->pluck('total', 'source')
-            ->toArray(); // <-- convert to array so blade can safely use $xpBreakdown['manual'] ?? 0
+            ->toArray();
 
         return view('students.progress.index', [
             'student' => $student,
             'totalXp' => $totalXp,
+            'totalScore' => $totalScore, // ✅ Pass this to the view
             'tasksCompleted' => $tasksCompleted,
             'xpBreakdown' => $xpBreakdown,
             'nextLevelXp' => 1000,

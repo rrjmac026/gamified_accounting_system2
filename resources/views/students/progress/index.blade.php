@@ -36,16 +36,6 @@
                     <span>Level {{ $currentLevel }} Progress</span>
                     <span>{{ $nextLevelXp - $xpInCurrentLevel }} XP to next level</span>
                 </div>
-
-                 <!-- 🔥 XP Breakdown Section -->
-                <div class="mt-6">
-                    <h3 class="text-md font-semibold text-pink-600 mb-2">XP Breakdown</h3>
-                    <ul class="space-y-1 text-sm text-gray-700">
-                        <li>📘 Task Completion: <span class="font-bold">{{ $xpBreakdown['task_completion'] ?? 0 }}</span> XP</li>
-                        <li>📝 Quiz Scores: <span class="font-bold">{{ $xpBreakdown['quiz_score'] ?? 0 }}</span> XP</li>
-                        <li>🎯 Bonus Activities: <span class="font-bold">{{ $xpBreakdown['bonus_activity'] ?? 0 }}</span> XP</li>
-                    </ul>
-                </div>
             </div>
 
             <!-- Stats -->
@@ -69,7 +59,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                         </svg>
                     </div>
-                    <p class="text-3xl font-bold text-blue-600 mb-1">{{ $student->total_score }}</p>
+                    <p class="text-3xl font-bold text-blue-600 mb-1">{{ number_format($totalScore, 0) }}</p>
                     <p class="text-sm text-gray-600 font-medium">Total Score</p>
                     <div class="mt-2 h-1 bg-blue-100 rounded-full overflow-hidden">
                         <div class="h-full bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full w-4/5 animate-pulse"></div>

@@ -82,7 +82,7 @@
                                                     <td class="py-3 px-4 font-medium">
                                                         {{ $log->student->user->name ?? 'N/A' }}
                                                         <div class="text-xs text-gray-500 mt-1">
-                                                            {{ $log->student->student_id ?? 'N/A' }}
+                                                            {{ $log->student->student_number ?? 'N/A' }}
                                                         </div>
                                                     </td>
                                                     <td class="hidden sm:table-cell py-3 px-4">
