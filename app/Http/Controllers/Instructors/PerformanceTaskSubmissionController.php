@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PerformanceTask;
 use App\Models\PerformanceTaskSubmission;
 use App\Models\User;
+use App\Models\SystemNotification;
 use App\Models\PerformanceTaskAnswerSheet;
 use Illuminate\Http\Request;
 use Exception;
@@ -238,17 +239,17 @@ class PerformanceTaskSubmissionController extends Controller
                 }
             }
 
-                // Statistics calculation
-                $statistics = [
-                    'total_score' => $submissions->sum('score'),
-                    'total_attempts' => $submissions->sum('attempts'),
-                    // Completed: ANY step that has been submitted (regardless of correct/wrong)
-                    'completed_steps' => $submissions->count(),
-                    // Wrong: Steps with wrong answers
-                    'wrong_steps' => $submissions->where('status', 'wrong')->count(),
-                    // In Progress: Steps NOT yet submitted (10 total steps - submitted steps)
-                    'in_progress_steps' => $hasStarted ? (10 - $submissions->count()) : 0,
-                ];
+            // Statistics calculation
+            $statistics = [
+                'total_score' => $submissions->sum('score'),
+                'total_attempts' => $submissions->sum('attempts'),
+                // Completed: ANY step that has been submitted (regardless of correct/wrong)
+                'completed_steps' => $submissions->count(),
+                // Wrong: Steps with wrong answers
+                'wrong_steps' => $submissions->where('status', 'wrong')->count(),
+                // In Progress: Steps NOT yet submitted (10 total steps - submitted steps)
+                'in_progress_steps' => $hasStarted ? (10 - $submissions->count()) : 0,
+            ];
 
             return view('instructors.performance-tasks.submissions.show-student', compact(
                 'task',
@@ -304,6 +305,7 @@ class PerformanceTaskSubmissionController extends Controller
 
     /**
      * Store instructor feedback for a step submission
+     * Enhanced with student notification
      */
     public function storeFeedback(Request $request, PerformanceTask $task, User $student, $step)
     {
@@ -326,11 +328,15 @@ class PerformanceTaskSubmissionController extends Controller
                 'step' => $step
             ])->firstOrFail();
 
+            // Update submission with feedback
             $submission->update([
                 'instructor_feedback' => $validated['instructor_feedback'],
                 'feedback_given_at' => now(),
                 'needs_feedback' => false
             ]);
+
+            // Create notification for the student
+            $this->notifyStudentAboutFeedback($student, $task, $step, $instructor);
 
             // Log the feedback
             Log::info("Instructor {$instructor->id} provided feedback for student {$studentRecord->id}, task {$task->id}, step {$step}");
@@ -340,11 +346,159 @@ class PerformanceTaskSubmissionController extends Controller
                     'task' => $task->id,
                     'student' => $student->id
                 ])
-                ->with('success', 'Feedback saved successfully!');
+                ->with('success', 'Feedback saved and student notified successfully!');
 
         } catch (Exception $e) {
             Log::error('Error saving feedback: ' . $e->getMessage());
             return back()->with('error', 'Unable to save feedback. Please try again.');
+        }
+    }
+
+    /**
+     * Notify student when instructor provides feedback
+     * 
+     * @param User $student The student to notify
+     * @param PerformanceTask $task The performance task
+     * @param int $step The step number that received feedback
+     * @param mixed $instructor The instructor who provided feedback
+     * @return void
+     */
+    protected function notifyStudentAboutFeedback(User $student, PerformanceTask $task, int $step, $instructor)
+    {
+        try {
+            // Step titles mapping
+            $stepTitles = [
+                1 => 'Analyze Transactions',
+                2 => 'Journalize Transactions',
+                3 => 'Post to Ledger Accounts',
+                4 => 'Prepare Trial Balance',
+                5 => 'Journalize & Post Adjusting Entries',
+                6 => 'Prepare Adjusted Trial Balance',
+                7 => 'Prepare Financial Statements',
+                8 => 'Journalize & Post Closing Entries',
+                9 => 'Prepare Post-Closing Trial Balance',
+                10 => 'Reverse (Optional Step)',
+            ];
+
+            $stepTitle = $stepTitles[$step] ?? "Step {$step}";
+            $instructorName = $instructor->user->name ?? 'Your instructor';
+
+            // Create the notification with proper route
+            $notificationLink = $this->getStudentTaskLink($task->id);
+            
+            SystemNotification::create([
+                'user_id' => $student->id,
+                'title' => 'New Feedback Received',
+                'message' => "{$instructorName} provided feedback on your submission for {$task->title} - {$stepTitle}",
+                'type' => 'info',
+                'link' => $notificationLink,
+                'is_read' => false,
+                'expires_at' => now()->addDays(30), // Notification expires in 30 days
+            ]);
+
+            Log::info("Notification sent to student {$student->id} for feedback on task {$task->id}, step {$step}");
+
+        } catch (Exception $e) {
+            // Log error but don't throw - notification failure shouldn't block feedback
+            Log::error("Failed to notify student about feedback: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get the correct student task link
+     * This method tries multiple route patterns to ensure compatibility
+     * 
+     * @param int $taskId
+     * @return string
+     */
+    protected function getStudentTaskLink(int $taskId): string
+    {
+        // Try common route patterns in order of likelihood
+        $possibleRoutes = [
+            ['students.performance-tasks.show', ['task' => $taskId]],
+            ['students.performance-tasks.show', ['id' => $taskId]],
+            ['students.performance-tasks.show', $taskId],
+        ];
+
+        foreach ($possibleRoutes as $routeConfig) {
+            try {
+                if (is_array($routeConfig[1])) {
+                    return route($routeConfig[0], $routeConfig[1]);
+                } else {
+                    return route($routeConfig[0], $routeConfig[1]);
+                }
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+
+        // Fallback: construct URL manually
+        return url("/students/performance-tasks/{$taskId}");
+    }
+
+    /**
+     * Optional: Bulk notify students when grading multiple submissions
+     * 
+     * @param array $feedbackData Array of feedback items with student_id, task_id, step
+     * @return int Number of students notified
+     */
+    protected function bulkNotifyStudents(array $feedbackData)
+    {
+        $notifiedCount = 0;
+
+        foreach ($feedbackData as $data) {
+            try {
+                $student = User::find($data['student_id']);
+                $task = PerformanceTask::find($data['task_id']);
+                $step = $data['step'];
+                $instructor = auth()->user()->instructor;
+
+                if ($student && $task) {
+                    $this->notifyStudentAboutFeedback($student, $task, $step, $instructor);
+                    $notifiedCount++;
+                }
+            } catch (Exception $e) {
+                Log::error("Bulk notification failed for student {$data['student_id']}: " . $e->getMessage());
+            }
+        }
+
+        return $notifiedCount;
+    }
+
+    /**
+     * Optional: Send reminder notification for pending feedback
+     * This can be called via a scheduled command
+     * 
+     * @param int $daysOld Number of days since submission
+     * @return void
+     */
+    public function notifyPendingFeedback(int $daysOld = 7)
+    {
+        $instructor = auth()->user()->instructor;
+
+        // Find submissions awaiting feedback
+        $pendingSubmissions = PerformanceTaskSubmission::where('needs_feedback', true)
+            ->whereHas('task', function($query) use ($instructor) {
+                $query->where('instructor_id', $instructor->id);
+            })
+            ->where('created_at', '<=', now()->subDays($daysOld))
+            ->with(['student.user', 'task'])
+            ->get();
+
+        foreach ($pendingSubmissions as $submission) {
+            try {
+                SystemNotification::create([
+                    'user_id' => $submission->student->user->id,
+                    'title' => 'Feedback Pending',
+                    'message' => "Your submission for {$submission->task->title} - Step {$submission->step} is still being reviewed",
+                    'type' => 'warning',
+                    'link' => $this->getStudentTaskLink($submission->task->id),
+                    'is_read' => false,
+                    'expires_at' => now()->addDays(14),
+                ]);
+            } catch (Exception $e) {
+                Log::error("Failed to send pending feedback notification: " . $e->getMessage());
+            }
         }
     }
 }

@@ -6,15 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\FeedbackRecord;
 use App\Models\PerformanceTask;
 use App\Models\PerformanceTaskSubmission;
+use App\Models\SystemNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use App\Traits\Loggable; // << added
+use App\Traits\Loggable;
 use Exception;
 
 class FeedbackController extends Controller
 {
-    use Loggable; // << added
+    use Loggable;
 
     /**
      * Show the student's performance tasks with completed steps for feedback
@@ -190,6 +191,7 @@ class FeedbackController extends Controller
 
     /**
      * Store a new feedback record for a specific step
+     * Enhanced with instructor notification
      */
     public function store(Request $request)
     {
@@ -237,7 +239,8 @@ class FeedbackController extends Controller
                 explode("\n", str_replace("\r", "", $request->recommendations ?? ''))
             );
 
-            FeedbackRecord::create([
+            // Create the feedback record
+            $feedbackRecord = FeedbackRecord::create([
                 'student_id' => $student->id,
                 'performance_task_id' => $request->performance_task_id,
                 'step' => $request->step,
@@ -249,6 +252,20 @@ class FeedbackController extends Controller
                 'is_read' => false,
                 'is_anonymous' => $request->boolean('is_anonymous', false)
             ]);
+
+            // Get the performance task to access instructor
+            $task = PerformanceTask::with('instructor.user')->find($request->performance_task_id);
+            
+            // Notify the instructor about the new feedback (if not anonymous)
+            if ($task && $task->instructor && $task->instructor->user && !$request->boolean('is_anonymous', false)) {
+                $this->notifyInstructorAboutFeedback(
+                    $task->instructor->user,
+                    $student,
+                    $task,
+                    $request->step,
+                    $feedbackRecord
+                );
+            }
 
             // Activity log for submitting feedback
             $this->logActivity('submitted feedback', [
@@ -310,5 +327,134 @@ class FeedbackController extends Controller
             return redirect()->route('students.feedback.index')
                 ->with('error', 'Unable to display feedback. Please try again later.');
         }
+    }
+
+    /**
+     * Notify instructor when student submits feedback
+     * 
+     * @param \App\Models\User $instructor The instructor to notify
+     * @param \App\Models\Student $student The student who submitted feedback
+     * @param PerformanceTask $task The performance task
+     * @param int $step The step number
+     * @param FeedbackRecord $feedbackRecord The feedback record
+     * @return void
+     */
+    protected function notifyInstructorAboutFeedback($instructor, $student, PerformanceTask $task, int $step, FeedbackRecord $feedbackRecord)
+    {
+        try {
+            // Step titles mapping
+            $stepTitles = [
+                1 => 'Analyze Transactions',
+                2 => 'Journalize Transactions',
+                3 => 'Post to Ledger Accounts',
+                4 => 'Prepare Trial Balance',
+                5 => 'Journalize & Post Adjusting Entries',
+                6 => 'Prepare Adjusted Trial Balance',
+                7 => 'Prepare Financial Statements',
+                8 => 'Journalize & Post Closing Entries',
+                9 => 'Prepare Post-Closing Trial Balance',
+                10 => 'Reverse (Optional Step)',
+            ];
+
+            $stepTitle = $stepTitles[$step] ?? "Step {$step}";
+            $studentName = $student->user->name ?? 'A student';
+
+            // Create the notification with proper route
+            $notificationLink = $this->getInstructorFeedbackLink($feedbackRecord->id);
+            
+            // Determine notification type based on feedback type and rating
+            $notificationType = 'info';
+            if ($feedbackRecord->feedback_type === 'question') {
+                $notificationType = 'warning'; // Questions need attention
+            } elseif ($feedbackRecord->rating <= 2) {
+                $notificationType = 'error'; // Low ratings are important
+            } elseif ($feedbackRecord->rating >= 4) {
+                $notificationType = 'success'; // Positive feedback
+            }
+
+            SystemNotification::create([
+                'user_id' => $instructor->id,
+                'title' => 'New Student Feedback',
+                'message' => "{$studentName} submitted feedback for {$task->title} - {$stepTitle} (Rating: {$feedbackRecord->rating}/5)",
+                'type' => $notificationType,
+                'link' => $notificationLink,
+                'is_read' => false,
+                'expires_at' => now()->addDays(30),
+            ]);
+
+            Log::info("Notification sent to instructor {$instructor->id} for feedback from student {$student->id}, task {$task->id}, step {$step}");
+
+        } catch (Exception $e) {
+            // Log error but don't throw - notification failure shouldn't block feedback submission
+            Log::error("Failed to notify instructor about feedback: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get the correct instructor feedback link
+     * This method tries multiple route patterns to ensure compatibility
+     * 
+     * @param int $feedbackId
+     * @return string
+     */
+    protected function getInstructorFeedbackLink(int $feedbackId): string
+    {
+        // Try common route patterns in order of likelihood
+        $possibleRoutes = [
+            ['instructors.feedback-records.show', ['feedback_record' => $feedbackId]],
+            ['instructors.feedback-records.show', ['id' => $feedbackId]],
+            ['instructors.feedback-records.show', $feedbackId],
+        ];
+
+        foreach ($possibleRoutes as $routeConfig) {
+            try {
+                if (is_array($routeConfig[1])) {
+                    return route($routeConfig[0], $routeConfig[1]);
+                } else {
+                    return route($routeConfig[0], $routeConfig[1]);
+                }
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+
+        // Fallback: construct URL manually
+        return url("/instructor/feedback-records/{$feedbackId}");
+    }
+
+    /**
+     * Optional: Notify instructor about multiple feedbacks
+     * Useful for batch processing or delayed notifications
+     * 
+     * @param array $feedbackData Array of feedback items
+     * @return int Number of instructors notified
+     */
+    protected function bulkNotifyInstructors(array $feedbackData)
+    {
+        $notifiedCount = 0;
+
+        foreach ($feedbackData as $data) {
+            try {
+                $instructor = \App\Models\User::find($data['instructor_id']);
+                $student = \App\Models\Student::find($data['student_id']);
+                $task = PerformanceTask::find($data['task_id']);
+                $feedbackRecord = FeedbackRecord::find($data['feedback_id']);
+
+                if ($instructor && $student && $task && $feedbackRecord) {
+                    $this->notifyInstructorAboutFeedback(
+                        $instructor,
+                        $student,
+                        $task,
+                        $data['step'],
+                        $feedbackRecord
+                    );
+                    $notifiedCount++;
+                }
+            } catch (Exception $e) {
+                Log::error("Bulk notification failed for instructor {$data['instructor_id']}: " . $e->getMessage());
+            }
+        }
+
+        return $notifiedCount;
     }
 }
