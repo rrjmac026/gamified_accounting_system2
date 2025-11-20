@@ -11,11 +11,16 @@ trait Loggable
      * Log an activity - Simple and straightforward
      *
      * @param string $action What happened (e.g., 'created task', 'updated student', 'deleted course')
-     * @param array $details Any additional info you want to store
+     * @param array|string $details Any additional info you want to store
      * @return ActivityLog
      */
-    protected function logActivity(string $action, array $details = []): ActivityLog
+    protected function logActivity(string $action, array|string $details = []): ActivityLog
     {
+        // Convert string to array if needed
+        if (is_string($details)) {
+            $details = ['message' => $details];
+        }
+        
         return ActivityLog::create([
             'user_id' => Auth::id(),
             'action' => $action,
