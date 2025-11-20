@@ -36,9 +36,14 @@ class ReportController extends Controller
         $sections = Section::with('course')->get();
         $tasks = PerformanceTask::with(['subject', 'instructor.user'])->latest()->get();
         
-        return view('admin.reports.index', compact('instructors', 'sections', 'tasks'));
+        // Add users for activity log filtering - order by first_name instead of name
+        $users = \App\Models\User::orderBy('first_name')->orderBy('last_name')->get();
+        
+        // Get unique actions from activity logs
+        $actions = ActivityLog::distinct('action')->pluck('action');
+        
+        return view('admin.reports.index', compact('instructors', 'sections', 'tasks', 'users', 'actions'));
     }
-
     /**
      * Export student grades by instructor and section to Excel
      */
@@ -759,6 +764,298 @@ class ReportController extends Controller
         } catch (Exception $e) {
             Log::error('Error exporting feedback to PDF: ' . $e->getMessage());
             return back()->with('error', 'Failed to export feedback. Please try again.');
+        }
+    }
+
+    /**
+     * Export activity logs to Excel
+     */
+    public function exportActivityLogsExcel(Request $request)
+    {
+        try {
+            $query = ActivityLog::with('user');
+
+            // Apply filters
+            if ($request->filled('action')) {
+                $query->where('action', $request->action);
+            }
+
+            if ($request->filled('user_id')) {
+                $query->where('user_id', $request->user_id);
+            }
+
+            if ($request->filled('date_from')) {
+                $query->where('performed_at', '>=', Carbon::parse($request->date_from));
+            }
+
+            if ($request->filled('date_to')) {
+                $query->where('performed_at', '<=', Carbon::parse($request->date_to)->endOfDay());
+            }
+
+            $logs = $query->orderBy('performed_at', 'desc')->get();
+
+            if ($logs->isEmpty()) {
+                return back()->with('error', 'No activity logs found for the selected filters.');
+            }
+
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            
+            // Set document properties
+            $spreadsheet->getProperties()
+                ->setCreator('Admin')
+                ->setTitle('Activity Logs Report')
+                ->setSubject('System Activity Logs')
+                ->setDescription('Export of system activity logs');
+
+            // Header styling
+            $headerStyle = [
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 12],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+            ];
+
+            // Report title
+            $sheet->setCellValue('A1', 'Activity Logs Report');
+            $sheet->mergeCells('A1:H1');
+            $sheet->getStyle('A1')->applyFromArray([
+                'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '4472C4']],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+            ]);
+
+            // Filters info
+            $row = 2;
+            if ($request->filled('date_from') || $request->filled('date_to')) {
+                $dateRange = 'Date Range: ';
+                if ($request->filled('date_from')) {
+                    $dateRange .= Carbon::parse($request->date_from)->format('M d, Y');
+                }
+                $dateRange .= ' to ';
+                if ($request->filled('date_to')) {
+                    $dateRange .= Carbon::parse($request->date_to)->format('M d, Y');
+                }
+                $sheet->setCellValue('A' . $row, $dateRange);
+                $sheet->mergeCells('A' . $row . ':H' . $row);
+                $row++;
+            }
+            
+            $sheet->setCellValue('A' . $row, 'Generated: ' . date('F d, Y h:i A'));
+            $sheet->mergeCells('A' . $row . ':H' . $row);
+            $row += 2;
+
+            // Set column headers
+            $headers = ['#', 'User', 'Action', 'Model Type', 'Model ID', 'IP Address', 'User Agent', 'Performed At'];
+            $column = 'A';
+            foreach ($headers as $header) {
+                $sheet->setCellValue($column . $row, $header);
+                $sheet->getStyle($column . $row)->applyFromArray($headerStyle);
+                $column++;
+            }
+
+            // Auto-size columns
+            foreach (range('A', 'H') as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+
+            // Populate data
+            $row++;
+            $counter = 1;
+
+            foreach ($logs as $log) {
+                // Action color coding
+                $actionColors = [
+                    'created' => '70AD47',
+                    'updated' => 'FFC000',
+                    'deleted' => 'C00000',
+                    'viewed' => '4472C4',
+                    'login' => '70AD47',
+                    'logout' => 'FFC000',
+                ];
+                $actionColor = $actionColors[$log->action] ?? 'E7E6E6';
+
+                $sheet->setCellValue('A' . $row, $counter++);
+                $sheet->setCellValue('B' . $row, $log->user ? $log->user->name : 'System');
+                $sheet->setCellValue('C' . $row, ucfirst($log->action));
+                $sheet->setCellValue('D' . $row, class_basename($log->model_type ?? 'N/A'));
+                $sheet->setCellValue('E' . $row, $log->model_id ?? 'N/A');
+                $sheet->setCellValue('F' . $row, $log->ip_address ?? 'N/A');
+                $sheet->setCellValue('G' . $row, substr($log->user_agent ?? 'N/A', 0, 50));
+                $sheet->setCellValue('H' . $row, $log->performed_at ? $log->performed_at->format('M d, Y h:i A') : 'N/A');
+
+                // Apply row styling
+                $sheet->getStyle('A' . $row . ':H' . $row)->applyFromArray([
+                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'CCCCCC']]]
+                ]);
+
+                // Color code action
+                $sheet->getStyle('C' . $row)->applyFromArray([
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $actionColor]],
+                    'font' => ['color' => ['rgb' => 'FFFFFF'], 'bold' => true],
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+                ]);
+
+                $row++;
+            }
+
+            // Add summary row
+            $row++;
+            $sheet->setCellValue('A' . $row, 'Total Records:');
+            $sheet->setCellValue('B' . $row, $counter - 1);
+            $sheet->getStyle('A' . $row . ':B' . $row)->applyFromArray([
+                'font' => ['bold' => true],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E7E6E6']]
+            ]);
+
+            // Generate filename
+            $filename = 'activity_logs_report_' . date('Y-m-d_His') . '.xlsx';
+
+            // Create writer and download
+            $writer = new Xlsx($spreadsheet);
+            
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+            
+            $writer->save('php://output');
+            exit;
+
+        } catch (Exception $e) {
+            Log::error('Error exporting activity logs to Excel: ' . $e->getMessage());
+            return back()->with('error', 'Failed to export activity logs. Please try again.');
+        }
+    }
+
+    /**
+     * Export activity logs to PDF
+     */
+    public function exportActivityLogsPdf(Request $request)
+    {
+        try {
+            $query = ActivityLog::with('user');
+
+            // Apply filters
+            if ($request->filled('action')) {
+                $query->where('action', $request->action);
+            }
+
+            if ($request->filled('user_id')) {
+                $query->where('user_id', $request->user_id);
+            }
+
+            if ($request->filled('date_from')) {
+                $query->where('performed_at', '>=', Carbon::parse($request->date_from));
+            }
+
+            if ($request->filled('date_to')) {
+                $query->where('performed_at', '<=', Carbon::parse($request->date_to)->endOfDay());
+            }
+
+            $logs = $query->orderBy('performed_at', 'desc')->get();
+
+            if ($logs->isEmpty()) {
+                return back()->with('error', 'No activity logs found for the selected filters.');
+            }
+
+            $pdf = new FPDF('L', 'mm', 'A4');
+            $pdf->SetAutoPageBreak(true, 15);
+            $pdf->AddPage();
+
+            // Title
+            $pdf->SetFont('Arial', 'B', 16);
+            $pdf->Cell(0, 10, 'Activity Logs Report', 0, 1, 'C');
+            $pdf->SetFont('Arial', '', 10);
+            $pdf->Cell(0, 5, 'Generated on: ' . date('F d, Y h:i A'), 0, 1, 'C');
+            
+            if ($request->filled('date_from') || $request->filled('date_to')) {
+                $dateRange = 'Date Range: ';
+                if ($request->filled('date_from')) {
+                    $dateRange .= Carbon::parse($request->date_from)->format('M d, Y');
+                }
+                $dateRange .= ' to ';
+                if ($request->filled('date_to')) {
+                    $dateRange .= Carbon::parse($request->date_to)->format('M d, Y');
+                }
+                $pdf->Cell(0, 5, $dateRange, 0, 1, 'C');
+            }
+            
+            $pdf->Ln(5);
+
+            // Table headers
+            $pdf->SetFont('Arial', 'B', 8);
+            $pdf->SetFillColor(68, 114, 196);
+            $pdf->SetTextColor(255, 255, 255);
+            
+            $pdf->Cell(8, 8, '#', 1, 0, 'C', true);
+            $pdf->Cell(40, 8, 'User', 1, 0, 'C', true);
+            $pdf->Cell(25, 8, 'Action', 1, 0, 'C', true);
+            $pdf->Cell(35, 8, 'Model Type', 1, 0, 'C', true);
+            $pdf->Cell(20, 8, 'Model ID', 1, 0, 'C', true);
+            $pdf->Cell(30, 8, 'IP Address', 1, 0, 'C', true);
+            $pdf->Cell(60, 8, 'User Agent', 1, 0, 'C', true);
+            $pdf->Cell(32, 8, 'Performed At', 1, 1, 'C', true);
+
+            // Reset text color
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->SetFont('Arial', '', 7);
+
+            $counter = 1;
+            $fillToggle = false;
+
+            foreach ($logs as $log) {
+                if ($fillToggle) {
+                    $pdf->SetFillColor(240, 240, 240);
+                } else {
+                    $pdf->SetFillColor(255, 255, 255);
+                }
+
+                $pdf->Cell(8, 7, $counter++, 1, 0, 'C', true);
+                $pdf->Cell(40, 7, substr($log->user ? $log->user->name : 'System', 0, 22), 1, 0, 'L', true);
+                $pdf->Cell(25, 7, ucfirst($log->action), 1, 0, 'C', true);
+                $pdf->Cell(35, 7, substr(class_basename($log->model_type ?? 'N/A'), 0, 20), 1, 0, 'L', true);
+                $pdf->Cell(20, 7, substr($log->model_id ?? 'N/A', 0, 12), 1, 0, 'C', true);
+                $pdf->Cell(30, 7, substr($log->ip_address ?? 'N/A', 0, 18), 1, 0, 'L', true);
+                $pdf->Cell(60, 7, substr($log->user_agent ?? 'N/A', 0, 35), 1, 0, 'L', true);
+                $pdf->Cell(32, 7, $log->performed_at ? $log->performed_at->format('M d, y h:i A') : 'N/A', 1, 1, 'C', true);
+
+                $fillToggle = !$fillToggle;
+
+                if ($pdf->GetY() > 180) {
+                    $pdf->AddPage();
+                    
+                    // Repeat headers
+                    $pdf->SetFont('Arial', 'B', 8);
+                    $pdf->SetFillColor(68, 114, 196);
+                    $pdf->SetTextColor(255, 255, 255);
+                    
+                    $pdf->Cell(8, 8, '#', 1, 0, 'C', true);
+                    $pdf->Cell(40, 8, 'User', 1, 0, 'C', true);
+                    $pdf->Cell(25, 8, 'Action', 1, 0, 'C', true);
+                    $pdf->Cell(35, 8, 'Model Type', 1, 0, 'C', true);
+                    $pdf->Cell(20, 8, 'Model ID', 1, 0, 'C', true);
+                    $pdf->Cell(30, 8, 'IP Address', 1, 0, 'C', true);
+                    $pdf->Cell(60, 8, 'User Agent', 1, 0, 'C', true);
+                    $pdf->Cell(32, 8, 'Performed At', 1, 1, 'C', true);
+
+                    $pdf->SetTextColor(0, 0, 0);
+                    $pdf->SetFont('Arial', '', 7);
+                }
+            }
+
+            // Summary
+            $pdf->Ln(5);
+            $pdf->SetFont('Arial', 'B', 10);
+            $pdf->Cell(0, 8, 'Total Records: ' . ($counter - 1), 0, 1, 'L');
+
+            $filename = 'activity_logs_report_' . date('Y-m-d_His') . '.pdf';
+
+            return response($pdf->Output('S', $filename))
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+
+        } catch (Exception $e) {
+            Log::error('Error exporting activity logs to PDF: ' . $e->getMessage());
+            return back()->with('error', 'Failed to export activity logs. Please try again.');
         }
     }
 }

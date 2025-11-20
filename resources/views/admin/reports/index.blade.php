@@ -232,88 +232,185 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Export Activity Logs Card -->
+            <div class="bg-white overflow-hidden shadow-md rounded-lg sm:rounded-2xl mb-6">
+                <div class="p-6 sm:p-8">
+                    <div class="flex items-center mb-6">
+                        <svg class="w-8 h-8 text-[#FF92C2] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                        </svg>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">Export Activity Logs</h3>
+                            <p class="text-sm text-gray-600">Filter by user, action, and date range, then export to Excel or PDF</p>
+                        </div>
+                    </div>
+
+                    <form id="activityLogExportForm" class="space-y-6">
+                        @csrf
+                        
+                        <!-- Filters -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- User Filter -->
+                            <div>
+                                <label for="log_user_id" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <span class="flex items-center">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                        </svg>
+                                        User (Optional)
+                                    </span>
+                                </label>
+                                <select id="log_user_id" name="user_id" 
+                                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF92C2] focus:ring focus:ring-[#FF92C2] focus:ring-opacity-50 transition">
+                                    <option value="">All Users</option>
+                                    @foreach($users as $user)
+                                        <option value="{{ $user->id }}">{{ $user->name }} ({{ ucfirst($user->role) }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Action Filter -->
+                            <div>
+                                <label for="log_action" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <span class="flex items-center">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                        </svg>
+                                        Action (Optional)
+                                    </span>
+                                </label>
+                                <select id="log_action" name="action" 
+                                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF92C2] focus:ring focus:ring-[#FF92C2] focus:ring-opacity-50 transition">
+                                    <option value="">All Actions</option>
+                                    @foreach($actions as $action)
+                                        <option value="{{ $action }}">{{ ucfirst($action) }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Date From -->
+                            <div>
+                                <label for="date_from" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <span class="flex items-center">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                        Date From (Optional)
+                                    </span>
+                                </label>
+                                <input type="date" id="date_from" name="date_from" 
+                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF92C2] focus:ring focus:ring-[#FF92C2] focus:ring-opacity-50 transition">
+                            </div>
+
+                            <!-- Date To -->
+                            <div>
+                                <label for="date_to" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <span class="flex items-center">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                        Date To (Optional)
+                                    </span>
+                                </label>
+                                <input type="date" id="date_to" name="date_to" 
+                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#FF92C2] focus:ring focus:ring-[#FF92C2] focus:ring-opacity-50 transition">
+                            </div>
+                        </div>
+
+                        <!-- Export Buttons -->
+                        <div class="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-200">
+                            <button type="button" onclick="exportActivityLogs('excel')" 
+                                    class="flex items-center justify-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition duration-300 transform hover:scale-105">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Export to Excel
+                            </button>
+
+                            <button type="button" onclick="exportActivityLogs('pdf')" 
+                                    class="flex items-center justify-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-md transition duration-300 transform hover:scale-105">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                </svg>
+                                Export to PDF
+                            </button>
+
+                            <button type="button" onclick="resetActivityLogFilters()" 
+                                    class="flex items-center justify-center px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-lg shadow-md transition duration-300">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                Reset Filters
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Info Box -->
+                    <div class="mt-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-blue-700">
+                                    <strong>Tip:</strong> Leave filters empty to export all activity logs. 
+                                    Use filters to narrow down by specific users, actions, or date ranges. Activity logs include all system actions like logins, data modifications, and more.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    @push('scripts')
-    <script>
-        // Store all sections initially
-        const allSections = @json($sections);
+@push('scripts')
+<script>
+    // Store all sections initially
+    const allSections = @json($sections);
 
-        // Fetch sections when instructor is selected
-        document.getElementById('instructor_id').addEventListener('change', function() {
-            const instructorId = this.value;
-            const sectionSelect = document.getElementById('section_id');
-            
-            // Reset section dropdown
-            sectionSelect.innerHTML = '<option value="">All Sections</option>';
-            
-            if (instructorId) {
-                // Fetch sections for this instructor
-                fetch(`/admin/reports/instructor/${instructorId}/sections`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.length === 0) {
-                            // If no sections found, show message
-                            const option = document.createElement('option');
-                            option.value = '';
-                            option.textContent = 'No sections found for this instructor';
-                            option.disabled = true;
-                            sectionSelect.appendChild(option);
-                        } else {
-                            data.forEach(section => {
-                                const option = document.createElement('option');
-                                option.value = section.id;
-                                option.textContent = section.name + (section.course ? ' - ' + section.course.name : '');
-                                sectionSelect.appendChild(option);
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching sections:', error);
+    // Fetch sections when instructor is selected
+    document.getElementById('instructor_id').addEventListener('change', function() {
+        const instructorId = this.value;
+        const sectionSelect = document.getElementById('section_id');
+        
+        // Reset section dropdown
+        sectionSelect.innerHTML = '<option value="">All Sections</option>';
+        
+        if (instructorId) {
+            // Fetch sections for this instructor
+            fetch(`/admin/reports/instructor/${instructorId}/sections`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length === 0) {
+                        // If no sections found, show message
                         const option = document.createElement('option');
                         option.value = '';
-                        option.textContent = 'Error loading sections';
+                        option.textContent = 'No sections found for this instructor';
                         option.disabled = true;
                         sectionSelect.appendChild(option);
-                    });
-            } else {
-                // If no instructor selected, show all sections
-                allSections.forEach(section => {
+                    } else {
+                        data.forEach(section => {
+                            const option = document.createElement('option');
+                            option.value = section.id;
+                            option.textContent = section.name + (section.course ? ' - ' + section.course.name : '');
+                            sectionSelect.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching sections:', error);
                     const option = document.createElement('option');
-                    option.value = section.id;
-                    option.textContent = section.name + (section.course ? ' - ' + section.course.name : '');
+                    option.value = '';
+                    option.textContent = 'Error loading sections';
+                    option.disabled = true;
                     sectionSelect.appendChild(option);
                 });
-            }
-        });
-
-        // Export function
-        function exportGrades(format) {
-            const instructorId = document.getElementById('instructor_id').value;
-            const sectionId = document.getElementById('section_id').value;
-            
-            // Build URL with parameters
-            let url = `/admin/reports/export-grades-${format}?`;
-            const params = new URLSearchParams();
-            
-            if (instructorId) params.append('instructor_id', instructorId);
-            if (sectionId) params.append('section_id', sectionId);
-            
-            url += params.toString();
-            
-            // Trigger download
-            window.location.href = url;
-        }
-
-        // Reset filters
-        function resetFilters() {
-            document.getElementById('instructor_id').value = '';
-            
-            // Reset sections to show all
-            const sectionSelect = document.getElementById('section_id');
-            sectionSelect.innerHTML = '<option value="">All Sections</option>';
-            
+        } else {
+            // If no instructor selected, show all sections
             allSections.forEach(section => {
                 const option = document.createElement('option');
                 option.value = section.id;
@@ -321,30 +418,95 @@
                 sectionSelect.appendChild(option);
             });
         }
+    });
 
-        // Export feedback function
-        function exportFeedback(format) {
-            const taskId = document.getElementById('task_id').value;
-            const instructorId = document.getElementById('feedback_instructor_id').value;
-            
-            // Build URL with parameters
-            let url = `/admin/reports/export-feedback-${format}?`;
-            const params = new URLSearchParams();
-            
-            if (taskId) params.append('task_id', taskId);
-            if (instructorId) params.append('instructor_id', instructorId);
-            
-            url += params.toString();
-            
-            // Trigger download
-            window.location.href = url;
-        }
+    // Export grades function
+    function exportGrades(format) {
+        const instructorId = document.getElementById('instructor_id').value;
+        const sectionId = document.getElementById('section_id').value;
+        
+        // Build URL with parameters
+        let url = `/admin/reports/export-grades-${format}?`;
+        const params = new URLSearchParams();
+        
+        if (instructorId) params.append('instructor_id', instructorId);
+        if (sectionId) params.append('section_id', sectionId);
+        
+        url += params.toString();
+        
+        // Trigger download
+        window.location.href = url;
+    }
 
-        // Reset feedback filters
-        function resetFeedbackFilters() {
-            document.getElementById('task_id').value = '';
-            document.getElementById('feedback_instructor_id').value = '';
-        }
-    </script>
-    @endpush
+    // Reset grades filters
+    function resetFilters() {
+        document.getElementById('instructor_id').value = '';
+        
+        // Reset sections to show all
+        const sectionSelect = document.getElementById('section_id');
+        sectionSelect.innerHTML = '<option value="">All Sections</option>';
+        
+        allSections.forEach(section => {
+            const option = document.createElement('option');
+            option.value = section.id;
+            option.textContent = section.name + (section.course ? ' - ' + section.course.name : '');
+            sectionSelect.appendChild(option);
+        });
+    }
+
+    // Export feedback function
+    function exportFeedback(format) {
+        const taskId = document.getElementById('task_id').value;
+        const instructorId = document.getElementById('feedback_instructor_id').value;
+        
+        // Build URL with parameters
+        let url = `/admin/reports/export-feedback-${format}?`;
+        const params = new URLSearchParams();
+        
+        if (taskId) params.append('task_id', taskId);
+        if (instructorId) params.append('instructor_id', instructorId);
+        
+        url += params.toString();
+        
+        // Trigger download
+        window.location.href = url;
+    }
+
+    // Reset feedback filters
+    function resetFeedbackFilters() {
+        document.getElementById('task_id').value = '';
+        document.getElementById('feedback_instructor_id').value = '';
+    }
+
+    // Export activity logs function
+    function exportActivityLogs(format) {
+        const userId = document.getElementById('log_user_id').value;
+        const action = document.getElementById('log_action').value;
+        const dateFrom = document.getElementById('date_from').value;
+        const dateTo = document.getElementById('date_to').value;
+        
+        // Build URL with parameters
+        let url = `/admin/reports/export-activity-logs-${format}?`;
+        const params = new URLSearchParams();
+        
+        if (userId) params.append('user_id', userId);
+        if (action) params.append('action', action);
+        if (dateFrom) params.append('date_from', dateFrom);
+        if (dateTo) params.append('date_to', dateTo);
+        
+        url += params.toString();
+        
+        // Trigger download
+        window.location.href = url;
+    }
+
+    // Reset activity log filters
+    function resetActivityLogFilters() {
+        document.getElementById('log_user_id').value = '';
+        document.getElementById('log_action').value = '';
+        document.getElementById('date_from').value = '';
+        document.getElementById('date_to').value = '';
+    }
+</script>
+@endpush
 </x-app-layout>
