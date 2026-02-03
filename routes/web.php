@@ -271,6 +271,14 @@ Route::middleware(['auth', 'role:instructor'])
         // Section Management
         Route::get('/sections', [InstructorSectionController::class, 'index'])->name('sections.index');
         Route::get('/sections/{section}', [InstructorSectionController::class, 'show'])->name('sections.show');
+         Route::get('/sections/{section}/manage-students', [InstructorSectionController::class, 'manageStudents'])
+            ->name('sections.manage-students');
+        Route::post('/sections/{section}/update-students', [InstructorSectionController::class, 'updateStudents'])
+            ->name('sections.update-students');
+        Route::post('/sections/{section}/add-student', [InstructorSectionController::class, 'addStudent'])
+            ->name('sections.add-student');
+        Route::delete('/sections/{section}/students/{student}', [InstructorSectionController::class, 'removeStudent'])
+            ->name('sections.remove-student');
 
         // Subject Management
         Route::get('subjects', [InstructorSubjectController::class, 'index'])->name('subjects.index');

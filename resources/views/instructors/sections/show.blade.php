@@ -27,10 +27,17 @@
                         </div>
                     </div>
 
-                    <a href="{{ route('instructors.sections.index') }}" 
-                       class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#FF92C2] to-[#ff6fb5] text-white rounded-xl font-semibold shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-[#FF92C2]/30 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
-                        <i class="fas fa-arrow-left mr-2"></i> Back to Sections
-                    </a>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <a href="{{ route('instructors.sections.manage-students', $section->id) }}" 
+                           class="inline-flex items-center justify-center px-6 py-3 bg-white hover:bg-gradient-to-r hover:from-[#FFC8FB]/10 hover:to-[#FF92C2]/10 text-[#FF92C2] border-2 border-[#FF92C2]/30 hover:border-[#FF92C2] rounded-xl font-semibold shadow-md hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-[#FF92C2]/30 transition-all duration-300 transform hover:scale-105">
+                            <i class="fas fa-user-plus mr-2"></i>
+                            Add Students
+                        </a>
+                        <a href="{{ route('instructors.sections.index') }}" 
+                           class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-[#FF92C2] to-[#ff6fb5] text-white rounded-xl font-semibold shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-[#FF92C2]/30 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+                            <i class="fas fa-arrow-left mr-2"></i> Back to Sections
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -80,11 +87,19 @@
             {{-- Students Table --}}
             <div class="bg-[#FFF0FA] overflow-hidden shadow-2xl sm:rounded-2xl border border-[#FFC8FB]/30">
                 <div class="p-8 text-gray-700">
-                    <div class="flex items-center mb-6">
-                        <div class="w-10 h-10 bg-gradient-to-r from-[#FF92C2] to-[#FFC8FB] rounded-full flex items-center justify-center text-white mr-4 shadow-md">
-                            <i class="fas fa-user-graduate"></i>
+                    <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-gradient-to-r from-[#FF92C2] to-[#FFC8FB] rounded-full flex items-center justify-center text-white mr-4 shadow-md">
+                                <i class="fas fa-user-graduate"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-[#595758]">Enrolled Students</h3>
                         </div>
-                        <h3 class="text-2xl font-bold text-[#595758]">Enrolled Students</h3>
+                        
+                        <a href="{{ route('instructors.sections.manage-students', $section->id) }}" 
+                           class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-[#FF92C2] to-[#ff6fb5] hover:from-[#ff6fb5] hover:to-[#FF92C2] text-white rounded-xl transition-all duration-300 font-semibold shadow-md hover:shadow-lg transform hover:scale-105">
+                            <i class="fas fa-user-plus mr-2"></i>
+                            Manage Students
+                        </a>
                     </div>
 
                     <div class="bg-white rounded-xl shadow-md border border-[#FFC8FB]/30 overflow-hidden">
@@ -119,7 +134,12 @@
                                                     <div class="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-4">
                                                         <i class="fas fa-user-slash text-2xl text-gray-400"></i>
                                                     </div>
-                                                    <p class="text-gray-600">No students enrolled in this section yet.</p>
+                                                    <p class="text-gray-600 mb-4">No students enrolled in this section yet.</p>
+                                                    <a href="{{ route('instructors.sections.manage-students', $section->id) }}" 
+                                                       class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-[#FF92C2] to-[#ff6fb5] text-white rounded-xl transition-all duration-300 font-semibold shadow-md hover:shadow-lg transform hover:scale-105">
+                                                        <i class="fas fa-user-plus mr-2"></i>
+                                                        Add Students Now
+                                                    </a>
                                                 </div>
                                             </td>
                                         </tr>
