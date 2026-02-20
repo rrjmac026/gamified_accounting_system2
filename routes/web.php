@@ -163,6 +163,13 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         ->name('sections.import.store');
     Route::resource('sections', SectionController::class);
 
+
+    Route::get('/subjects/{subject}/import-template', [SubjectController::class, 'downloadImportTemplate'])
+         ->name('subjects.import-template');
+
+    Route::post('/subjects/{subject}/import-students', [SubjectController::class, 'importStudents'])
+         ->name('subjects.import-students');
+
     Route::get('admin/sections/{section}/subjects', [SectionController::class, 'manageSubjects'])
      ->name('sections.subjects');
 
