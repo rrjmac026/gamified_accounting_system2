@@ -349,7 +349,26 @@
         
         // Get saved answer key data if it exists
         const savedData = @json($sheet->correct_data ?? null);
-        const initialData = savedData ? JSON.parse(savedData) : Array(15).fill().map(() => Array(15).fill(''));
+
+        // Header rows as editable data
+        const headerRow1 = ['', 'ASSETS', '', '', '', '', '', 'LIABILITIES', '', "OWNER'S EQUITY", '', '', 'EXPENSES', '', ''];
+        const headerRow2 = ['', 'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixtures', 'Land', 'Equipment', 'Accounts Payable', 'Notes Payable', 'Capital', 'Withdrawal', 'Service Revenue', 'Rent Expense', 'Utilities Expense', 'Salaries Expense', 'Misc. Expense'];
+        const blankRows = Array(15).fill(null).map(() => Array(15).fill(''));
+
+        let initialData;
+            if (savedData) {
+                const parsed = JSON.parse(savedData);
+                // If old data has no headers (15 rows), prepend them
+                // If new data already has headers (17+ rows), use as-is
+                if (parsed.length <= 15) {
+                    initialData = [headerRow1, headerRow2, ...parsed];
+                } else {
+                    // Already has headers saved, but always force row 0 and 1 to be correct
+                    initialData = [headerRow1, headerRow2, ...parsed.slice(2)];
+                }
+            } else {
+                initialData = [headerRow1, headerRow2, ...blankRows];
+            }
 
         // Determine responsive dimensions
         const isMobile = window.innerWidth < 640;
@@ -363,27 +382,17 @@
             height: isMobile ? 350 : (isTablet ? 450 : 500),
             licenseKey: 'non-commercial-and-evaluation',
 
-            nestedHeaders: [
-                [
-                    '',
-                    { label: 'ASSETS', colspan: 6 },
-                    { label: 'LIABILITIES', colspan: 2 },
-                    { label: "OWNER'S EQUITY", colspan: 3 },
-                    { label: 'EXPENSES', colspan: 4 }
-                ],
-                [
-                    '',
-                    'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixtures', 'Land', 'Equipment',
-                    'Accounts Payable', 'Notes Payable',
-                    'Capital', 'Withdrawal', 'Service Revenue',
-                    'Rent Expense', 'Utilities Expense', 'Salaries Expense', 'Misc. Expense'
-                ]
+            // Merge cells to replicate the colspan behavior of nestedHeaders
+            mergeCells: [
+                { row: 0, col: 1, rowspan: 1, colspan: 6 },  // ASSETS
+                { row: 0, col: 7, rowspan: 1, colspan: 2 },  // LIABILITIES
+                { row: 0, col: 9, rowspan: 1, colspan: 3 },  // OWNER'S EQUITY
+                { row: 0, col: 12, rowspan: 1, colspan: 4 }, // EXPENSES
             ],
 
             columns: Array(15).fill({ type: 'text' }),
             colWidths: isMobile ? 100 : (isTablet ? 110 : 120),
 
-            // REMOVED HyperFormula integration
             contextMenu: true,
             undo: true,
             manualColumnResize: true,
@@ -394,31 +403,42 @@
             autoColumnSize: false,
             autoRowSize: false,
             copyPaste: true,
-            minRows: 15,
+            minRows: 17,
             minCols: 15,
-            maxRows: 50, // Prevent infinite recursion
-            maxCols: 20, // Prevent infinite recursion
+            maxRows: 52,
+            maxCols: 20,
             stretchH: 'none',
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
             outsideClickDeselects: false,
             selectionMode: 'multiple',
-            mergeCells: true,
             comments: true,
             customBorders: true,
 
-            // Simple formula handling without HyperFormula
+            // Cell renderer for header styling + formula support
             cells: function(row, col) {
                 const cellProperties = {};
-                
-                // Custom renderer for all cells to handle basic formulas
+
                 cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
+
+                    // Style row 0 — plain bold centered (group headers)
+                    if (row === 0 || row === 1) {
+                        Handsontable.renderers.TextRenderer.call(
+                            this, instance, td, row, col, prop, value, cellProperties
+                        );
+                        td.style.fontWeight = 'bold';
+                        td.style.textAlign = 'center';
+                        td.style.verticalAlign = 'middle';
+                        td.style.whiteSpace = 'normal';
+                        td.style.wordBreak = 'break-word';
+                        return;
+                    }
+
                     // Handle basic formulas that start with =
                     if (value && typeof value === 'string' && value.startsWith('=')) {
                         try {
                             const result = evaluateSimpleFormula(value, instance, row, col);
                             if (result !== null) {
-                                // Display the calculated result
                                 Handsontable.renderers.TextRenderer.call(
                                     this, instance, td, row, col, prop, result, cellProperties
                                 );
@@ -428,7 +448,6 @@
                                 td.classList.add('formula-cell');
                                 return;
                             } else {
-                                // If we can't evaluate it, show the formula as text
                                 Handsontable.renderers.TextRenderer.call(
                                     this, instance, td, row, col, prop, value, cellProperties
                                 );
@@ -437,7 +456,6 @@
                                 return;
                             }
                         } catch (error) {
-                            // Show formula with error styling
                             Handsontable.renderers.TextRenderer.call(
                                 this, instance, td, row, col, prop, value, cellProperties
                             );
@@ -447,13 +465,13 @@
                             return;
                         }
                     }
-                    
+
                     // Default rendering for non-formula cells
                     Handsontable.renderers.TextRenderer.call(
                         this, instance, td, row, col, prop, value, cellProperties
                     );
                 };
-                
+
                 return cellProperties;
             },
 
@@ -480,7 +498,6 @@
             try {
                 // 1. Handle basic arithmetic with numbers only
                 if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(expression)) {
-                    // Safe evaluation - only numbers and operators
                     const result = Function(`"use strict"; return (${expression})`)();
                     return typeof result === 'number' ? result : null;
                 }
@@ -523,7 +540,7 @@
                     return sumRange(startRef, endRef, instance);
                 }
                 
-                return null; // Unsupported formula type
+                return null;
                 
             } catch (error) {
                 console.warn('Formula evaluation error:', error, 'Formula:', formula);

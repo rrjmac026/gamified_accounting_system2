@@ -336,12 +336,30 @@
         
         // Get saved answer key data if it exists
         const savedData = @json($sheet->correct_data ?? null);
-        const initialData = savedData ? JSON.parse(savedData) : Array.from({ length: 15 }, () => Array(22).fill(''));
+
+        // Header rows as editable data
+        const headerRow1 = ['Date', '', 'Account Titles and Explanation', 'Account Number', 'Debit (₱)', 'Credit (₱)'];
+        const headerRow2 = ['Month', 'Day', '', '', '', ''];
+        const blankRows = Array(15).fill(null).map(() => Array(6).fill(''));
+
+        let initialData;
+        if (savedData) {
+            const parsed = JSON.parse(savedData);
+            if (parsed.length <= 15) {
+                // Old format, no headers — prepend them
+                initialData = [headerRow1, headerRow2, ...parsed];
+            } else {
+                // New format, already has headers — force correct headers
+                initialData = [headerRow1, headerRow2, ...parsed.slice(2)];
+            }
+        } else {
+            initialData = [headerRow1, headerRow2, ...blankRows];
+        }
 
         // Initialize HyperFormula for Excel-like formulas with whitespace support
         const hyperformulaInstance = HyperFormula.buildEmpty({
             licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+            ignoreWhiteSpace: 'any',
         });
 
         // Determine responsive dimensions
@@ -354,22 +372,12 @@
             width: '100%',
             height: isMobile ? 350 : (isTablet ? 450 : 500),
             licenseKey: 'non-commercial-and-evaluation',
-            
-            nestedHeaders: [
-                [
-                    {label: 'Date', colspan: 2},
-                    'Account Titles and Explanation', 
-                    'Account Number', 
-                    'Debit (₱)', 
-                    'Credit (₱)'
-                ],
-                [
-                    '', 
-                    '',
-                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
-                ]
+
+            // Merge cells to replicate the colspan behavior of nestedHeaders
+            mergeCells: [
+                { row: 0, col: 0, rowspan: 1, colspan: 2 }, // Date spanning Month + Day
             ],
-            
+
             columns: [
                 { type: 'text', width: isMobile ? 80 : 100 },
                 { type: 'text', width: isMobile ? 80 : 100 },
@@ -386,28 +394,47 @@
             beforeChange: function(changes, source) {
                 if (changes) {
                     changes.forEach(function(change) {
-                        // change[3] is the new value
                         if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
-                            // Trim leading/trailing spaces but keep internal spaces
                             change[3] = change[3].trim();
                         }
                     });
                 }
             },
 
-            // Optional: Add visual indicator for formula cells
+            // Cell renderer for header styling + formula indicator
             cells: function(row, col) {
                 const cellProperties = {};
-                const cellData = this.instance.getDataAtCell(row, col);
-                
-                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
-                    cellProperties.className = 'formula-cell';
-                }
-                
+
+                cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
+
+                    // Style rows 0 and 1 — plain bold centered (header rows)
+                    if (row === 0 || row === 1) {
+                        Handsontable.renderers.TextRenderer.call(
+                            this, instance, td, row, col, prop, value, cellProperties
+                        );
+                        td.style.fontWeight = 'bold';
+                        td.style.textAlign = 'center';
+                        td.style.verticalAlign = 'middle';
+                        td.style.whiteSpace = 'normal';
+                        td.style.wordBreak = 'break-word';
+                        return;
+                    }
+
+                    // Formula cell indicator
+                    if (value && typeof value === 'string' && value.startsWith('=')) {
+                        cellProperties.className = 'formula-cell';
+                    }
+
+                    // Default rendering
+                    Handsontable.renderers.TextRenderer.call(
+                        this, instance, td, row, col, prop, value, cellProperties
+                    );
+                };
+
                 return cellProperties;
             },
 
-            // Full feature set like Step 1
+            // Full feature set
             contextMenu: true,
             undo: true,
             manualColumnResize: true,
@@ -418,20 +445,23 @@
             autoColumnSize: false,
             autoRowSize: false,
             copyPaste: true,
-            minRows: 15,
-            minCols: 22,
+            minRows: 17,
+            minCols: 6,
+            maxRows: 52,
+            maxCols: 10,
             stretchH: 'none',
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
             outsideClickDeselects: false,
             selectionMode: 'multiple',
-            mergeCells: true,
             comments: true,
             customBorders: true,
             minSpareRows: 1,
-            
-            // Custom renderer for the separator column
+
             afterRenderer: function (TD, row, col, prop, value, cellProperties) {
+                // Skip styling for header rows
+                if (row === 0 || row === 1) return;
+
                 if (col === 6) {
                     TD.style.borderRight = '3px solid #000000';
                 }
@@ -471,6 +501,15 @@
                 this.submit();
             });
         }
+
+        // Add CSS for formula cells
+        const style = document.createElement('style');
+        style.textContent = `
+            .formula-cell {
+                background-color: #f8f9fa !important;
+            }
+        `;
+        document.head.appendChild(style);
     });
 </script>
 </x-app-layout>

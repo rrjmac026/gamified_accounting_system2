@@ -207,7 +207,25 @@
 
         // Student's saved answers
         const savedData = @json($submission->submission_data ?? null);
-        const initialData = savedData ? JSON.parse(savedData) : Array.from({ length: 15 }, () => Array(22).fill(''));
+
+        // Header rows as editable data
+        const headerRow1 = ['Date', '', 'Account Titles and Explanation', 'Account Number', 'Debit (₱)', 'Credit (₱)'];
+        const headerRow2 = ['Month', 'Day', '', '', '', ''];
+        const blankRows = Array(15).fill(null).map(() => Array(6).fill(''));
+
+        let initialData;
+        if (savedData) {
+            const parsed = JSON.parse(savedData);
+            if (parsed.length <= 15) {
+                // Old format, no headers — prepend them
+                initialData = [headerRow1, headerRow2, ...parsed];
+            } else {
+                // New format, already has headers — force correct headers
+                initialData = [headerRow1, headerRow2, ...parsed.slice(2)];
+            }
+        } else {
+            initialData = [headerRow1, headerRow2, ...blankRows];
+        }
 
         // Instructor's correct data
         const correctData = @json($answerSheet->correct_data ?? null);
@@ -219,7 +237,7 @@
         // Initialize HyperFormula with whitespace support
         const hyperformulaInstance = HyperFormula.buildEmpty({
             licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+            ignoreWhiteSpace: 'any',
         });
 
         // Determine responsive dimensions
@@ -228,15 +246,19 @@
 
         // Create columns config
         const columnsConfig = [
-            { type: 'text', width: isMobile ? 60 : 80 }, // Month (Journal Date)
-            { type: 'text', width: isMobile ? 60 : 80 }, // Day (Journal Date)
-            { type: 'text', width: isMobile ? 250 : 350 }, // Account Titles
-            { type: 'text', width: isMobile ? 80 : 100 }, // Account Number
-            { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 130 }, // Debit
-            { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 130 }, // Credit
+            { type: 'text', width: isMobile ? 60 : 80 },
+            { type: 'text', width: isMobile ? 60 : 80 },
+            { type: 'text', width: isMobile ? 250 : 350 },
+            { type: 'text', width: isMobile ? 80 : 100 },
+            { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 130 },
+            { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 130 },
         ];
 
-        // Initialize Handsontable with nested headers
+        // Merge cells to replicate the colspan behavior of nestedHeaders
+        const mergeCellsConfig = [
+            { row: 0, col: 0, rowspan: 1, colspan: 2 }, // Date spanning Month + Day
+        ];
+
         hot = new Handsontable(container, {
             data: initialData,
             columns: columnsConfig,
@@ -246,50 +268,55 @@
             licenseKey: 'non-commercial-and-evaluation',
             readOnly: isReadOnly,
 
-            nestedHeaders: [
-                [
-                    {label: 'Date', colspan: 2},
-                    'Account Titles and Explanation', 
-                    'Account Number', 
-                    'Debit (₱)', 
-                    'Credit (₱)',
-                ],
-                [
-                    'Month',
-                    'Day',
-                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
-                ]
-            ],
-
-            // Formula support with whitespace handling
+            // Formula support
             formulas: { engine: hyperformulaInstance },
+
+            mergeCells: mergeCellsConfig,
 
             // Handle formula input with whitespace
             beforeChange: function(changes, source) {
                 if (!isReadOnly && changes) {
                     changes.forEach(function(change) {
-                        // change[3] is the new value
                         if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
-                            // Trim leading/trailing spaces but keep internal spaces
                             change[3] = change[3].trim();
                         }
                     });
                 }
             },
 
-            // Optional: Add visual indicator for formula cells
+            // Cell renderer for header styling + formula indicator
             cells: function(row, col) {
                 const cellProperties = {};
-                const cellData = this.instance.getDataAtCell(row, col);
-                
-                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
-                    cellProperties.className = 'formula-cell';
-                }
-                
+
+                cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
+
+                    // Style rows 0 and 1 — plain bold centered (header rows)
+                    if (row === 0 || row === 1) {
+                        Handsontable.renderers.TextRenderer.call(
+                            this, instance, td, row, col, prop, value, cellProperties
+                        );
+                        td.style.fontWeight = 'bold';
+                        td.style.textAlign = 'center';
+                        td.style.verticalAlign = 'middle';
+                        td.style.whiteSpace = 'normal';
+                        td.style.wordBreak = 'break-word';
+                        return;
+                    }
+
+                    // Formula cell indicator
+                    if (value && typeof value === 'string' && value.startsWith('=')) {
+                        cellProperties.className = 'formula-cell';
+                    }
+
+                    // Default rendering
+                    Handsontable.renderers.TextRenderer.call(
+                        this, instance, td, row, col, prop, value, cellProperties
+                    );
+                };
+
                 return cellProperties;
             },
 
-            // Full feature set
             stretchH: 'none',
             contextMenu: !isReadOnly,
             undo: !isReadOnly,
@@ -301,38 +328,40 @@
             autoColumnSize: false,
             autoRowSize: false,
             copyPaste: !isReadOnly,
-            minRows: 15,
-            minCols: 22,
+            minRows: 17,
+            minCols: 6,
             minSpareRows: 1,
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
             outsideClickDeselects: false,
             selectionMode: 'multiple',
-            mergeCells: true,
             comments: true,
             customBorders: true,
 
             afterRenderer: function (TD, row, col, prop, value, cellProperties) {
-                if (col === 6) {
-                    TD.style.borderLeft = '3px solid #000000';
-                }
-                
+                // Skip answer checking for header rows
+                if (row === 0 || row === 1) return;
+
                 if (submissionStatus && correctData && savedData) {
-                    const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
-                    const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
-                    
-                    const studentValue = parsedStudent[row]?.[col];
-                    const correctValue = parsedCorrect[row]?.[col];
-                    
-                    if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
-                        const normalizedStudent = String(studentValue).trim().toLowerCase();
-                        const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
-                        
-                        if (normalizedStudent === normalizedCorrect) {
-                            TD.classList.add('cell-correct');
-                        } else {
-                            TD.classList.add('cell-wrong');
+                    try {
+                        const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
+                        const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
+
+                        const studentValue = parsedStudent[row]?.[col];
+                        const correctValue = parsedCorrect[row]?.[col];
+
+                        if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
+                            const normalizedStudent = String(studentValue).trim().toLowerCase();
+                            const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
+
+                            if (normalizedStudent === normalizedCorrect) {
+                                TD.classList.add('cell-correct');
+                            } else {
+                                TD.classList.add('cell-wrong');
+                            }
                         }
+                    } catch (error) {
+                        console.warn('Error applying answer styling:', error);
                     }
                 }
             }
@@ -346,7 +375,7 @@
                 const newIsMobile = window.innerWidth < 640;
                 const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
                 const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
-                
+
                 hot.updateSettings({
                     height: newHeight,
                     columns: [
@@ -356,7 +385,6 @@
                         { type: 'text', width: newIsMobile ? 80 : 100 },
                         { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 100 : 130 },
                         { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 100 : 130 },
-
                     ]
                 });
             }, 250);
@@ -371,6 +399,33 @@
                 this.submit();
             });
         }
+
+        // Add CSS for answer + formula styling
+        const style = document.createElement('style');
+        style.textContent = `
+            .cell-correct {
+                background-color: #dcfce7 !important;
+                border: 2px solid #16a34a !important;
+                color: #166534 !important;
+            }
+            .cell-wrong {
+                background-color: #fee2e2 !important;
+                border: 2px solid #dc2626 !important;
+                color: #991b1b !important;
+            }
+            .handsontable td.cell-correct.area,
+            .handsontable td.cell-correct.current {
+                background-color: #bbf7d0 !important;
+            }
+            .handsontable td.cell-wrong.area,
+            .handsontable td.cell-wrong.current {
+                background-color: #fecaca !important;
+            }
+            .formula-cell {
+                background-color: #f8f9fa !important;
+            }
+        `;
+        document.head.appendChild(style);
     });
 </script>
 

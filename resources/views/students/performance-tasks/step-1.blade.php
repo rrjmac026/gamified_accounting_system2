@@ -225,16 +225,23 @@
     document.addEventListener("DOMContentLoaded", function () {
         const container = document.getElementById('spreadsheet');
         const savedData = @json($submission->submission_data ?? null);
-        const initialData = savedData ? JSON.parse(savedData) : Array(15).fill().map(() => Array(15).fill(''));
+
+        // Header rows as editable data
+        const headerRow1 = ['', 'ASSETS', '', '', '', '', '', 'LIABILITIES', '', "OWNER'S EQUITY", '', '', 'EXPENSES', '', ''];
+        const headerRow2 = ['', 'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixtures', 'Land', 'Equipment', 'Accounts Payable', 'Notes Payable', 'Capital', 'Withdrawal', 'Service Revenue', 'Rent Expense', 'Utilities Expense', 'Salaries Expense', 'Misc. Expense'];
+        const blankRows = Array(15).fill(null).map(() => Array(15).fill(''));
+
+        const initialData = savedData ? JSON.parse(savedData) : [headerRow1, headerRow2, ...blankRows];
+
         const correctData = @json($answerSheet->correct_data ?? null);
         const submissionStatus = @json($submission->status ?? null);
         const maxAttempts = @json($performanceTask->max_attempts);
         const currentAttempts = @json($submission->attempts ?? 0);
         const isReadOnly = currentAttempts >= maxAttempts;
-        
+
         const isMobile = window.innerWidth < 640;
         const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-        
+
         hot = new Handsontable(container, {
             data: initialData,
             colHeaders: false,
@@ -243,13 +250,18 @@
             height: isMobile ? 350 : (isTablet ? 450 : 500),
             licenseKey: 'non-commercial-and-evaluation',
             readOnly: isReadOnly,
-            nestedHeaders: [
-                ['', { label: 'ASSETS', colspan: 6 }, { label: 'LIABILITIES', colspan: 2 }, { label: "OWNER'S EQUITY", colspan: 3 }, { label: 'EXPENSES', colspan: 4 }],
-                ['', 'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixtures', 'Land', 'Equipment', 'Accounts Payable', 'Notes Payable', 'Capital', 'Withdrawal', 'Service Revenue', 'Rent Expense', 'Utilities Expense', 'Salaries Expense', 'Misc. Expense']
-            ],
+
             columns: Array(15).fill({ type: 'text' }),
             colWidths: isMobile ? 100 : (isTablet ? 110 : 120),
-            
+
+            // Merge cells to replicate the colspan behavior of nestedHeaders
+            mergeCells: [
+                { row: 0, col: 1, rowspan: 1, colspan: 6 },  // ASSETS
+                { row: 0, col: 7, rowspan: 1, colspan: 2 },  // LIABILITIES
+                { row: 0, col: 9, rowspan: 1, colspan: 3 },  // OWNER'S EQUITY
+                { row: 0, col: 12, rowspan: 1, colspan: 4 }, // EXPENSES
+            ],
+
             contextMenu: !isReadOnly,
             undo: !isReadOnly,
             manualColumnResize: true,
@@ -260,40 +272,43 @@
             autoColumnSize: false,
             autoRowSize: false,
             copyPaste: !isReadOnly,
-            minRows: 15,
+            minRows: 17,
             minCols: 15,
-            maxRows: 50,
+            maxRows: 52,
             maxCols: 20,
             stretchH: 'none',
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
             outsideClickDeselects: false,
             selectionMode: 'multiple',
-            mergeCells: true,
             comments: true,
             customBorders: true,
 
-            // ✅ FIXED: Use afterRenderer instead of custom cells renderer
             afterRenderer: function (TD, row, col, prop, value, cellProperties) {
-                // Apply answer checking styling AFTER cell is fully rendered
+
+                // Style row 0 and row 1 — plain, bold, centered, no color
+                if (row === 0 || row === 1) {
+                    TD.style.fontWeight = 'bold';
+                    TD.style.textAlign = 'center';
+                    TD.style.verticalAlign = 'middle';
+                    TD.style.whiteSpace = 'normal';
+                    TD.style.wordBreak = 'break-word';
+                    return; // Skip answer checking for header rows
+                }
+
+                // Answer checking styling for data rows (row 2 onwards)
                 if (submissionStatus && correctData && savedData) {
                     try {
-                        // Parse the correct answer data
                         const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
-                        // Parse the student's submitted data
                         const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
-                        
-                        // Get the values for this specific cell
+
                         const studentValue = parsedStudent[row]?.[col];
                         const correctValue = parsedCorrect[row]?.[col];
-                        
-                        // Only highlight cells that have student input
+
                         if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
-                            // Normalize both values for comparison (case-insensitive, trimmed)
                             const normalizedStudent = String(studentValue).trim().toLowerCase();
                             const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
-                            
-                            // Apply styling based on correctness
+
                             if (normalizedStudent === normalizedCorrect) {
                                 TD.classList.add('cell-correct');
                             } else {
@@ -309,9 +324,9 @@
 
         // Responsive resize handler
         let resizeTimer;
-        window.addEventListener('resize', function() {
+        window.addEventListener('resize', function () {
             clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {
+            resizeTimer = setTimeout(function () {
                 const newIsMobile = window.innerWidth < 640;
                 const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
                 const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
@@ -333,7 +348,7 @@
             });
         }
 
-        // Add CSS for answer styling
+        // Add CSS for answer styling only
         const style = document.createElement('style');
         style.textContent = `
             .cell-correct {
@@ -346,7 +361,8 @@
                 border: 2px solid #dc2626 !important;
                 color: #991b1b !important;
             }
-            /* Prevent selected cells from overriding colors */
+
+            /* Prevent selected cells from overriding correct/wrong colors */
             .handsontable td.cell-correct.area,
             .handsontable td.cell-correct.current {
                 background-color: #bbf7d0 !important;
