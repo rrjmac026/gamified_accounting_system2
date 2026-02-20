@@ -338,175 +338,164 @@
         </div>
     </div>
 
-    <script>
-        let hot;
+<script>
+    let hot;
 
-        document.addEventListener("DOMContentLoaded", function () {
-            const container = document.getElementById('spreadsheet');
-            
-            const savedData = @json($sheet->correct_data ?? null);
-            
-            // McGraw Hill Post-Closing Trial Balance Format
-            const initialData = savedData ? JSON.parse(savedData) : [
-                ['POST-CLOSING TRIAL BALANCE', '', '', ''],
-                ['December 31, 2024', '', '', ''],
-                ['', '', '', ''],
-                ['Account Title', '', 'Credit', 'Debit'],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['', '', '', ''],
-                ['Totals', '', '', '']
-            ];
+    document.addEventListener("DOMContentLoaded", function () {
+        const container = document.getElementById('spreadsheet');
+        
+        const savedData = @json($sheet->correct_data ?? null);
+        
+        // McGraw Hill Post-Closing Trial Balance Format
+        const initialData = savedData ? JSON.parse(savedData) : [
+            ['POST-CLOSING TRIAL BALANCE', '', '', ''],
+            ['December 31, 2024', '', '', ''],
+            ['', '', '', ''],
+            ['Account Title', '', 'Credit', 'Debit'],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['', '', '', ''],
+            ['Totals', '', '', '']
+        ];
 
-            // Initialize HyperFormula with whitespace support
-            const hyperformulaInstance = HyperFormula.buildEmpty({
-                licenseKey: 'internal-use-in-handsontable',
-                ignoreWhiteSpace: 'any', // Allows spaces in formulas
-            });
-
-            const isMobile = window.innerWidth < 640;
-            const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-            
-            hot = new Handsontable(container, {
-                data: initialData,
-                rowHeaders: true,
-                colHeaders: ['A', 'B', 'C', 'D'],
-                columns: [
-                    { type: 'text' },
-                    { type: 'text' },
-                    { type: 'numeric', numericFormat: { pattern: '0,0.00' } },
-                    { type: 'numeric', numericFormat: { pattern: '0,0.00' } }
-                ],
-
-                // Formula support with whitespace handling
-                formulas: { engine: hyperformulaInstance },
-
-                // Handle formula input with whitespace
-                beforeChange: function(changes, source) {
-                    if (changes) {
-                        changes.forEach(function(change) {
-                            // change[3] is the new value
-                            if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
-                                // Trim leading/trailing spaces but keep internal spaces
-                                change[3] = change[3].trim();
-                            }
-                        });
-                    }
-                },
-
-                cells: function(row, col) {
-                    const cellProperties = {};
-                    const cellData = this.instance.getDataAtCell(row, col);
-
-                    // Add formula cell styling
-                    if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
-                        cellProperties.className = (cellProperties.className || '') + ' formula-cell';
-                    }
-                    
-                    // Title row (row 0)
-                    if (row === 0 && col === 0) {
-                        cellProperties.className = 'htCenter htMiddle font-bold';
-                        cellProperties.readOnly = true;
-                    }
-                    
-                    // Date row (row 1)
-                    if (row === 1 && col === 0) {
-                        cellProperties.className = 'htCenter htMiddle';
-                        cellProperties.readOnly = true;
-                    }
-                    
-                    // Header row (row 3)
-                    if (row === 3) {
-                        cellProperties.className = 'htCenter htMiddle font-bold bg-gray-100';
-                        cellProperties.readOnly = true;
-                    }
-                    
-                    // Totals row (last row)
-                    if (row === 19 && col === 0) {
-                        cellProperties.className = 'htLeft htMiddle font-bold';
-                        cellProperties.readOnly = true;
-                    }
-                    
-                    // Make column B empty and read-only for spacing
-                    if (col === 1) {
-                        cellProperties.readOnly = true;
-                    }
-                    
-                    return cellProperties;
-                },
-
-                width: '100%',
-                height: isMobile ? 500 : (isTablet ? 550 : 600),
-                colWidths: isMobile ? [200, 50, 120, 120] : (isTablet ? [250, 60, 140, 140] : [300, 80, 160, 160]),
-                licenseKey: 'non-commercial-and-evaluation',
-
-                // Full feature set
-                contextMenu: true,
-                undo: true,
-                manualColumnResize: true,
-                manualRowResize: true,
-                manualColumnMove: true,
-                manualRowMove: true,
-                fillHandle: true,
-                autoColumnSize: false,
-                autoRowSize: false,
-                copyPaste: true,
-                minRows: 20,
-                minCols: 4,
-                minSpareRows: 0,
-                stretchH: 'all',
-                enterMoves: { row: 1, col: 0 },
-                tabMoves: { row: 0, col: 1 },
-                outsideClickDeselects: false,
-                selectionMode: 'multiple',
-                comments: true,
-                customBorders: true,
-
-                mergeCells: [
-                    { row: 0, col: 0, rowspan: 1, colspan: 4 },
-                    { row: 1, col: 0, rowspan: 1, colspan: 4 }
-                ]
-            });
-
-            // Responsive resize handler
-            let resizeTimer;
-            window.addEventListener('resize', function() {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(function() {
-                    const newIsMobile = window.innerWidth < 640;
-                    const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-                    const newHeight = newIsMobile ? 500 : (newIsTablet ? 550 : 600);
-                    const newColWidths = newIsMobile ? [200, 50, 120, 120] : (newIsTablet ? [250, 60, 140, 140] : [300, 80, 160, 160]);
-                    
-                    hot.updateSettings({
-                        height: newHeight,
-                        colWidths: newColWidths
-                    });
-                }, 250);
-            });
-
-            // Form submission
-            const answerKeyForm = document.getElementById("answerKeyForm");
-            if (answerKeyForm) {
-                answerKeyForm.addEventListener("submit", function (e) {
-                    e.preventDefault();
-                    const data = hot.getData();
-                    document.getElementById("correctData").value = JSON.stringify(data);
-                    this.submit();
-                });
-            }
+        // Initialize HyperFormula with whitespace support
+        const hyperformulaInstance = HyperFormula.buildEmpty({
+            licenseKey: 'internal-use-in-handsontable',
+            ignoreWhiteSpace: 'any',
         });
-    </script>
+
+        const isMobile = window.innerWidth < 640;
+        const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+        
+        hot = new Handsontable(container, {
+            data: initialData,
+            rowHeaders: true,
+            colHeaders: ['A', 'B', 'C', 'D'],
+            columns: [
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'numeric', numericFormat: { pattern: '0,0.00' } },
+                { type: 'numeric', numericFormat: { pattern: '0,0.00' } }
+            ],
+
+            // Formula support with whitespace handling
+            formulas: { engine: hyperformulaInstance },
+
+            // Handle formula input with whitespace
+            beforeChange: function(changes, source) {
+                if (changes) {
+                    changes.forEach(function(change) {
+                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
+                            change[3] = change[3].trim();
+                        }
+                    });
+                }
+            },
+
+            cells: function(row, col) {
+                const cellProperties = {};
+                const cellData = this.instance.getDataAtCell(row, col);
+
+                // Add formula cell styling
+                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
+                    cellProperties.className = (cellProperties.className || '') + ' formula-cell';
+                }
+                
+                // Title row (row 0) — editable, styling preserved
+                if (row === 0 && col === 0) {
+                    cellProperties.className = 'htCenter htMiddle font-bold';
+                }
+                
+                // Date row (row 1) — editable, styling preserved
+                if (row === 1 && col === 0) {
+                    cellProperties.className = 'htCenter htMiddle';
+                }
+                
+                // Header row (row 3) — editable, styling preserved
+                if (row === 3) {
+                    cellProperties.className = 'htCenter htMiddle font-bold bg-gray-100';
+                }
+                
+                // Totals row (row 19) — editable, styling preserved
+                if (row === 19 && col === 0) {
+                    cellProperties.className = 'htLeft htMiddle font-bold';
+                }
+
+                return cellProperties;
+            },
+
+            width: '100%',
+            height: isMobile ? 500 : (isTablet ? 550 : 600),
+            colWidths: isMobile ? [200, 50, 120, 120] : (isTablet ? [250, 60, 140, 140] : [300, 80, 160, 160]),
+            licenseKey: 'non-commercial-and-evaluation',
+
+            // Full feature set
+            contextMenu: true,
+            undo: true,
+            manualColumnResize: true,
+            manualRowResize: true,
+            manualColumnMove: true,
+            manualRowMove: true,
+            fillHandle: true,
+            autoColumnSize: false,
+            autoRowSize: false,
+            copyPaste: true,
+            minRows: 20,
+            minCols: 4,
+            minSpareRows: 0,
+            stretchH: 'all',
+            enterMoves: { row: 1, col: 0 },
+            tabMoves: { row: 0, col: 1 },
+            outsideClickDeselects: false,
+            selectionMode: 'multiple',
+            comments: true,
+            customBorders: true,
+
+            mergeCells: [
+                { row: 0, col: 0, rowspan: 1, colspan: 4 },
+                { row: 1, col: 0, rowspan: 1, colspan: 4 }
+            ]
+        });
+
+        // Responsive resize handler
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                const newIsMobile = window.innerWidth < 640;
+                const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+                const newHeight = newIsMobile ? 500 : (newIsTablet ? 550 : 600);
+                const newColWidths = newIsMobile ? [200, 50, 120, 120] : (newIsTablet ? [250, 60, 140, 140] : [300, 80, 160, 160]);
+                
+                hot.updateSettings({
+                    height: newHeight,
+                    colWidths: newColWidths
+                });
+            }, 250);
+        });
+
+        // Form submission
+        const answerKeyForm = document.getElementById("answerKeyForm");
+        if (answerKeyForm) {
+            answerKeyForm.addEventListener("submit", function (e) {
+                e.preventDefault();
+                const data = hot.getData();
+                document.getElementById("correctData").value = JSON.stringify(data);
+                this.submit();
+            });
+        }
+    });
+</script>
 </x-app-layout>

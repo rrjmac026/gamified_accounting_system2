@@ -364,7 +364,6 @@
                 { type: 'numeric', numericFormat: { pattern: '0,0.00' } },
                 { type: 'numeric', numericFormat: { pattern: '0,0.00' } },
             ],
-            rowHeaders: true,
             width: '100%',
             height: isMobile ? 350 : (isTablet ? 450 : 600),
             licenseKey: 'non-commercial-and-evaluation',
@@ -397,7 +396,7 @@
             autoColumnSize: false,
             autoRowSize: false,
             copyPaste: !isReadOnly,
-            minRows: 19,
+            minRows: 20,
             minCols: 4,
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
@@ -420,63 +419,52 @@
                 if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
                     cellProperties.className = (cellProperties.className || '') + ' formula-cell';
                 }
-                
-                // Row 0: Title (POST-CLOSING TRIAL BALANCE)
+
+                // Row 0: Title (POST-CLOSING TRIAL BALANCE) — editable, styling preserved
                 if (row === 0) {
                     cellProperties.className = 'header-title htCenter htMiddle';
-                    cellProperties.readOnly = true;
                 }
-                
-                // Row 1: Date
+
+                // Row 1: Date — editable, styling preserved
                 if (row === 1) {
                     cellProperties.className = 'header-date htCenter htMiddle';
-                    cellProperties.readOnly = true;
                 }
-                
-                // Row 3: Column headers
+
+                // Row 3: Column headers — editable, styling preserved
                 if (row === 3) {
-                    cellProperties.readOnly = true;
                     cellProperties.className = 'header-columns htCenter htMiddle';
                     cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
                         Handsontable.renderers.TextRenderer.apply(this, arguments);
-                        td.innerHTML = '<strong>' + value + '</strong>';
+                        td.innerHTML = '<strong>' + (value || '') + '</strong>';
                         td.style.textAlign = 'center';
                         td.style.backgroundColor = '#f3f4f6';
                     };
                 }
-                
-                // Last row (Totals)
-                if (row === 18) {
-                    if (col === 0) {
-                        cellProperties.readOnly = true;
-                        cellProperties.className = 'font-bold htLeft htMiddle';
-                    }
+
+                // Row 19: Totals row — editable, styling preserved
+                if (row === 19 && col === 0) {
+                    cellProperties.className = 'font-bold htLeft htMiddle';
                 }
-                
-                // Make column B (index 1) read-only for spacing
-                if (col === 1) {
-                    cellProperties.readOnly = true;
-                }
-                
-                // Data rows (4-17) - add validation coloring
-                if (row > 3 && row < 18) {
+
+                // Data rows (4–18): validation coloring
+                if (row > 3 && row < 19) {
                     cellProperties.readOnly = false;
 
                     const correctData = @json($answerSheet->correct_data ?? null);
-                    const savedData = @json($submission->submission_data ?? null);
+                    const submissionData = @json($submission->submission_data ?? null);
 
-                    if (submissionStatus && correctData && savedData) {
+                    if (submissionStatus && correctData && submissionData) {
                         const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
-                        const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
-                        
+                        const parsedStudent = typeof submissionData === 'string' ? JSON.parse(submissionData) : submissionData;
+
                         const studentValue = parsedStudent[row]?.[col];
                         const correctValue = parsedCorrect[row]?.[col];
-                        
+
                         // Skip column B (spacing column)
                         if (col !== 1 && studentValue !== null && studentValue !== undefined && studentValue !== '') {
                             const normalizedStudent = String(studentValue).trim().toLowerCase();
                             const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
-                            
+
                             if (normalizedStudent === normalizedCorrect) {
                                 cellProperties.className = 'cell-correct';
                             } else {
@@ -485,7 +473,7 @@
                         }
                     }
                 }
-                
+
                 return cellProperties;
             }
         });
