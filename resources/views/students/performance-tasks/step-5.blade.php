@@ -206,7 +206,25 @@
 
         // Student's saved answers
         const savedData = @json($submission->submission_data ?? null);
-        const initialData = savedData ? JSON.parse(savedData) : Array.from({ length: 15 }, () => Array(21).fill(''));
+
+        // Header rows as editable data
+        const headerRow1 = ['Date', '', 'Account Titles and Explanation', 'Account Number', 'Debit (₱)', 'Credit (₱)'];
+        const headerRow2 = ['Month', 'Day', '', '', '', ''];
+        const blankRows = Array(15).fill(null).map(() => Array(6).fill(''));
+
+        let initialData;
+        if (savedData) {
+            const parsed = JSON.parse(savedData);
+            if (parsed.length <= 15) {
+                // Old format, no headers — prepend them
+                initialData = [headerRow1, headerRow2, ...parsed];
+            } else {
+                // New format, already has headers — force correct headers
+                initialData = [headerRow1, headerRow2, ...parsed.slice(2)];
+            }
+        } else {
+            initialData = [headerRow1, headerRow2, ...blankRows];
+        }
 
         // Instructor's correct data
         const correctData = @json($answerSheet->correct_data ?? null);
@@ -218,99 +236,101 @@
         // Initialize HyperFormula with whitespace support
         const hyperformulaInstance = HyperFormula.buildEmpty({
             licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+            ignoreWhiteSpace: 'any',
         });
 
         // Determine responsive dimensions
         const isMobile = window.innerWidth < 640;
         const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
 
-        // Initialize Handsontable with NESTED HEADERS
         hot = new Handsontable(container, {
             data: initialData,
             rowHeaders: true,
             width: '100%',
             height: isMobile ? 350 : (isTablet ? 450 : 500),
-            nestedHeaders: [
-                [
-                    {label: 'Date', colspan: 2},
-                    'Account Titles and Explanation', 
-                    'Account Number', 
-                    'Debit (₱)', 
-                    'Credit (₱)'
-                ],
-                [
-                    'Month', 'Day', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
-                ]
-            ],
-            columns: [
-                { type: 'text', width: isMobile ? 80 : 100 },      // Month
-                { type: 'text', width: isMobile ? 80 : 100 },      // Day
-                { type: 'text', width: isMobile ? 250 : 400 },     // Account Titles
-                { type: 'text', width: isMobile ? 80 : 100 },      // Account Number
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 150 }, // Debit
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 150 }, // Credit
-            ],
-            stretchH: 'none',
             licenseKey: 'non-commercial-and-evaluation',
             readOnly: isReadOnly,
-            
+
+            // ✅ mergeCells replaces nestedHeaders colspan behavior
+            mergeCells: [
+                { row: 0, col: 0, rowspan: 1, colspan: 2 }, // Date spanning Month + Day
+            ],
+
+            columns: [
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 250 : 400 },
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 150 },
+                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 150 },
+            ],
+
+            stretchH: 'none',
+
             // Formula support with whitespace handling
             formulas: { engine: hyperformulaInstance },
-            
+
             // Handle formula input with whitespace
             beforeChange: function(changes, source) {
                 if (!isReadOnly && changes) {
                     changes.forEach(function(change) {
-                        // change[3] is the new value
                         if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
-                            // Trim leading/trailing spaces but keep internal spaces
                             change[3] = change[3].trim();
                         }
                     });
                 }
             },
-            
-            // ✅ REMOVED the problematic cells function
-            // Add visual indicator for formula cells only
+
+            // Cell renderer for header styling + formula indicator
             cells: function(row, col) {
                 const cellProperties = {};
+
+                // ✅ Header rows — force editable + plain bold centered styling
+                if (row === 0 || row === 1) {
+                    cellProperties.readOnly = false;
+                    cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
+                        Handsontable.renderers.TextRenderer.call(
+                            this, instance, td, row, col, prop, value, cellProperties
+                        );
+                        td.style.fontWeight = 'bold';
+                        td.style.textAlign = 'center';
+                        td.style.verticalAlign = 'middle';
+                        td.style.whiteSpace = 'normal';
+                        td.style.wordBreak = 'break-word';
+                    };
+                    return cellProperties;
+                }
+
+                // Formula cell indicator
                 const cellData = this.instance.getDataAtCell(row, col);
-                
-                // Add visual indicator for formula cells
                 if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
                     cellProperties.className = 'formula-cell';
                 }
-                
+
                 return cellProperties;
             },
-            
-            // ✅ FIXED: Use afterRenderer for answer checking (like Step 2)
+
             afterRenderer: function (TD, row, col, prop, value, cellProperties) {
-                // Make the border after Credit column (now index 5) bold
+                // Skip header rows
+                if (row === 0 || row === 1) return;
+
                 if (col === 5) {
                     TD.style.borderRight = '3px solid #000000';
                 }
-                
-                // Apply answer checking styling AFTER cell is fully rendered
+
+                // Answer checking styling
                 if (submissionStatus && correctData && savedData) {
                     try {
-                        // Parse the correct answer data
                         const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
-                        // Parse the student's submitted data
                         const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
-                        
-                        // Get the values for this specific cell
+
                         const studentValue = parsedStudent[row]?.[col];
                         const correctValue = parsedCorrect[row]?.[col];
-                        
-                        // Only highlight cells that have student input
+
                         if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
-                            // Normalize both values for comparison (case-insensitive, trimmed)
                             const normalizedStudent = String(studentValue).trim().toLowerCase();
                             const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
-                            
-                            // Apply styling based on correctness
+
                             if (normalizedStudent === normalizedCorrect) {
                                 TD.classList.add('cell-correct');
                             } else {
@@ -322,7 +342,7 @@
                     }
                 }
             },
-            
+
             // Full feature set
             contextMenu: !isReadOnly,
             undo: !isReadOnly,
@@ -334,14 +354,13 @@
             autoColumnSize: false,
             autoRowSize: false,
             copyPaste: !isReadOnly,
-            minRows: 15,
-            minCols: 21,
+            minRows: 17,
+            minCols: 6,
             minSpareRows: 1,
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
             outsideClickDeselects: false,
             selectionMode: 'multiple',
-            mergeCells: true,
             comments: true,
             customBorders: true
         });
@@ -354,7 +373,7 @@
                 const newIsMobile = window.innerWidth < 640;
                 const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
                 const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
-                
+
                 hot.updateSettings({
                     height: newHeight,
                     columns: [
@@ -364,21 +383,6 @@
                         { type: 'text', width: newIsMobile ? 80 : 100 },
                         { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 100 : 150 },
                         { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 100 : 150 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 100 : 120 }
                     ]
                 });
             }, 250);
@@ -410,7 +414,6 @@
                 border: 2px solid #dc2626 !important;
                 color: #991b1b !important;
             }
-            /* Prevent selected cells from overriding colors */
             .handsontable td.cell-correct.area,
             .handsontable td.cell-correct.current {
                 background-color: #bbf7d0 !important;
