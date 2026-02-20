@@ -384,24 +384,40 @@
         ];
 
         const numCols = accounts.length * 6;
-        const initialData = savedData
-            ? JSON.parse(savedData)
-            : Array.from({ length: 15 }, () => Array(numCols).fill(''));
+
+        // Header rows as editable data
+        const headerRow1 = accounts.flatMap(name => [name, '', '', '', '', '']);
+        const headerRow2 = Array(accounts.length).fill(['Date', '', 'Debit (₱)', 'Credit (₱)', '', 'Date']).flat();
+        const blankRows = Array(15).fill(null).map(() => Array(numCols).fill(''));
+
+        let initialData;
+        if (savedData) {
+            const parsed = JSON.parse(savedData);
+            if (parsed.length <= 15) {
+                // Old format, no headers — prepend them
+                initialData = [headerRow1, headerRow2, ...parsed];
+            } else {
+                // New format, already has headers — force correct headers
+                initialData = [headerRow1, headerRow2, ...parsed.slice(2)];
+            }
+        } else {
+            initialData = [headerRow1, headerRow2, ...blankRows];
+        }
 
         // Initialize HyperFormula for Excel-like formulas with whitespace support
         const hyperformulaInstance = HyperFormula.buildEmpty({
             licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+            ignoreWhiteSpace: 'any',
         });
 
         // Determine responsive dimensions
         const isMobile = window.innerWidth < 640;
         const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
 
-        const nestedHeaders = [
-            accounts.map(name => ({ label: name, colspan: 6 })),
-            Array(accounts.length).fill(['Date', '', 'Debit (₱)', 'Credit (₱)', '', 'Date']).flat()
-        ];
+        // Merge cells for account name headers (row 0, every 6 cols)
+        const mergeCellsConfig = accounts.map((_, i) => ({
+            row: 0, col: i * 6, rowspan: 1, colspan: 6
+        }));
 
         // Custom renderer to add peso sign and handle large numbers
         function pesoRenderer(instance, td, row, col, prop, value, cellProperties) {
@@ -438,11 +454,13 @@
         hot = new Handsontable(container, {
             data: initialData,
             rowHeaders: true,
-            nestedHeaders: nestedHeaders,
             columns: columns,
             width: '100%',
             height: isMobile ? 350 : (isTablet ? 450 : 500),
             licenseKey: 'non-commercial-and-evaluation',
+
+            // ✅ mergeCells replaces nestedHeaders colspan behavior
+            mergeCells: mergeCellsConfig,
 
             // Formula support with whitespace handling
             formulas: { engine: hyperformulaInstance },
@@ -453,14 +471,10 @@
                     changes.forEach(function(change) {
                         const [row, col, oldValue, newValue] = change;
                         
-                        // Handle formulas
                         if (newValue && typeof newValue === 'string' && newValue.startsWith('=')) {
                             change[3] = newValue.trim();
-                        }
-                        // Handle numeric values - remove commas and peso signs
-                        else if (newValue && typeof newValue === 'string') {
+                        } else if (newValue && typeof newValue === 'string') {
                             const colIndex = col % 6;
-                            // Only process numeric columns (debit and credit)
                             if (colIndex === 2 || colIndex === 3) {
                                 const cleanValue = newValue.replace(/[,₱\s]/g, '');
                                 if (!isNaN(cleanValue) && cleanValue !== '') {
@@ -483,14 +497,13 @@
             autoColumnSize: false,
             autoRowSize: false,
             copyPaste: true,
-            minRows: 15,
+            minRows: 17,
             minCols: numCols,
             stretchH: 'none',
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
             outsideClickDeselects: false,
             selectionMode: 'multiple',
-            mergeCells: true,
             comments: true,
             customBorders: true,
             minSpareRows: 1,
@@ -500,7 +513,23 @@
                 const colIndex = col % 6;
                 const cellData = this.instance.getDataAtCell(row, col);
 
-                // Add formula cell styling
+                // ✅ Header rows — force editable + plain bold centered styling
+                if (row === 0 || row === 1) {
+                    cellProperties.readOnly = false;
+                    cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
+                        Handsontable.renderers.TextRenderer.call(
+                            this, instance, td, row, col, prop, value, cellProperties
+                        );
+                        td.style.fontWeight = 'bold';
+                        td.style.textAlign = 'center';
+                        td.style.verticalAlign = 'middle';
+                        td.style.whiteSpace = 'normal';
+                        td.style.wordBreak = 'break-word';
+                    };
+                    return cellProperties;
+                }
+
+                // Formula cell styling
                 if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
                     cellProperties.className = (cellProperties.className || '') + ' formula-cell';
                 }
@@ -561,6 +590,15 @@
                 this.submit();
             });
         }
+
+        // Add CSS for formula + t-account styling
+        const style = document.createElement('style');
+        style.textContent = `
+            .formula-cell {
+                background-color: #f8f9fa !important;
+            }
+        `;
+        document.head.appendChild(style);
     });
 </script>
 </x-app-layout>

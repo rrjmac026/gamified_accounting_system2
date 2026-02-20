@@ -218,16 +218,27 @@
             'Salaries Expense', 'Supplies Expense', 'Depreciation Expense',
             'Income Summary'
         ];
-        
-        // Generate columns: Date, Blank, Debit, Credit, Blank, Date for each account (6 cols per account)
+
         const numCols = accounts.length * 6;
-        const initialData = savedData ? JSON.parse(savedData) : Array.from({ length: 15 }, () => Array(numCols).fill(''));
-        
-        // Create nested headers with blank column after Date
-        const nestedHeaders = [
-            accounts.map(name => ({ label: name, colspan: 6 })),
-            Array(accounts.length).fill(['Date', '', 'Debit (₱)', 'Credit (₱)', '', 'Date']).flat()
-        ];
+
+        // Header rows as editable data
+        const headerRow1 = accounts.flatMap(name => [name, '', '', '', '', '']);
+        const headerRow2 = Array(accounts.length).fill(['Date', '', 'Debit (₱)', 'Credit (₱)', '', 'Date']).flat();
+        const blankRows = Array(15).fill(null).map(() => Array(numCols).fill(''));
+
+        let initialData;
+        if (savedData) {
+            const parsed = JSON.parse(savedData);
+            if (parsed.length <= 15) {
+                // Old format, no headers — prepend them
+                initialData = [headerRow1, headerRow2, ...parsed];
+            } else {
+                // New format, already has headers — force correct headers
+                initialData = [headerRow1, headerRow2, ...parsed.slice(2)];
+            }
+        } else {
+            initialData = [headerRow1, headerRow2, ...blankRows];
+        }
         
         // Custom renderer to add peso sign and handle large numbers
         function pesoRenderer(instance, td, row, col, prop, value, cellProperties) {
@@ -246,26 +257,23 @@
             return td;
         }
         
-        // Create columns config with custom renderer for T-account style
+        // Create columns config
         const columns = [];
         for (let i = 0; i < accounts.length; i++) {
             columns.push(
                 { type: 'text', width: 100 },      // Date
                 { type: 'text', width: 50 },       // Blank column
-                { 
-                    type: 'numeric',
-                    renderer: pesoRenderer,
-                    width: 120
-                }, // Debit
-                { 
-                    type: 'numeric',
-                    renderer: pesoRenderer,
-                    width: 120
-                }, // Credit
+                { type: 'numeric', renderer: pesoRenderer, width: 120 }, // Debit
+                { type: 'numeric', renderer: pesoRenderer, width: 120 }, // Credit
                 { type: 'text', width: 50 },       // Blank column
                 { type: 'text', width: 100 }       // Second Date
             );
         }
+
+        // Merge cells for account name headers (row 0, every 6 cols)
+        const mergeCellsConfig = accounts.map((_, i) => ({
+            row: 0, col: i * 6, rowspan: 1, colspan: 6
+        }));
 
         // Instructor's correct data
         const correctData = @json($answerSheet->correct_data ?? null);
@@ -277,19 +285,21 @@
         // Initialize HyperFormula with whitespace support
         const hyperformulaInstance = HyperFormula.buildEmpty({
             licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+            ignoreWhiteSpace: 'any',
         });
         
         hot = new Handsontable(container, {
             data: initialData,
             rowHeaders: true,
-            nestedHeaders: nestedHeaders,
             columns: columns,
             height: 'auto',
             licenseKey: 'non-commercial-and-evaluation',
             readOnly: isReadOnly,
-            
-            // Formula support with whitespace handling
+
+            // ✅ mergeCells replaces nestedHeaders colspan behavior
+            mergeCells: mergeCellsConfig,
+
+            // Formula support
             formulas: { engine: hyperformulaInstance },
             
             // Handle formula input with whitespace and numeric parsing
@@ -298,14 +308,10 @@
                     changes.forEach(function(change) {
                         const [row, col, oldValue, newValue] = change;
                         
-                        // Handle formulas
                         if (newValue && typeof newValue === 'string' && newValue.startsWith('=')) {
                             change[3] = newValue.trim();
-                        }
-                        // Handle numeric values - remove commas and peso signs
-                        else if (newValue && typeof newValue === 'string') {
+                        } else if (newValue && typeof newValue === 'string') {
                             const colIndex = col % 6;
-                            // Only process numeric columns (debit and credit)
                             if (colIndex === 2 || colIndex === 3) {
                                 const cleanValue = newValue.replace(/[,₱\s]/g, '');
                                 if (!isNaN(cleanValue) && cleanValue !== '') {
@@ -326,12 +332,12 @@
             manualRowMove: !isReadOnly,
             fillHandle: !isReadOnly,
             copyPaste: !isReadOnly,
+            minRows: 17,
             minSpareRows: 1,
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
             outsideClickDeselects: false,
             selectionMode: 'multiple',
-            mergeCells: true,
             comments: true,
             customBorders: true,
             
@@ -339,49 +345,55 @@
                 const cellProperties = {};
                 const colIndex = col % 6;
                 const cellData = this.instance.getDataAtCell(row, col);
-                
-                // Add visual indicator for formula cells
+
+                // ✅ Header rows — force editable + plain bold centered styling
+                if (row === 0 || row === 1) {
+                    cellProperties.readOnly = false;
+                    cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
+                        Handsontable.renderers.TextRenderer.call(
+                            this, instance, td, row, col, prop, value, cellProperties
+                        );
+                        td.style.fontWeight = 'bold';
+                        td.style.textAlign = 'center';
+                        td.style.verticalAlign = 'middle';
+                        td.style.whiteSpace = 'normal';
+                        td.style.wordBreak = 'break-word';
+                    };
+                    return cellProperties;
+                }
+
+                // Formula cell indicator
                 if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
                     cellProperties.className = 'formula-cell';
                 }
 
-                // Apply T-account styling (append to existing className)
+                // T-account column styling
                 if (colIndex === 0 || colIndex === 5) {
-                    // Date column
                     cellProperties.className = (cellProperties.className || '') + ' t-account-date';
                 } else if (colIndex === 1 || colIndex === 4) {
-                    // Blank column
                     cellProperties.className = (cellProperties.className || '') + ' t-account-blank';
-                    cellProperties.readOnly = false; // Make blank column read-only
+                    cellProperties.readOnly = false;
                 } else if (colIndex === 2) {
-                    // Debit column (left side)
                     cellProperties.className = (cellProperties.className || '') + ' t-account-debit';
                 } else if (colIndex === 3) {
-                    // Credit column (right side)
                     cellProperties.className = (cellProperties.className || '') + ' t-account-credit';
                 }
                 
-                // Only apply correct/incorrect coloring if submission has been graded
-                if (submissionStatus && correctData && savedData && colIndex !== 1 && colIndex !== 4) { // Skip blank columns
+                // Answer checking — skip blank columns
+                if (submissionStatus && correctData && savedData && colIndex !== 1 && colIndex !== 4) {
                     const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
                     const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
                     
                     const studentValue = parsedStudent[row]?.[col];
                     const correctValue = parsedCorrect[row]?.[col];
                     
-                    // ONLY color cells where the STUDENT entered something
                     if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
-                        // Normalize values for comparison
                         const normalizeValue = (val) => {
                             if (val === null || val === undefined || val === '') return '';
                             if (typeof val === 'string') {
-                                // Remove commas, peso signs, and whitespace for comparison
                                 const cleaned = val.trim().replace(/[,₱\s]/g, '').toLowerCase();
-                                // Try to parse as number
                                 const num = parseFloat(cleaned);
-                                if (!isNaN(num)) {
-                                    return num.toFixed(2);
-                                }
+                                if (!isNaN(num)) return num.toFixed(2);
                                 return cleaned;
                             }
                             if (typeof val === 'number') return val.toFixed(2);
@@ -391,7 +403,6 @@
                         const normalizedStudent = normalizeValue(studentValue);
                         const normalizedCorrect = normalizeValue(correctValue);
                         
-                        // Compare student's answer with correct answer
                         if (normalizedStudent === normalizedCorrect) {
                             cellProperties.className = (cellProperties.className || '') + ' cell-correct';
                         } else {
@@ -413,6 +424,33 @@
                 this.submit();
             });
         }
+
+        // Add CSS for answer + formula + t-account styling
+        const style = document.createElement('style');
+        style.textContent = `
+            .cell-correct {
+                background-color: #dcfce7 !important;
+                border: 2px solid #16a34a !important;
+                color: #166534 !important;
+            }
+            .cell-wrong {
+                background-color: #fee2e2 !important;
+                border: 2px solid #dc2626 !important;
+                color: #991b1b !important;
+            }
+            .handsontable td.cell-correct.area,
+            .handsontable td.cell-correct.current {
+                background-color: #bbf7d0 !important;
+            }
+            .handsontable td.cell-wrong.area,
+            .handsontable td.cell-wrong.current {
+                background-color: #fecaca !important;
+            }
+            .formula-cell {
+                background-color: #f8f9fa !important;
+            }
+        `;
+        document.head.appendChild(style);
     });
 </script>
 

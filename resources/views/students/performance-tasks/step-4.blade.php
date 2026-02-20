@@ -392,7 +392,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (row === 0) {
                 cellProperties.className = 'header-company';
                 if (col === 0 || col === 2) {
-                    cellProperties.readOnly = true;
                     cellProperties.renderer = function(instance, td) {
                         td.innerHTML = '';
                         td.style.background = 'white';
@@ -410,7 +409,6 @@ document.addEventListener('DOMContentLoaded', function () {
             else if (row === 1) {
                 cellProperties.className = 'header-title';
                 if (col === 0 || col === 2) {
-                    cellProperties.readOnly = true;
                     cellProperties.renderer = function(instance, td) {
                         td.innerHTML = '';
                         td.style.background = 'white';
@@ -428,7 +426,6 @@ document.addEventListener('DOMContentLoaded', function () {
             else if (row === 2) {
                 cellProperties.className = 'header-date';
                 if (col === 0 || col === 2) {
-                    cellProperties.readOnly = true;
                     cellProperties.renderer = function(instance, td) {
                         td.innerHTML = '';
                         td.style.background = 'white';
@@ -444,7 +441,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             
             else if (row === 3) {
-                cellProperties.readOnly = true;
                 cellProperties.className = 'header-columns';
                 cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
                     Handsontable.renderers.TextRenderer.apply(this, arguments);
