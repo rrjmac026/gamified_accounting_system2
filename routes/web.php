@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\PerformanceLogController;
 use App\Http\Controllers\Admin\LeaderboardController;
 use App\Http\Controllers\Admin\BadgeController;
+use App\Http\Controllers\Admin\SectionImportController; 
 
 // ============================================================================
 // INSTRUCTOR CONTROLLERS
@@ -154,6 +155,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Course & Subject Management
     Route::resource('/courses', CourseController::class);
     Route::resource('/subjects', SubjectController::class);
+
+    //Section Management
+    Route::get('sections/import/template', [SectionImportController::class, 'downloadTemplate'])
+        ->name('sections.import.template');
+    Route::post('sections/{section}/import', [SectionImportController::class, 'import'])
+        ->name('sections.import.store');
     Route::resource('sections', SectionController::class);
 
     Route::get('admin/sections/{section}/subjects', [SectionController::class, 'manageSubjects'])

@@ -34,6 +34,10 @@ class DatabaseSeeder extends Seeder
         \App\Models\Student::factory(20)->create();
         \App\Models\Instructor::factory(5)->create();
         \App\Models\Subject::factory(10)->create();
+        $this->call([
+            CourseSeeder::class,
+        ]);
+
         
     }
 }
