@@ -190,9 +190,25 @@
 
         // Student's saved answers
         const savedData = @json($submission->submission_data ?? null);
-        const initialData = savedData
-            ? JSON.parse(savedData)
-            : Array.from({ length: 15 }, () => Array(21).fill(''));
+
+        // Header rows as editable data
+        const headerRow1 = ['Date', '', 'Account Titles and Explanation', 'Account Number', 'Debit (₱)', 'Credit (₱)'];
+        const headerRow2 = ['Month', 'Day', '', '', '', ''];
+        const blankRows = Array(15).fill(null).map(() => Array(6).fill(''));
+
+        let initialData;
+        if (savedData) {
+            const parsed = JSON.parse(savedData);
+            if (parsed.length <= 15) {
+                // Old format, no headers — prepend them
+                initialData = [headerRow1, headerRow2, ...parsed];
+            } else {
+                // New format, already has headers — force correct headers
+                initialData = [headerRow1, headerRow2, ...parsed.slice(2)];
+            }
+        } else {
+            initialData = [headerRow1, headerRow2, ...blankRows];
+        }
 
         // Instructor's correct data
         const correctData = @json($answerSheet->correct_data ?? null);
@@ -204,63 +220,52 @@
         // Initialize HyperFormula with whitespace support
         const hyperformulaInstance = HyperFormula.buildEmpty({
             licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+            ignoreWhiteSpace: 'any',
         });
 
         // Determine responsive dimensions
         const isMobile = window.innerWidth < 640;
         const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
 
-        // Initialize Handsontable
         hot = new Handsontable(container, {
             data: initialData,
             rowHeaders: true,
-            // Using nested headers like Step 5
-            nestedHeaders: [
-                [
-                    {label: 'Date', colspan: 2}, // Date spans 2 columns
-                    'Account Titles and Explanation', 
-                    'Account Number', 
-                    'Debit (₱)', 
-                    'Credit (₱)',
-                ],
-                [
-                    'Month', // Sub-column 1 under Date
-                    'Day', // Sub-column 2 under Date
-                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
-                ]
+            width: '100%',
+            height: isMobile ? 350 : (isTablet ? 450 : 500),
+            licenseKey: 'non-commercial-and-evaluation',
+            readOnly: isReadOnly,
+
+            // ✅ mergeCells replaces nestedHeaders colspan behavior
+            mergeCells: [
+                { row: 0, col: 0, rowspan: 1, colspan: 2 }, // Date spanning Month + Day
             ],
+
             columns: [
-                { type: 'text', width: isMobile ? 80 : 100 }, // Month
-                { type: 'text', width: isMobile ? 80 : 100 }, // Day
+                { type: 'text', width: isMobile ? 80 : 100 },
+                { type: 'text', width: isMobile ? 80 : 100 },
                 { type: 'text', width: isMobile ? 300 : 400 },
                 { type: 'text', width: isMobile ? 80 : 100 },
                 { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
                 { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
             ],
+
             stretchH: 'none',
-            height: isMobile ? 350 : (isTablet ? 450 : 500),
-            width: '100%',
             minSpareRows: 1,
-            licenseKey: 'non-commercial-and-evaluation',
-            readOnly: isReadOnly,
-            
+
             // Formula support with whitespace handling
             formulas: { engine: hyperformulaInstance },
-            
+
             // Handle formula input with whitespace
             beforeChange: function(changes, source) {
                 if (!isReadOnly && changes) {
                     changes.forEach(function(change) {
-                        // change[3] is the new value
                         if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
-                            // Trim leading/trailing spaces but keep internal spaces
                             change[3] = change[3].trim();
                         }
                     });
                 }
             },
-            
+
             // Full feature set
             contextMenu: !isReadOnly,
             undo: !isReadOnly,
@@ -272,44 +277,59 @@
             autoColumnSize: false,
             autoRowSize: false,
             copyPaste: !isReadOnly,
+            minRows: 17,
+            minCols: 6,
             enterMoves: { row: 1, col: 0 },
             tabMoves: { row: 0, col: 1 },
             outsideClickDeselects: false,
             selectionMode: 'multiple',
-            mergeCells: true,
             comments: true,
             customBorders: true,
-            
+
             cells: function(row, col) {
                 const cellProperties = {};
+
+                // ✅ Header rows — force editable + plain bold centered styling
+                if (row === 0 || row === 1) {
+                    cellProperties.readOnly = false;
+                    cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
+                        Handsontable.renderers.TextRenderer.call(
+                            this, instance, td, row, col, prop, value, cellProperties
+                        );
+                        td.style.fontWeight = 'bold';
+                        td.style.textAlign = 'center';
+                        td.style.verticalAlign = 'middle';
+                        td.style.whiteSpace = 'normal';
+                        td.style.wordBreak = 'break-word';
+                    };
+                    return cellProperties;
+                }
+
+                // Formula cell indicator
                 const cellData = this.instance.getDataAtCell(row, col);
-                
-                // Add visual indicator for formula cells
                 if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
                     cellProperties.className = 'formula-cell';
                 }
-                
-                // Only apply correct/incorrect coloring if submission has been graded
+
+                // Answer checking — skip header rows
                 if (submissionStatus && correctData && savedData) {
                     const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
                     const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
-                    
+
                     const studentValue = parsedStudent[row]?.[col];
                     const correctValue = parsedCorrect[row]?.[col];
-                    
-                    // Only compare non-empty cells that the STUDENT filled in
+
                     if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
-                        // Normalize values for comparison
                         const normalizeValue = (val) => {
                             if (val === null || val === undefined || val === '') return '';
                             if (typeof val === 'string') return val.trim().toLowerCase();
                             if (typeof val === 'number') return val.toFixed(2);
                             return String(val);
                         };
-                        
+
                         const normalizedStudent = normalizeValue(studentValue);
                         const normalizedCorrect = normalizeValue(correctValue);
-                        
+
                         if (normalizedStudent === normalizedCorrect) {
                             cellProperties.className = (cellProperties.className || '') + ' cell-correct';
                         } else {
@@ -317,12 +337,14 @@
                         }
                     }
                 }
-                
+
                 return cellProperties;
             },
-            
+
             afterRenderer: function (TD, row, col, prop, value, cellProperties) {
-                // Make the border after Credit column (now index 5) bold
+                // Skip header rows
+                if (row === 0 || row === 1) return;
+
                 if (col === 5) {
                     TD.style.borderRight = '3px solid #000000';
                 }
@@ -337,7 +359,7 @@
                 const newIsMobile = window.innerWidth < 640;
                 const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
                 const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
-                
+
                 hot.updateSettings({
                     height: newHeight,
                     columns: [
@@ -361,6 +383,33 @@
                 this.submit();
             });
         }
+
+        // Add CSS for answer + formula styling
+        const style = document.createElement('style');
+        style.textContent = `
+            .formula-cell {
+                background-color: #f8f9fa !important;
+            }
+            .cell-correct {
+                background-color: #dcfce7 !important;
+                border: 2px solid #16a34a !important;
+                color: #166534 !important;
+            }
+            .cell-wrong {
+                background-color: #fee2e2 !important;
+                border: 2px solid #dc2626 !important;
+                color: #991b1b !important;
+            }
+            .handsontable td.cell-correct.area,
+            .handsontable td.cell-correct.current {
+                background-color: #bbf7d0 !important;
+            }
+            .handsontable td.cell-wrong.area,
+            .handsontable td.cell-wrong.current {
+                background-color: #fecaca !important;
+            }
+        `;
+        document.head.appendChild(style);
     });
 </script>
 
