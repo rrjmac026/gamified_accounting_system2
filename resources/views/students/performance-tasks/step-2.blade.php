@@ -210,7 +210,7 @@
 
         // Header rows as editable data
         const headerRow1 = ['Date', '', 'Account Titles and Explanation', 'Account Number', 'Debit (₱)', 'Credit (₱)'];
-        const headerRow2 = ['Month', 'Day', '', '', '', ''];
+        const headerRow2 = ['', '', '', '', '', ''];
         const blankRows = Array(15).fill(null).map(() => Array(6).fill(''));
 
         let initialData;
