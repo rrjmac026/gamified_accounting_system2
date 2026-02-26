@@ -1,13 +1,68 @@
 <x-app-layout>
-    <!-- Handsontable -->
-    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.css" />
+    {{-- ═══════════════════════════ jSpreadsheet CDN ═══════════════════════════ --}}
+    <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/index.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/jspreadsheet.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.css" />
 
-    <!-- Main Container with proper spacing -->
+    <style>
+        /* ── Page Layout ──────────────────────────────────────────────── */
+        body { overflow-x: hidden; }
+        #spreadsheet { width: 100%; }
+        #spreadsheet .jexcel_content { overflow: auto; }
+
+        /* Cell borders */
+        .jexcel td { border-color: #d1d5db !important; }
+
+        /* Header row styling — row 1 only */
+        .jexcel tbody tr:nth-child(1) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #f0fdf4 !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+
+        /* Answer feedback cell colours */
+        .jexcel td.cell-correct {
+            background-color: #dcfce7 !important;
+            border: 2px solid #16a34a !important;
+            color: #166534 !important;
+        }
+        .jexcel td.cell-wrong {
+            background-color: #fee2e2 !important;
+            border: 2px solid #dc2626 !important;
+            color: #991b1b !important;
+        }
+
+        /* Selection tint */
+        .jexcel td.highlight { background-color: rgba(99,102,241,.08) !important; }
+
+        /* Scrollbar */
+        #spreadsheet ::-webkit-scrollbar        { width: 6px; height: 6px; }
+        #spreadsheet ::-webkit-scrollbar-track  { background: transparent; }
+        #spreadsheet ::-webkit-scrollbar-thumb  { background: #d1d5db; border-radius: 9999px; }
+
+        @media (max-width: 640px) {
+            .jexcel td, .jexcel th { font-size: 12px; padding: 4px; }
+        }
+        @media (min-width: 640px) and (max-width: 1024px) {
+            .jexcel td, .jexcel th { font-size: 13px; }
+        }
+
+        /* Animation for flash messages */
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slideDown { animation: slideDown 0.3s ease-out; }
+    </style>
+
+    <!-- Main Container -->
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
-            
-            <!-- Flash Messages Container -->
+
+            {{-- ── Flash messages ──────────────────────────────────────────── --}}
             <div class="mb-6 space-y-4">
                 @if (session('error'))
                     <div class="animate-slideDown">
@@ -19,7 +74,6 @@
                         </div>
                     </div>
                 @endif
-
                 @if (session('success'))
                     <div class="animate-slideDown">
                         <div class="flex items-start gap-3 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg shadow-sm">
@@ -34,13 +88,12 @@
 
             <x-view-answers-button :submission="$submission" :performanceTask="$performanceTask" :step="$step" />
 
-            <!-- Enhanced Header Container with Card Design -->
+            {{-- ── Page Header ──────────────────────────────────────────────── --}}
             <div class="mb-6 sm:mb-8">
                 <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
                     <!-- Colored Top Bar -->
                     <div class="h-2 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-600"></div>
-                    
-                    <!-- Header Content -->
+
                     <div class="p-6 sm:p-8">
                         <!-- Step Indicator and Progress -->
                         <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -51,7 +104,7 @@
                                 </svg>
                                 <span>Step 2 of 10</span>
                             </div>
-                            
+
                             <!-- Progress Bar -->
                             <div class="flex-1 max-w-xs">
                                 <div class="flex items-center gap-2">
@@ -62,15 +115,14 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Title Section with Icon -->
+
+                        <!-- Title Section -->
                         <div class="flex items-start gap-4 mb-4">
                             <div class="flex-shrink-0 w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
                                 <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                                 </svg>
                             </div>
-                            
                             <div class="flex-1">
                                 <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight mb-2">
                                     Journalizing Entries
@@ -80,7 +132,7 @@
                                 </p>
                             </div>
                         </div>
-                        
+
                         <!-- Meta Information Cards -->
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
                             <!-- Attempts Card -->
@@ -95,8 +147,8 @@
                                     <p class="text-lg font-bold text-amber-900">{{ $performanceTask->max_attempts - ($submission->attempts ?? 0) }}/{{ $performanceTask->max_attempts }}</p>
                                 </div>
                             </div>
-                            
-                            <!-- Status Card (if applicable) -->
+
+                            <!-- Status Card -->
                             @if($submission && $submission->status)
                             <div class="flex items-center gap-3 p-3 {{ $submission->status === 'correct' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200' }} rounded-lg border">
                                 <div class="flex-shrink-0 w-10 h-10 {{ $submission->status === 'correct' ? 'bg-green-100' : 'bg-red-100' }} rounded-full flex items-center justify-center">
@@ -114,8 +166,8 @@
                                 </div>
                             </div>
                             @endif
-                            
-                            <!-- Score Card (if applicable) -->
+
+                            <!-- Score Card -->
                             @if(isset($submission->score))
                             <div class="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
                                 <div class="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
@@ -134,8 +186,9 @@
                 </div>
             </div>
 
-            <!-- Main Content Card -->
+            {{-- ── Main Content Card ────────────────────────────────────────── --}}
             <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+
                 <!-- Instructions Section -->
                 <div class="p-4 sm:p-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-indigo-100">
                     <div class="flex items-start gap-3">
@@ -153,30 +206,36 @@
                     </div>
                 </div>
 
-                <form id="saveForm" method="POST" action="{{ route('students.performance-tasks.save-step', ['id' => $performanceTask->id, 'step' => 2]) }}">
+                {{-- ── Form ──────────────────────────────────────────────────── --}}
+                <form id="saveForm"
+                      method="POST"
+                      action="{{ route('students.performance-tasks.save-step', ['id' => $performanceTask->id, 'step' => 2]) }}">
                     @csrf
 
                     <!-- Spreadsheet -->
                     <div class="p-3 sm:p-4 lg:p-6">
                         <div class="border-2 border-gray-300 rounded-xl shadow-inner bg-gray-50 overflow-hidden">
-                            <div class="overflow-x-auto overflow-y-auto" style="max-height: calc(100vh - 400px); min-height: 400px;">
-                                <div id="spreadsheet" class="bg-white min-w-full"></div>
+                            <div class="overflow-x-auto overflow-y-auto"
+                                 style="max-height: calc(100vh - 400px); min-height: 400px;">
+                                <div id="spreadsheet"></div>
                             </div>
                             <input type="hidden" name="submission_data" id="submission_data" required>
                         </div>
 
+                        <!-- Mobile hint -->
                         <div class="mt-3 flex items-center justify-center gap-2 text-xs text-gray-500 sm:hidden">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
                             </svg>
                             <span>Swipe to scroll spreadsheet</span>
                         </div>
                     </div>
 
-                    <!-- Buttons -->
+                    <!-- Action Buttons -->
                     <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
                         <div class="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-                            <button type="button" onclick="window.history.back()" 
+                            <button type="button" onclick="window.history.back()"
                                 class="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 bg-white text-gray-700 border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all text-sm font-medium">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
@@ -184,7 +243,7 @@
                                 Back
                             </button>
 
-                            <button type="submit" id="submitButton" 
+                            <button type="submit" id="submitButton"
                                 class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all text-sm font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                 {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,295 +255,181 @@
                     </div>
                 </form>
             </div>
+
         </div>
     </div>
 
-<script>
-    let hot;
+    {{-- ═══════════════════ jSpreadsheet initialisation ═══════════════════ --}}
+    <script>
+    (function () {
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const container = document.getElementById('spreadsheet');
+        const COL_COUNT   = 6;
+        const MIN_ROWS    = 15;   // data rows below the 1 header row
+        const HEADER_ROWS = 2;    // matches answer sheet slice logic (saves include 2 rows before data)
 
-        // Student's saved answers
-        const savedData = @json($submission->submission_data ?? null);
+        // ── PHP → JS data ────────────────────────────────────────────────────
+        const savedData        = @json($submission->submission_data ?? null);
+        const correctData      = @json($answerSheet->correct_data ?? null);
+        const submissionStatus = @json($submission->status ?? null);
+        const maxAttempts      = @json($performanceTask->max_attempts);
+        const currentAttempts  = @json($submission->attempts ?? 0);
+        const isReadOnly       = currentAttempts >= maxAttempts;
 
-        // Header rows as editable data
+        // ── Header row (mirrors answer sheet exactly — 1 row, no Month/Day) ──
         const headerRow1 = ['Date', '', 'Account Titles and Explanation', 'Account Number', 'Debit (₱)', 'Credit (₱)'];
-        const headerRow2 = ['', '', '', '', '', ''];
-        const blankRows = Array(15).fill(null).map(() => Array(6).fill(''));
 
-        let initialData;
+        const blankRow = () => Array(COL_COUNT).fill('');
+
+        // ── Build initial data (same logic as answer sheet) ───────────────────
+        let dataRows;
         if (savedData) {
             const parsed = JSON.parse(savedData);
-            if (parsed.length <= 15) {
-                // Old format, no headers — prepend them
-                initialData = [headerRow1, headerRow2, ...parsed];
-            } else {
-                // New format, already has headers — force correct headers
-                initialData = [headerRow1, headerRow2, ...parsed.slice(2)];
-            }
+            // Old saves had no headers (≤15 rows); new saves have header rows + data
+            dataRows = parsed.length <= MIN_ROWS
+                ? parsed
+                : parsed.slice(HEADER_ROWS);
         } else {
-            initialData = [headerRow1, headerRow2, ...blankRows];
+            dataRows = Array(MIN_ROWS).fill(null).map(blankRow);
         }
 
-        // Instructor's correct data
-        const correctData = @json($answerSheet->correct_data ?? null);
-        const submissionStatus = @json($submission->status ?? null);
-        const maxAttempts = @json($performanceTask->max_attempts);
-        const currentAttempts = @json($submission->attempts ?? 0);
-        const isReadOnly = currentAttempts >= maxAttempts;
+        // Pad to MIN_ROWS
+        while (dataRows.length < MIN_ROWS) dataRows.push(blankRow());
 
-        // Initialize HyperFormula with whitespace support
-        const hyperformulaInstance = HyperFormula.buildEmpty({
-            licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any',
-        });
+        // Full dataset: 1 header row first, then data rows
+        const fullData = [headerRow1, ...dataRows];
 
-        // Determine responsive dimensions
+        // ── Responsive dimensions ─────────────────────────────────────────────
         const isMobile = window.innerWidth < 640;
         const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
 
-        // Create columns config
-        const columnsConfig = [
-            { type: 'text', width: isMobile ? 60 : 80 },
-            { type: 'text', width: isMobile ? 60 : 80 },
-            { type: 'text', width: isMobile ? 250 : 350 },
-            { type: 'text', width: isMobile ? 80 : 100 },
-            { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 130 },
-            { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 100 : 130 },
-        ];
+        const colWidths = isMobile
+            ? [80,  80,  300, 80,  120, 120]
+            : isTablet
+                ? [90,  90,  350, 90,  130, 130]
+                : [100, 100, 400, 100, 150, 150];
 
-        // Merge cells to replicate the colspan behavior of nestedHeaders
-        const mergeCellsConfig = [
-            { row: 0, col: 0, rowspan: 1, colspan: 2 }, // Date spanning Month + Day
-        ];
+        // ── Merge cells — "Date" in row 1 spans cols A & B ───────────────────
+        const mergeCells = { 'A1': [2, 1] };
 
-        hot = new Handsontable(container, {
-            data: initialData,
-            columns: columnsConfig,
-            rowHeaders: true,
-            width: '100%',
-            height: isMobile ? 350 : (isTablet ? 450 : 500),
-            licenseKey: 'non-commercial-and-evaluation',
-            readOnly: isReadOnly,
-
-            // Formula support
-            formulas: { engine: hyperformulaInstance },
-
-            mergeCells: mergeCellsConfig,
-
-            // Handle formula input with whitespace
-            beforeChange: function(changes, source) {
-                if (!isReadOnly && changes) {
-                    changes.forEach(function(change) {
-                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
-                            change[3] = change[3].trim();
-                        }
-                    });
-                }
-            },
-
-            // Cell renderer for header styling + formula indicator
-            cells: function(row, col) {
-                const cellProperties = {};
-
-                cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-
-                    // Style rows 0 and 1 — plain bold centered (header rows)
-                    if (row === 0 || row === 1) {
-                        Handsontable.renderers.TextRenderer.call(
-                            this, instance, td, row, col, prop, value, cellProperties
-                        );
-                        td.style.fontWeight = 'bold';
-                        td.style.textAlign = 'center';
-                        td.style.verticalAlign = 'middle';
-                        td.style.whiteSpace = 'normal';
-                        td.style.wordBreak = 'break-word';
-                        return;
-                    }
-
-                    // Formula cell indicator
-                    if (value && typeof value === 'string' && value.startsWith('=')) {
-                        cellProperties.className = 'formula-cell';
-                    }
-
-                    // Default rendering
-                    Handsontable.renderers.TextRenderer.call(
-                        this, instance, td, row, col, prop, value, cellProperties
-                    );
-                };
-
-                return cellProperties;
-            },
-
-            stretchH: 'none',
-            contextMenu: !isReadOnly,
-            undo: !isReadOnly,
-            manualColumnResize: true,
-            manualRowResize: true,
-            manualColumnMove: !isReadOnly,
-            manualRowMove: !isReadOnly,
-            fillHandle: !isReadOnly,
-            autoColumnSize: false,
-            autoRowSize: false,
-            copyPaste: !isReadOnly,
-            minRows: 17,
-            minCols: 6,
-            minSpareRows: 1,
-            enterMoves: { row: 1, col: 0 },
-            tabMoves: { row: 0, col: 1 },
-            outsideClickDeselects: false,
-            selectionMode: 'multiple',
-            comments: true,
-            customBorders: true,
-
-            afterRenderer: function (TD, row, col, prop, value, cellProperties) {
-                // Skip answer checking for header rows
-                if (row === 0 || row === 1) return;
-
-                if (submissionStatus && correctData && savedData) {
-                    try {
-                        const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
-                        const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
-
-                        const studentValue = parsedStudent[row]?.[col];
-                        const correctValue = parsedCorrect[row]?.[col];
-
-                        if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
-                            const normalizedStudent = String(studentValue).trim().toLowerCase();
-                            const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
-
-                            if (normalizedStudent === normalizedCorrect) {
-                                TD.classList.add('cell-correct');
-                            } else {
-                                TD.classList.add('cell-wrong');
-                            }
-                        }
-                    } catch (error) {
-                        console.warn('Error applying answer styling:', error);
-                    }
-                }
-            }
+        // ── Cell styles for header row only ───────────────────────────────────
+        const letters = ['A','B','C','D','E','F'];
+        const headerStyle = {};
+        letters.forEach(l => {
+            headerStyle[`${l}1`] = 'font-weight:700;text-align:center;background:#f0fdf4;white-space:normal;word-break:break-word;';
         });
 
-        // Responsive resize handler
-        let resizeTimer;
-        window.addEventListener('resize', function() {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {
-                const newIsMobile = window.innerWidth < 640;
-                const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-                const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
+        // ── Init jSpreadsheet ─────────────────────────────────────────────────
+        const container = document.getElementById('spreadsheet');
 
-                hot.updateSettings({
-                    height: newHeight,
-                    columns: [
-                        { type: 'text', width: newIsMobile ? 60 : 80 },
-                        { type: 'text', width: newIsMobile ? 60 : 80 },
-                        { type: 'text', width: newIsMobile ? 250 : 350 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 100 : 130 },
-                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 100 : 130 },
-                    ]
-                });
+        const table = jspreadsheet(container, {
+            data            : fullData,
+            minDimensions   : [COL_COUNT, fullData.length],
+            defaultColWidth : isMobile ? 120 : 150,
+            mergeCells      : mergeCells,
+            style           : headerStyle,
+            tableWidth      : '100%',
+            tableOverflow   : true,
+            tableHeight     : isMobile ? '350px' : (isTablet ? '450px' : '500px'),
+            allowFormulas   : true,
+            columnSorting   : false,
+            columnDrag      : false,
+            rowDrag         : false,
+            allowInsertRow  : !isReadOnly,
+            allowInsertColumn: false,
+            allowDeleteRow  : !isReadOnly,
+            allowDeleteColumn: false,
+            columnResize    : true,
+            rowResize       : true,
+            copyCompatibility: true,
+            editable        : !isReadOnly,
+            minSpareRows    : isReadOnly ? 0 : 1,
+
+            // ── Context menu ─────────────────────────────────────────────────
+            contextMenu: isReadOnly ? false : function (obj, x, y, e) {
+                return [
+                    { title: 'Insert row above', onclick: () => obj.insertRow(1, parseInt(y), true) },
+                    { title: 'Insert row below', onclick: () => obj.insertRow(1, parseInt(y)) },
+                    { title: 'Delete row',       onclick: () => obj.deleteRow(parseInt(y)) },
+                    { type: 'line' },
+                    { title: 'Copy',  onclick: () => obj.copy(true) },
+                    { title: 'Paste', onclick: () => {
+                        if (navigator.clipboard) {
+                            navigator.clipboard.readText().then(t => obj.paste(x, y, t));
+                        }
+                    }},
+                ];
+            },
+
+            // ── Apply answer-checking colours after render ────────────────────
+            onload: function (instance) {
+                applyAnswerStyles(instance);
+            },
+            onchange: function (instance) {
+                // Re-apply after any edit so colours stay current
+                applyAnswerStyles(instance);
+            },
+        });
+
+        // ── Answer-checking colour helper ─────────────────────────────────────
+        function applyAnswerStyles(instance) {
+            if (!submissionStatus || !correctData || !savedData) return;
+
+            try {
+                const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
+                const data = table.getData();
+
+                // Start from row index 1 — skip the 1 rendered header row (index 0)
+                for (let r = 1; r < data.length; r++) {
+                    for (let c = 0; c < COL_COUNT; c++) {
+                        const studentVal = data[r][c];
+                        const correctVal = parsedCorrect[r] ? parsedCorrect[r][c] : undefined;
+
+                        // Find the TD element
+                        const td = instance.el
+                            ? instance.el.querySelector(`tbody tr:nth-child(${r + 1}) td:nth-child(${c + 2})`)
+                            : null;
+
+                        if (!td) continue;
+
+                        td.classList.remove('cell-correct', 'cell-wrong');
+
+                        if (studentVal !== null && studentVal !== undefined && String(studentVal).trim() !== '') {
+                            const normStudent = String(studentVal).trim().toLowerCase();
+                            const normCorrect = String(correctVal ?? '').trim().toLowerCase();
+                            td.classList.add(normStudent === normCorrect ? 'cell-correct' : 'cell-wrong');
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Error applying answer styles:', err);
+            }
+        }
+
+        // ── Responsive height on window resize ───────────────────────────────
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const newMobile = window.innerWidth < 640;
+                const newTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+                const h = newMobile ? '350px' : (newTablet ? '450px' : '500px');
+                const el = container.querySelector('.jexcel_content');
+                if (el) el.style.maxHeight = h;
             }, 250);
         });
 
-        // Save submission data
+        // ── Form submit: serialise full grid ──────────────────────────────────
         const form = document.getElementById('saveForm');
         if (form && !isReadOnly) {
-            form.addEventListener('submit', function(e) {
+            form.addEventListener('submit', function (e) {
                 e.preventDefault();
-                document.getElementById('submission_data').value = JSON.stringify(hot.getData());
+                // getData() returns the full 2-D array including both header rows
+                document.getElementById('submission_data').value = JSON.stringify(table.getData());
                 this.submit();
             });
         }
 
-        // Add CSS for answer + formula styling
-        const style = document.createElement('style');
-        style.textContent = `
-            .cell-correct {
-                background-color: #dcfce7 !important;
-                border: 2px solid #16a34a !important;
-                color: #166534 !important;
-            }
-            .cell-wrong {
-                background-color: #fee2e2 !important;
-                border: 2px solid #dc2626 !important;
-                color: #991b1b !important;
-            }
-            .handsontable td.cell-correct.area,
-            .handsontable td.cell-correct.current {
-                background-color: #bbf7d0 !important;
-            }
-            .handsontable td.cell-wrong.area,
-            .handsontable td.cell-wrong.current {
-                background-color: #fecaca !important;
-            }
-            .formula-cell {
-                background-color: #f8f9fa !important;
-            }
-        `;
-        document.head.appendChild(style);
-    });
-</script>
+    })();
+    </script>
 
-    <style>
-        body { overflow-x: hidden; }
-        .handsontable td { 
-            border-color: #d1d5db;
-            background-color: #ffffff;
-        }
-        .handsontable .area { background-color: rgba(99, 102, 241, 0.1); }
-        .handsontable { position: relative; z-index: 1; }
-        #spreadsheet { isolation: isolate; }
-        .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
-
-        /* Correct/Incorrect answer styling */
-        .handsontable td.cell-correct {
-            background-color: #dcfce7 !important;
-            border: 2px solid #16a34a !important;
-            color: #166534;
-        }
-
-        .handsontable td.cell-wrong {
-            background-color: #fee2e2 !important;
-            border: 2px solid #dc2626 !important;
-            color: #991b1b;
-        }
-
-        /* Prevent selected cells from overriding colors */
-        .handsontable td.cell-correct.area,
-        .handsontable td.cell-correct.current {
-            background-color: #bbf7d0 !important;
-        }
-
-        .handsontable td.cell-wrong.area,
-        .handsontable td.cell-wrong.current {
-            background-color: #fecaca !important;
-        }
-
-        @media (max-width: 640px) {
-            .handsontable { font-size: 12px; }
-            .handsontable th, .handsontable td { padding: 4px; }
-        }
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .handsontable { font-size: 13px; }
-        }
-
-        /* Animation for flash messages */
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .animate-slideDown {
-            animation: slideDown 0.3s ease-out;
-        }
-    </style>
 </x-app-layout>

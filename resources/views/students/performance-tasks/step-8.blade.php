@@ -1,9 +1,9 @@
 <x-app-layout>
-    <!-- Handsontable -->
-    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.css" />
-    <!-- Formula Parser (HyperFormula) -->
-    <script src="https://cdn.jsdelivr.net/npm/hyperformula@2.6.2/dist/hyperformula.full.min.js"></script>
+    {{-- ═══════════════════════════ jSpreadsheet CDN ═══════════════════════════ --}}
+    <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/index.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/jspreadsheet.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.css" />
 
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
@@ -181,310 +181,231 @@
                     </form>
                 </div>
             </div>
+        </div>
+    </div>
 
+    {{-- ═══════════════════ jSpreadsheet initialisation ═══════════════════ --}}
+    <script>
+    (function () {
 
-<script>
-    let hot;
-    document.addEventListener('DOMContentLoaded', function () {
-        const container = document.getElementById('spreadsheet');
+        const container  = document.getElementById('spreadsheet');
+        const savedData  = @json($submission->submission_data ?? null);
 
-        // Student's saved answers
-        const savedData = @json($submission->submission_data ?? null);
+        // Answer checking variables
+        const correctData      = @json($answerSheet->correct_data ?? null);
+        const submissionStatus = @json($submission->status ?? null);
+        const maxAttempts      = @json($performanceTask->max_attempts);
+        const currentAttempts  = @json($submission->attempts ?? 0);
+        const isReadOnly       = currentAttempts >= maxAttempts;
 
-        // Header rows as editable data
+        // ── Constants ─────────────────────────────────────────────────────────
+        const HEADER_ROWS   = 1;
+        const COL_COUNT     = 6;
+        const MIN_DATA_ROWS = 15;
+
+        // ── Header rows — identical to answer sheet ───────────────────────────
         const headerRow1 = ['Date', '', 'Account Titles and Explanation', 'Account Number', 'Debit (₱)', 'Credit (₱)'];
-        const headerRow2 = ['Month', 'Day', '', '', '', ''];
-        const blankRows = Array(15).fill(null).map(() => Array(6).fill(''));
+        const blankRow   = () => Array(COL_COUNT).fill('');
 
-        let initialData;
+        // ── Restore saved data ────────────────────────────────────────────────
+        let dataRows;
         if (savedData) {
             const parsed = JSON.parse(savedData);
-            if (parsed.length <= 15) {
-                // Old format, no headers — prepend them
-                initialData = [headerRow1, headerRow2, ...parsed];
+            if (parsed.length <= MIN_DATA_ROWS) {
+                // Old format — no headers stored
+                dataRows = parsed;
             } else {
-                // New format, already has headers — force correct headers
-                initialData = [headerRow1, headerRow2, ...parsed.slice(2)];
+                // New format — strip the header row(s)
+                dataRows = parsed.slice(HEADER_ROWS);
             }
         } else {
-            initialData = [headerRow1, headerRow2, ...blankRows];
+            dataRows = Array(MIN_DATA_ROWS).fill(null).map(blankRow);
         }
 
-        // Instructor's correct data
-        const correctData = @json($answerSheet->correct_data ?? null);
-        const submissionStatus = @json($submission->status ?? null);
-        const maxAttempts = @json($performanceTask->max_attempts);
-        const currentAttempts = @json($submission->attempts ?? 0);
-        const isReadOnly = currentAttempts >= maxAttempts;
+        while (dataRows.length < MIN_DATA_ROWS) dataRows.push(blankRow());
 
-        // Initialize HyperFormula with whitespace support
-        const hyperformulaInstance = HyperFormula.buildEmpty({
-            licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any',
+        const fullData = [headerRow1, ...dataRows];
+
+        // ── Merge cells — "Date" spans cols A-B in row 1 ─────────────────────
+        const mergeCells = {
+            'A1': [2, 1],
+        };
+
+        // ── Cell styles ───────────────────────────────────────────────────────
+        const cellStyle = {};
+
+        // Row 1: main headers — grey background, bold, centred
+        ['A1','B1','C1','D1','E1','F1'].forEach(ref => {
+            cellStyle[ref] = 'font-weight:700;text-align:center;background:#e5e7eb;white-space:normal;word-break:break-word;border-bottom:2px solid #6b7280;';
         });
 
-        // Determine responsive dimensions
-        const isMobile = window.innerWidth < 640;
-        const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+        // ── Answer checking cell styles ───────────────────────────────────────
+        if (submissionStatus && correctData && savedData) {
+            const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
+            const parsedStudent = typeof savedData   === 'string' ? JSON.parse(savedData)   : savedData;
 
-        hot = new Handsontable(container, {
-            data: initialData,
-            rowHeaders: true,
-            width: '100%',
-            height: isMobile ? 350 : (isTablet ? 450 : 500),
-            licenseKey: 'non-commercial-and-evaluation',
-            readOnly: isReadOnly,
+            const normalizeValue = (val) => {
+                if (val === null || val === undefined || val === '') return '';
+                if (typeof val === 'string') return val.trim().toLowerCase();
+                if (typeof val === 'number') return val.toFixed(2);
+                return String(val);
+            };
 
-            // ✅ mergeCells replaces nestedHeaders colspan behavior
-            mergeCells: [
-                { row: 0, col: 0, rowspan: 1, colspan: 2 }, // Date spanning Month + Day
-            ],
+            const colLetters = ['A','B','C','D','E','F'];
 
-            columns: [
-                { type: 'text', width: isMobile ? 80 : 100 },
-                { type: 'text', width: isMobile ? 80 : 100 },
-                { type: 'text', width: isMobile ? 300 : 400 },
-                { type: 'text', width: isMobile ? 80 : 100 },
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
-            ],
+            // parsedStudent may or may not include header rows — align to fullData indexing
+            // fullData row 0 = headerRow1; row 1+ = data rows
+            // parsedStudent: if old format (no headers), row 0 = first data row
+            //                if new format (has headers), row 0 = header row
+            const studentOffset = parsedStudent.length <= MIN_DATA_ROWS ? 0 : HEADER_ROWS;
+            const correctOffset = parsedCorrect.length <= MIN_DATA_ROWS ? 0 : HEADER_ROWS;
 
-            stretchH: 'none',
-            minSpareRows: 1,
+            for (let r = 1; r < fullData.length; r++) {
+                for (let c = 0; c < COL_COUNT; c++) {
+                    const studentVal = parsedStudent[r - HEADER_ROWS + studentOffset]?.[c];
+                    const correctVal = parsedCorrect[r - HEADER_ROWS + correctOffset]?.[c];
 
-            // Formula support with whitespace handling
-            formulas: { engine: hyperformulaInstance },
-
-            // Handle formula input with whitespace
-            beforeChange: function(changes, source) {
-                if (!isReadOnly && changes) {
-                    changes.forEach(function(change) {
-                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
-                            change[3] = change[3].trim();
-                        }
-                    });
-                }
-            },
-
-            // Full feature set
-            contextMenu: !isReadOnly,
-            undo: !isReadOnly,
-            manualColumnResize: true,
-            manualRowResize: true,
-            manualColumnMove: !isReadOnly,
-            manualRowMove: !isReadOnly,
-            fillHandle: !isReadOnly,
-            autoColumnSize: false,
-            autoRowSize: false,
-            copyPaste: !isReadOnly,
-            minRows: 17,
-            minCols: 6,
-            enterMoves: { row: 1, col: 0 },
-            tabMoves: { row: 0, col: 1 },
-            outsideClickDeselects: false,
-            selectionMode: 'multiple',
-            comments: true,
-            customBorders: true,
-
-            cells: function(row, col) {
-                const cellProperties = {};
-
-                // ✅ Header rows — force editable + plain bold centered styling
-                if (row === 0 || row === 1) {
-                    cellProperties.readOnly = false;
-                    cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.TextRenderer.call(
-                            this, instance, td, row, col, prop, value, cellProperties
-                        );
-                        td.style.fontWeight = 'bold';
-                        td.style.textAlign = 'center';
-                        td.style.verticalAlign = 'middle';
-                        td.style.whiteSpace = 'normal';
-                        td.style.wordBreak = 'break-word';
-                    };
-                    return cellProperties;
-                }
-
-                // Formula cell indicator
-                const cellData = this.instance.getDataAtCell(row, col);
-                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
-                    cellProperties.className = 'formula-cell';
-                }
-
-                // Answer checking — skip header rows
-                if (submissionStatus && correctData && savedData) {
-                    const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
-                    const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
-
-                    const studentValue = parsedStudent[row]?.[col];
-                    const correctValue = parsedCorrect[row]?.[col];
-
-                    if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
-                        const normalizeValue = (val) => {
-                            if (val === null || val === undefined || val === '') return '';
-                            if (typeof val === 'string') return val.trim().toLowerCase();
-                            if (typeof val === 'number') return val.toFixed(2);
-                            return String(val);
-                        };
-
-                        const normalizedStudent = normalizeValue(studentValue);
-                        const normalizedCorrect = normalizeValue(correctValue);
-
-                        if (normalizedStudent === normalizedCorrect) {
-                            cellProperties.className = (cellProperties.className || '') + ' cell-correct';
+                    if (studentVal !== null && studentVal !== undefined && studentVal !== '') {
+                        const ns = normalizeValue(studentVal);
+                        const nc = normalizeValue(correctVal);
+                        const cellRef = colLetters[c] + (r + 1);
+                        if (ns === nc) {
+                            cellStyle[cellRef] = (cellStyle[cellRef] || '') +
+                                'background-color:#dcfce7!important;border:2px solid #16a34a!important;color:#166534!important;';
                         } else {
-                            cellProperties.className = (cellProperties.className || '') + ' cell-wrong';
+                            cellStyle[cellRef] = (cellStyle[cellRef] || '') +
+                                'background-color:#fee2e2!important;border:2px solid #dc2626!important;color:#991b1b!important;';
                         }
                     }
                 }
+            }
+        }
 
-                return cellProperties;
+        // ── Responsive dimensions ─────────────────────────────────────────────
+        const isMobile = window.innerWidth < 640;
+        const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+
+        // ── Init jSpreadsheet ─────────────────────────────────────────────────
+        const table = jspreadsheet(container, {
+            data             : fullData,
+            minDimensions    : [COL_COUNT, fullData.length],
+            defaultColWidth  : isMobile ? 120 : 150,
+            mergeCells       : mergeCells,
+            style            : cellStyle,
+            tableWidth       : '100%',
+            tableOverflow    : true,
+            tableHeight      : isMobile ? '350px' : (isTablet ? '450px' : '500px'),
+            allowFormulas    : true,
+            columnSorting    : false,
+            columnDrag       : false,
+            rowDrag          : false,
+            allowInsertRow   : !isReadOnly,
+            allowInsertColumn: false,
+            allowDeleteRow   : !isReadOnly,
+            allowDeleteColumn: false,
+            columnResize     : true,
+            rowResize        : true,
+            copyCompatibility: true,
+            minSpareRows     : isReadOnly ? 0 : 1,
+            editable         : !isReadOnly,
+
+            columns: [
+            ],
+
+            contextMenu: isReadOnly ? false : function (obj, x, y, e) {
+                return [
+                    { title: 'Insert row above', onclick: () => obj.insertRow(1, parseInt(y), true) },
+                    { title: 'Insert row below', onclick: () => obj.insertRow(1, parseInt(y)) },
+                    { title: 'Delete row',       onclick: () => obj.deleteRow(parseInt(y)) },
+                    { type: 'line' },
+                    { title: 'Copy',  onclick: () => obj.copy(true) },
+                    { title: 'Paste', onclick: () => {
+                        if (navigator.clipboard) {
+                            navigator.clipboard.readText().then(t => obj.paste(x, y, t));
+                        }
+                    }},
+                ];
             },
 
-            afterRenderer: function (TD, row, col, prop, value, cellProperties) {
-                // Skip header rows
-                if (row === 0 || row === 1) return;
-
-                if (col === 5) {
-                    TD.style.borderRight = '3px solid #000000';
-                }
-            }
+            onload  : function () { applyBorders(); },
+            onchange: function () { applyBorders(); },
         });
 
-        // Responsive resize handler
-        let resizeTimer;
-        window.addEventListener('resize', function() {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {
-                const newIsMobile = window.innerWidth < 640;
-                const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-                const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
-
-                hot.updateSettings({
-                    height: newHeight,
-                    columns: [
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 300 : 400 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 120 : 150 },
-                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 120 : 150 },
-                    ]
+        // ── Right-border on Credit column (col F / index 5) ──────────────────
+        function applyBorders() {
+            const tbody = container.querySelector('.jexcel tbody');
+            if (!tbody) return;
+            tbody.querySelectorAll('tr').forEach((tr, rowIdx) => {
+                const cells = tr.querySelectorAll('td');
+                cells.forEach((td, tdIdx) => {
+                    if (tdIdx === 0) return;          // skip row-number td
+                    const colIdx = tdIdx - 1;         // real 0-based data column
+                    if (colIdx === 5) {
+                        td.style.borderRight = '3px solid #000000';
+                    }
                 });
+            });
+        }
+
+        setTimeout(applyBorders, 100);
+
+        // ── Expose for potential external use ─────────────────────────────────
+        window.table = table;
+
+        // ── Responsive resize ─────────────────────────────────────────────────
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const el = container.querySelector('.jexcel_content');
+                if (el) {
+                    const nm = window.innerWidth < 640;
+                    const nt = window.innerWidth >= 640 && window.innerWidth < 1024;
+                    el.style.maxHeight = nm ? '350px' : (nt ? '450px' : '500px');
+                }
             }, 250);
         });
 
-        // Keep data synced before form submission
+        // ── Form submit ───────────────────────────────────────────────────────
         const form = document.getElementById('saveForm');
         if (form && !isReadOnly) {
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
-                document.getElementById('submission_data').value = JSON.stringify(hot.getData());
+                document.getElementById('submission_data').value = JSON.stringify(table.getData());
                 this.submit();
             });
         }
 
-        // Add CSS for answer + formula styling
-        const style = document.createElement('style');
-        style.textContent = `
-            .formula-cell {
-                background-color: #f8f9fa !important;
-            }
-            .cell-correct {
-                background-color: #dcfce7 !important;
-                border: 2px solid #16a34a !important;
-                color: #166534 !important;
-            }
-            .cell-wrong {
-                background-color: #fee2e2 !important;
-                border: 2px solid #dc2626 !important;
-                color: #991b1b !important;
-            }
-            .handsontable td.cell-correct.area,
-            .handsontable td.cell-correct.current {
-                background-color: #bbf7d0 !important;
-            }
-            .handsontable td.cell-wrong.area,
-            .handsontable td.cell-wrong.current {
-                background-color: #fecaca !important;
-            }
-        `;
-        document.head.appendChild(style);
-    });
-</script>
+    })();
+    </script>
 
-<style>
-    body { overflow-x: hidden; }
-    .handsontable td { 
-        border-color: #d1d5db;
-        background-color: #ffffff; /* Default white background */
-    }
-    .handsontable th { background-color: #f3f4f6; font-weight: 600; }
-    .handsontable .area { background-color: rgba(59,130,246,0.1); }
-    .handsontable { position: relative; z-index: 1; }
-    #spreadsheet { isolation: isolate; }
-    .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+    <style>
+        body { overflow-x: hidden; }
 
-    /* Formula cell indicator */
-    .handsontable td.formula-cell {
-        font-style: italic;
-        background-color: #f0f9ff !important;
-        border-left: 3px solid #3b82f6 !important;
-    }
-
-    /* Formula cell selected states */
-    .handsontable td.formula-cell.area,
-    .handsontable td.formula-cell.current {
-        background-color: #dbeafe !important;
-    }
-
-    /* Correct/Incorrect answer styling - consistent with Step 6 */
-    .handsontable td.cell-correct {
-        background-color: #dcfce7 !important; /* Light green */
-        border: 2px solid #16a34a !important; /* Green border */
-        color: #166534;
-    }
-
-    .handsontable td.cell-wrong {
-        background-color: #fee2e2 !important; /* Light red */
-        border: 2px solid #dc2626 !important; /* Red border */
-        color: #991b1b;
-    }
-
-    /* Prevent selected cells from overriding colors */
-    .handsontable td.cell-correct.area,
-    .handsontable td.cell-correct.current {
-        background-color: #bbf7d0 !important; /* Slightly darker green when selected */
-    }
-
-    .handsontable td.cell-wrong.area,
-    .handsontable td.cell-wrong.current {
-        background-color: #fecaca !important; /* Slightly darker red when selected */
-    }
-
-    @media (max-width: 640px) {
-        .handsontable { font-size: 12px; }
-        .handsontable th, .handsontable td { padding: 4px; }
-    }
-    @media (min-width: 640px) and (max-width: 1024px) {
-        .handsontable { font-size: 13px; }
-    }
-
-    /* Animation for flash messages */
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
+        /* ── Row 1 — main header ─────────────────────────────────────────────── */
+        .jexcel tbody tr:nth-child(1) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #e5e7eb !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            border-bottom: 2px solid #6b7280 !important;
         }
-        to {
-            opacity: 1;
-            transform: translateY(0);
+
+        /* ── Scrollbar polish ────────────────────────────────────────────────── */
+        #spreadsheet ::-webkit-scrollbar        { width: 6px; height: 6px; }
+        #spreadsheet ::-webkit-scrollbar-track  { background: transparent; }
+        #spreadsheet ::-webkit-scrollbar-thumb  { background: #d1d5db; border-radius: 9999px; }
+
+        @media (max-width: 640px) { .jexcel td, .jexcel th { font-size: 12px; padding: 4px; } }
+        @media (min-width: 640px) and (max-width: 1024px) { .jexcel td, .jexcel th { font-size: 13px; } }
+
+        /* Animation for flash messages */
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
-    }
-    .animate-slideDown {
-        animation: slideDown 0.3s ease-out;
-    }
-</style>
-        </div>
-    </div>
+        .animate-slideDown { animation: slideDown 0.3s ease-out; }
+    </style>
+
 </x-app-layout>

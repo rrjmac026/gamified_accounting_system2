@@ -1,13 +1,70 @@
 <x-app-layout>
-    <!-- Handsontable -->
-    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.css" />
+    {{-- ═══════════════════════════ jSpreadsheet CDN ═══════════════════════════ --}}
+    <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/index.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/jspreadsheet.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.css" />
 
-    <!-- Main Container with proper spacing -->
+    <style>
+        body { overflow-x: hidden; }
+        #spreadsheet { width: 100%; }
+        #spreadsheet .jexcel_content { overflow: auto; }
+
+        .jexcel td { border-color: #d1d5db !important; }
+
+        /* Row 1 — account name headers (copied from answer sheet) */
+        .jexcel tbody tr:nth-child(1) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #e5e7eb !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            border-bottom: 2px solid #6b7280 !important;
+        }
+
+        /* Row 2 — Date / Debit / Credit sub-labels (copied from answer sheet) */
+        .jexcel tbody tr:nth-child(2) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #f3f4f6 !important;
+            border-bottom: 2px solid #6b7280 !important;
+        }
+
+        /* Answer feedback cell colours */
+        .jexcel td.cell-correct {
+            background-color: #dcfce7 !important;
+            border: 2px solid #16a34a !important;
+            color: #166534 !important;
+        }
+        .jexcel td.cell-wrong {
+            background-color: #fee2e2 !important;
+            border: 2px solid #dc2626 !important;
+            color: #991b1b !important;
+        }
+
+        /* Selection tint */
+        .jexcel td.highlight { background-color: rgba(147,51,234,.08) !important; }
+
+        /* Scrollbar */
+        #spreadsheet ::-webkit-scrollbar        { width: 6px; height: 6px; }
+        #spreadsheet ::-webkit-scrollbar-track  { background: transparent; }
+        #spreadsheet ::-webkit-scrollbar-thumb  { background: #d1d5db; border-radius: 9999px; }
+
+        @media (max-width: 640px)                        { .jexcel td, .jexcel th { font-size: 12px; padding: 4px; } }
+        @media (min-width: 640px) and (max-width: 1024px) { .jexcel td, .jexcel th { font-size: 13px; } }
+
+        /* Animation for flash messages */
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slideDown { animation: slideDown 0.3s ease-out; }
+    </style>
+
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
-            
-            <!-- Flash Messages Container -->
+
+            {{-- ── Flash messages ──────────────────────────────────────────── --}}
             <div class="mb-6 space-y-4">
                 @if (session('error'))
                     <div class="animate-slideDown">
@@ -19,7 +76,6 @@
                         </div>
                     </div>
                 @endif
-
                 @if (session('success'))
                     <div class="animate-slideDown">
                         <div class="flex items-start gap-3 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg shadow-sm">
@@ -34,13 +90,11 @@
 
             <x-view-answers-button :submission="$submission" :performanceTask="$performanceTask" :step="$step" />
 
-            <!-- Enhanced Header Container with Card Design -->
+            {{-- ── Page Header ──────────────────────────────────────────────── --}}
             <div class="mb-6 sm:mb-8">
                 <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                    <!-- Colored Top Bar -->
                     <div class="h-2 bg-gradient-to-r from-purple-500 via-pink-600 to-red-600"></div>
-                    
-                    <!-- Header Content -->
+
                     <div class="p-6 sm:p-8">
                         <!-- Step Indicator and Progress -->
                         <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -51,8 +105,7 @@
                                 </svg>
                                 <span>Step 3 of 10</span>
                             </div>
-                            
-                            <!-- Progress Bar -->
+
                             <div class="flex-1 max-w-xs">
                                 <div class="flex items-center gap-2">
                                     <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
@@ -62,15 +115,14 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Title Section with Icon -->
+
+                        <!-- Title -->
                         <div class="flex items-start gap-4 mb-4">
                             <div class="flex-shrink-0 w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                                 <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                                 </svg>
                             </div>
-                            
                             <div class="flex-1">
                                 <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight mb-2">
                                     Posting to the Ledger
@@ -80,10 +132,9 @@
                                 </p>
                             </div>
                         </div>
-                        
-                        <!-- Meta Information Cards -->
+
+                        <!-- Meta Cards -->
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
-                            <!-- Attempts Card -->
                             <div class="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
                                 <div class="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
                                     <svg class="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
@@ -95,8 +146,7 @@
                                     <p class="text-lg font-bold text-amber-900">{{ $performanceTask->max_attempts - ($submission->attempts ?? 0) }}/{{ $performanceTask->max_attempts }}</p>
                                 </div>
                             </div>
-                            
-                            <!-- Status Card (if applicable) -->
+
                             @if($submission && $submission->status)
                             <div class="flex items-center gap-3 p-3 {{ $submission->status === 'correct' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200' }} rounded-lg border">
                                 <div class="flex-shrink-0 w-10 h-10 {{ $submission->status === 'correct' ? 'bg-green-100' : 'bg-red-100' }} rounded-full flex items-center justify-center">
@@ -114,8 +164,7 @@
                                 </div>
                             </div>
                             @endif
-                            
-                            <!-- Score Card (if applicable) -->
+
                             @if(isset($submission->score))
                             <div class="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
                                 <div class="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
@@ -134,9 +183,10 @@
                 </div>
             </div>
 
-            <!-- Main Content Card -->
+            {{-- ── Main Content Card ────────────────────────────────────────── --}}
             <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                <!-- Instructions Section -->
+
+                <!-- Instructions -->
                 <div class="p-4 sm:p-6 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100">
                     <div class="flex items-start gap-3">
                         <div class="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -153,13 +203,16 @@
                     </div>
                 </div>
 
-                <form id="saveForm" method="POST" action="{{ route('students.performance-tasks.save-step', ['id' => $performanceTask->id, 'step' => 3]) }}">
+                {{-- ── Form ──────────────────────────────────────────────────── --}}
+                <form id="saveForm"
+                      method="POST"
+                      action="{{ route('students.performance-tasks.save-step', ['id' => $performanceTask->id, 'step' => 3]) }}">
                     @csrf
 
-                    <!-- Spreadsheet -->
                     <div class="p-3 sm:p-4 lg:p-6">
                         <div class="border-2 border-gray-300 rounded-xl shadow-inner bg-gray-50 overflow-hidden">
-                            <div class="overflow-x-auto overflow-y-auto" style="max-height: calc(100vh - 400px); min-height: 400px;">
+                            <div class="overflow-x-auto overflow-y-auto"
+                                 style="max-height: calc(100vh - 400px); min-height: 400px;">
                                 <div id="spreadsheet" class="bg-white min-w-full"></div>
                             </div>
                             <input type="hidden" name="submission_data" id="submission_data" required>
@@ -167,16 +220,17 @@
 
                         <div class="mt-3 flex items-center justify-center gap-2 text-xs text-gray-500 sm:hidden">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
                             </svg>
                             <span>Swipe to scroll spreadsheet</span>
                         </div>
                     </div>
 
-                    <!-- Buttons -->
+                    <!-- Action Buttons -->
                     <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
                         <div class="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-                            <button type="button" onclick="window.history.back()" 
+                            <button type="button" onclick="window.history.back()"
                                 class="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 bg-white text-gray-700 border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all text-sm font-medium">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
@@ -184,7 +238,7 @@
                                 Back
                             </button>
 
-                            <button type="submit" id="submitButton" 
+                            <button type="submit" id="submitButton"
                                 class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all text-sm font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                 {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,363 +250,233 @@
                     </div>
                 </form>
             </div>
+
         </div>
     </div>
 
-<script>
-    let hot;
-    
-    document.addEventListener('DOMContentLoaded', function() {
+    {{-- ═══════════════════ jSpreadsheet initialisation ═══════════════════ --}}
+    {{-- Structure copied exactly from instructor answer sheet step 3        --}}
+    <script>
+    (function () {
+
         const container = document.getElementById('spreadsheet');
 
-        // Student's saved answers
-        const savedData = @json($submission->submission_data ?? null);
-        
-        // Account names list
+        // ── PHP → JS data ────────────────────────────────────────────────────
+        const savedData        = @json($submission->submission_data ?? null);
+        const correctData      = @json($answerSheet->correct_data ?? null);
+        const submissionStatus = @json($submission->status ?? null);
+        const maxAttempts      = @json($performanceTask->max_attempts);
+        const currentAttempts  = @json($submission->attempts ?? 0);
+        const isReadOnly       = currentAttempts >= maxAttempts;
+
+        // ── Accounts list (identical to answer sheet) ─────────────────────────
         const accounts = [
             'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixture',
-            'Land', 'Equipment','Accumulated Depreciation - F&F',
+            'Land', 'Equipment', 'Accumulated Depreciation - F&F',
             'Accumulated Depreciation - Equipment',
-            'Accounts Payable', 'Notes Payable', 'Utilities Payable', 'Capital', 
+            'Accounts Payable', 'Notes Payable', 'Utilities Payable', 'Capital',
             'Withdrawals', 'Service Revenue', 'Rent Expense', 'Utilities Expense',
             'Salaries Expense', 'Supplies Expense', 'Depreciation Expense',
             'Income Summary'
         ];
 
-        const numCols = accounts.length * 6;
+        // Original HOT used 6 cols per account: Date | blank | Debit | Credit | blank | Date
+        const COLS_PER_ACCOUNT = 6;
+        const COL_COUNT        = accounts.length * COLS_PER_ACCOUNT;
+        const HEADER_ROWS      = 2;
+        const MIN_DATA_ROWS    = 15;
 
-        // Header rows as editable data
+        // ── Header rows — identical to answer sheet ───────────────────────────
         const headerRow1 = accounts.flatMap(name => [name, '', '', '', '', '']);
         const headerRow2 = Array(accounts.length).fill(['Date', '', 'Debit (₱)', 'Credit (₱)', '', 'Date']).flat();
-        const blankRows = Array(15).fill(null).map(() => Array(numCols).fill(''));
+        const blankRow   = () => Array(COL_COUNT).fill('');
 
-        let initialData;
+        // ── Restore saved data (same logic as answer sheet) ───────────────────
+        let dataRows;
         if (savedData) {
             const parsed = JSON.parse(savedData);
-            if (parsed.length <= 15) {
-                // Old format, no headers — prepend them
-                initialData = [headerRow1, headerRow2, ...parsed];
+            if (parsed.length <= MIN_DATA_ROWS) {
+                // Old format without headers
+                dataRows = parsed;
             } else {
-                // New format, already has headers — force correct headers
-                initialData = [headerRow1, headerRow2, ...parsed.slice(2)];
+                // New format — strip the 2 header rows
+                dataRows = parsed.slice(HEADER_ROWS);
             }
         } else {
-            initialData = [headerRow1, headerRow2, ...blankRows];
+            dataRows = Array(MIN_DATA_ROWS).fill(null).map(blankRow);
         }
-        
-        // Custom renderer to add peso sign and handle large numbers
-        function pesoRenderer(instance, td, row, col, prop, value, cellProperties) {
-            Handsontable.renderers.NumericRenderer.apply(this, arguments);
-            
-            if (value !== null && value !== undefined && value !== '') {
-                const numValue = typeof value === 'number' ? value : parseFloat(String(value).replace(/[,₱\s]/g, ''));
-                if (!isNaN(numValue)) {
-                    td.innerHTML = '₱' + numValue.toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                    });
-                }
+
+        while (dataRows.length < MIN_DATA_ROWS) dataRows.push(blankRow());
+
+        const fullData = [headerRow1, headerRow2, ...dataRows];
+
+        // ── Column-letter helper (identical to answer sheet) ──────────────────
+        function colLetter(idx) {
+            let s = '', n = idx + 1;
+            while (n > 0) {
+                const r = (n - 1) % 26;
+                s = String.fromCharCode(65 + r) + s;
+                n = Math.floor((n - 1) / 26);
             }
-            
-            return td;
-        }
-        
-        // Create columns config
-        const columns = [];
-        for (let i = 0; i < accounts.length; i++) {
-            columns.push(
-                { type: 'text', width: 100 },      // Date
-                { type: 'text', width: 50 },       // Blank column
-                { type: 'numeric', renderer: pesoRenderer, width: 120 }, // Debit
-                { type: 'numeric', renderer: pesoRenderer, width: 120 }, // Credit
-                { type: 'text', width: 50 },       // Blank column
-                { type: 'text', width: 100 }       // Second Date
-            );
+            return s;
         }
 
-        // Merge cells for account name headers (row 0, every 6 cols)
-        const mergeCellsConfig = accounts.map((_, i) => ({
-            row: 0, col: i * 6, rowspan: 1, colspan: 6
-        }));
-
-        // Instructor's correct data
-        const correctData = @json($answerSheet->correct_data ?? null);
-        const submissionStatus = @json($submission->status ?? null);
-        const maxAttempts = @json($performanceTask->max_attempts);
-        const currentAttempts = @json($submission->attempts ?? 0);
-        const isReadOnly = currentAttempts >= maxAttempts;
-        
-        // Initialize HyperFormula with whitespace support
-        const hyperformulaInstance = HyperFormula.buildEmpty({
-            licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any',
+        // ── Merge cells — account name spans 6 cols in row 1 ─────────────────
+        const mergeCells = {};
+        accounts.forEach((_, i) => {
+            mergeCells[`${colLetter(i * COLS_PER_ACCOUNT)}1`] = [COLS_PER_ACCOUNT, 1];
         });
-        
-        hot = new Handsontable(container, {
-            data: initialData,
-            rowHeaders: true,
-            columns: columns,
-            height: 'auto',
-            licenseKey: 'non-commercial-and-evaluation',
-            readOnly: isReadOnly,
 
-            // ✅ mergeCells replaces nestedHeaders colspan behavior
-            mergeCells: mergeCellsConfig,
+        // ── Cell styles (identical to answer sheet) ───────────────────────────
+        const cellStyle = {};
 
-            // Formula support
-            formulas: { engine: hyperformulaInstance },
-            
-            // Handle formula input with whitespace and numeric parsing
-            beforeChange: function(changes, source) {
-                if (!isReadOnly && changes) {
-                    changes.forEach(function(change) {
-                        const [row, col, oldValue, newValue] = change;
-                        
-                        if (newValue && typeof newValue === 'string' && newValue.startsWith('=')) {
-                            change[3] = newValue.trim();
-                        } else if (newValue && typeof newValue === 'string') {
-                            const colIndex = col % 6;
-                            if (colIndex === 2 || colIndex === 3) {
-                                const cleanValue = newValue.replace(/[,₱\s]/g, '');
-                                if (!isNaN(cleanValue) && cleanValue !== '') {
-                                    change[3] = parseFloat(cleanValue);
-                                }
-                            }
+        // Row 1: account name headers
+        accounts.forEach((_, i) => {
+            for (let c = 0; c < COLS_PER_ACCOUNT; c++) {
+                cellStyle[`${colLetter(i * COLS_PER_ACCOUNT + c)}1`] =
+                    'font-weight:700;text-align:center;background:#e5e7eb;border-bottom:2px solid #6b7280;white-space:normal;word-break:break-word;';
+            }
+        });
+
+        // Row 2: sub-label headers
+        for (let c = 0; c < COL_COUNT; c++) {
+            cellStyle[`${colLetter(c)}2`] =
+                'font-weight:700;text-align:center;background:#f3f4f6;border-bottom:2px solid #6b7280;';
+        }
+
+        // ── Responsive dimensions ─────────────────────────────────────────────
+        const isMobile = window.innerWidth < 640;
+        const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+
+        // ── Init jSpreadsheet (identical config to answer sheet + student flags) ──
+        const table = jspreadsheet(container, {
+            data             : fullData,
+            mergeCells       : mergeCells,
+            style            : cellStyle,
+            minDimensions    : [COL_COUNT, fullData.length],
+            defaultColWidth  : isMobile ? 80 : (isTablet ? 90 : 100),
+            tableWidth       : '100%',
+            tableOverflow    : true,
+            tableHeight      : isMobile ? '350px' : (isTablet ? '450px' : '500px'),
+            allowFormulas    : true,
+            columnSorting    : false,
+            columnDrag       : false,
+            rowDrag          : false,
+            allowInsertRow   : !isReadOnly,
+            allowInsertColumn: false,
+            allowDeleteRow   : !isReadOnly,
+            allowDeleteColumn: false,
+            columnResize     : true,
+            rowResize        : true,
+            copyCompatibility: true,
+            editable         : !isReadOnly,
+            minSpareRows     : isReadOnly ? 0 : 1,
+
+            contextMenu: isReadOnly ? false : function (obj, x, y, e) {
+                return [
+                    { title: 'Insert row above', onclick: () => obj.insertRow(1, parseInt(y), true) },
+                    { title: 'Insert row below', onclick: () => obj.insertRow(1, parseInt(y)) },
+                    { title: 'Delete row',       onclick: () => obj.deleteRow(parseInt(y)) },
+                    { type: 'line' },
+                    { title: 'Copy',  onclick: () => obj.copy(true) },
+                    { title: 'Paste', onclick: () => {
+                        if (navigator.clipboard) {
+                            navigator.clipboard.readText().then(t => obj.paste(x, y, t));
                         }
-                    });
-                }
+                    }},
+                ];
             },
-            
-            // Full feature set
-            contextMenu: !isReadOnly,
-            undo: !isReadOnly,
-            manualColumnResize: true,
-            manualRowResize: true,
-            manualColumnMove: !isReadOnly,
-            manualRowMove: !isReadOnly,
-            fillHandle: !isReadOnly,
-            copyPaste: !isReadOnly,
-            minRows: 17,
-            minSpareRows: 1,
-            enterMoves: { row: 1, col: 0 },
-            tabMoves: { row: 0, col: 1 },
-            outsideClickDeselects: false,
-            selectionMode: 'multiple',
-            comments: true,
-            customBorders: true,
-            
-            cells: function(row, col) {
-                const cellProperties = {};
-                const colIndex = col % 6;
-                const cellData = this.instance.getDataAtCell(row, col);
 
-                // ✅ Header rows — force editable + plain bold centered styling
-                if (row === 0 || row === 1) {
-                    cellProperties.readOnly = false;
-                    cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.TextRenderer.call(
-                            this, instance, td, row, col, prop, value, cellProperties
+            onload  : function () { applyColumnTints(); applyAnswerStyles(); },
+            onchange: function () { applyColumnTints(); applyAnswerStyles(); },
+        });
+
+        // ── T-account column tinting (identical to answer sheet) ──────────────
+        // Per-account block (6 cols): 0=Date, 1=blank, 2=Debit, 3=Credit, 4=blank, 5=Date
+        function applyColumnTints() {
+            const tbody = container.querySelector('.jexcel tbody');
+            if (!tbody) return;
+            tbody.querySelectorAll('tr').forEach((tr, rowIdx) => {
+                if (rowIdx < HEADER_ROWS) return;
+                const cells = tr.querySelectorAll('td');
+                cells.forEach((td, tdIdx) => {
+                    if (tdIdx === 0) return; // skip row-number header
+                    const colIdx = tdIdx - 1;
+                    const pattern = colIdx % COLS_PER_ACCOUNT;
+                    td.style.background  = '';
+                    td.style.borderRight = '';
+                    if      (pattern === 0 || pattern === 5) td.style.background = '#f9fafb';
+                    else if (pattern === 2) {
+                        td.style.background  = '#fef3c7';
+                        td.style.borderRight = '2px solid #6b7280';
+                    }
+                    else if (pattern === 3) td.style.background = '#dbeafe';
+                });
+            });
+        }
+
+        setTimeout(applyColumnTints, 100);
+
+        // ── Answer-checking colour helper ─────────────────────────────────────
+        function applyAnswerStyles() {
+            if (!submissionStatus || !correctData || !savedData) return;
+
+            try {
+                const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
+                const data = table.getData();
+
+                for (let r = HEADER_ROWS; r < data.length; r++) {
+                    for (let c = 0; c < COL_COUNT; c++) {
+                        // Skip blank spacer columns (pattern 1 and 4)
+                        const pattern = c % COLS_PER_ACCOUNT;
+                        if (pattern === 1 || pattern === 4) continue;
+
+                        const studentVal = data[r][c];
+                        const correctVal = parsedCorrect[r] ? parsedCorrect[r][c] : undefined;
+
+                        const td = container.querySelector(
+                            `.jexcel tbody tr:nth-child(${r + 1}) td:nth-child(${c + 2})`
                         );
-                        td.style.fontWeight = 'bold';
-                        td.style.textAlign = 'center';
-                        td.style.verticalAlign = 'middle';
-                        td.style.whiteSpace = 'normal';
-                        td.style.wordBreak = 'break-word';
-                    };
-                    return cellProperties;
-                }
+                        if (!td) continue;
 
-                // Formula cell indicator
-                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
-                    cellProperties.className = 'formula-cell';
-                }
+                        td.classList.remove('cell-correct', 'cell-wrong');
 
-                // T-account column styling
-                if (colIndex === 0 || colIndex === 5) {
-                    cellProperties.className = (cellProperties.className || '') + ' t-account-date';
-                } else if (colIndex === 1 || colIndex === 4) {
-                    cellProperties.className = (cellProperties.className || '') + ' t-account-blank';
-                    cellProperties.readOnly = false;
-                } else if (colIndex === 2) {
-                    cellProperties.className = (cellProperties.className || '') + ' t-account-debit';
-                } else if (colIndex === 3) {
-                    cellProperties.className = (cellProperties.className || '') + ' t-account-credit';
-                }
-                
-                // Answer checking — skip blank columns
-                if (submissionStatus && correctData && savedData && colIndex !== 1 && colIndex !== 4) {
-                    const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
-                    const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
-                    
-                    const studentValue = parsedStudent[row]?.[col];
-                    const correctValue = parsedCorrect[row]?.[col];
-                    
-                    if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
-                        const normalizeValue = (val) => {
-                            if (val === null || val === undefined || val === '') return '';
-                            if (typeof val === 'string') {
-                                const cleaned = val.trim().replace(/[,₱\s]/g, '').toLowerCase();
-                                const num = parseFloat(cleaned);
-                                if (!isNaN(num)) return num.toFixed(2);
-                                return cleaned;
-                            }
-                            if (typeof val === 'number') return val.toFixed(2);
-                            return String(val);
-                        };
-                        
-                        const normalizedStudent = normalizeValue(studentValue);
-                        const normalizedCorrect = normalizeValue(correctValue);
-                        
-                        if (normalizedStudent === normalizedCorrect) {
-                            cellProperties.className = (cellProperties.className || '') + ' cell-correct';
-                        } else {
-                            cellProperties.className = (cellProperties.className || '') + ' cell-wrong';
+                        if (studentVal !== null && studentVal !== undefined && String(studentVal).trim() !== '') {
+                            const normStudent = String(studentVal).trim().toLowerCase();
+                            const normCorrect  = String(correctVal ?? '').trim().toLowerCase();
+                            td.classList.add(normStudent === normCorrect ? 'cell-correct' : 'cell-wrong');
                         }
                     }
                 }
-                
-                return cellProperties;
-            },
+            } catch (err) {
+                console.warn('Error applying answer styles:', err);
+            }
+        }
+
+        // ── Responsive height on window resize ───────────────────────────────
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const nm = window.innerWidth < 640;
+                const nt = window.innerWidth >= 640 && window.innerWidth < 1024;
+                const el = container.querySelector('.jexcel_content');
+                if (el) el.style.maxHeight = nm ? '350px' : (nt ? '450px' : '500px');
+            }, 250);
         });
 
-        // Save submission data
+        // ── Form submit: serialise full grid ──────────────────────────────────
         const form = document.getElementById('saveForm');
         if (form && !isReadOnly) {
-            form.addEventListener('submit', function(e) {
+            form.addEventListener('submit', function (e) {
                 e.preventDefault();
-                document.getElementById('submission_data').value = JSON.stringify(hot.getData());
+                // getData() returns the full 2-D array including both header rows
+                document.getElementById('submission_data').value = JSON.stringify(table.getData());
                 this.submit();
             });
         }
 
-        // Add CSS for answer + formula + t-account styling
-        const style = document.createElement('style');
-        style.textContent = `
-            .cell-correct {
-                background-color: #dcfce7 !important;
-                border: 2px solid #16a34a !important;
-                color: #166534 !important;
-            }
-            .cell-wrong {
-                background-color: #fee2e2 !important;
-                border: 2px solid #dc2626 !important;
-                color: #991b1b !important;
-            }
-            .handsontable td.cell-correct.area,
-            .handsontable td.cell-correct.current {
-                background-color: #bbf7d0 !important;
-            }
-            .handsontable td.cell-wrong.area,
-            .handsontable td.cell-wrong.current {
-                background-color: #fecaca !important;
-            }
-            .formula-cell {
-                background-color: #f8f9fa !important;
-            }
-        `;
-        document.head.appendChild(style);
-    });
-</script>
+    })();
+    </script>
 
-    <style>
-        body { overflow-x: hidden; }
-        .handsontable td { border-color: #d1d5db; }
-        .handsontable .area { background-color: rgba(147, 51, 234, 0.1); }
-        .handsontable { position: relative; z-index: 1; }
-        #spreadsheet { isolation: isolate; }
-        .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
-        
-        /* T-Account Styling */
-        .handsontable td.t-account-date {
-            background-color: #f9fafb;
-            font-size: 0.85em;
-        }
-
-        .handsontable td.t-account-row-bold {
-            font-weight: 700;
-            border-bottom: 2px solid #6b7280;
-        }
-        
-        .handsontable td.t-account-debit {
-            border-right: 2px solid #6b7280 !important;
-            background-color: #fef3c7;
-        }
-        
-        .handsontable td.t-account-credit {
-            background-color: #dbeafe;
-        }
-        
-        /* Highlight the vertical line between debit and credit */
-        .handsontable th {
-            font-weight: 600;
-        }
-        
-        /* Style the nested headers to look like T-accounts */
-        .handsontable thead th {
-            background-color: #f3f4f6;
-        }
-        
-        .handsontable thead tr:first-child th {
-            background-color: #e5e7eb;
-            font-weight: 700;
-            border-bottom: 2px solid #6b7280;
-        }
-
-        /* Correct/Incorrect answer styling - matches Step 1 & 2 */
-        .handsontable td.cell-correct {
-            background-color: #dcfce7 !important; /* Light green */
-            border: 2px solid #16a34a !important; /* Green border */
-            color: #166534;
-        }
-        
-        .handsontable td.cell-wrong {
-            background-color: #fee2e2 !important; /* Light red */
-            border: 2px solid #dc2626 !important; /* Red border */
-            color: #991b1b;
-        }
-        
-        /* Maintain T-account border even when colored - override with thicker border */
-        .handsontable td.t-account-debit.cell-correct {
-            border-right: 2px solid #16a34a !important;
-        }
-        
-        .handsontable td.t-account-debit.cell-wrong {
-            border-right: 2px solid #dc2626 !important;
-        }
-        
-        /* Prevent selected cells from overriding colors */
-        .handsontable td.cell-correct.area,
-        .handsontable td.cell-correct.current {
-            background-color: #bbf7d0 !important; /* Slightly darker green when selected */
-        }
-
-        .handsontable td.cell-wrong.area,
-        .handsontable td.cell-wrong.current {
-            background-color: #fecaca !important; /* Slightly darker red when selected */
-        }
-
-        @media (max-width: 640px) {
-            .handsontable { font-size: 11px; }
-            .handsontable th, .handsontable td { padding: 3px; }
-        }
-        
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .handsontable { font-size: 12px; }
-        }
-
-        /* Animation for flash messages */
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .animate-slideDown {
-            animation: slideDown 0.3s ease-out;
-        }
-    </style>
 </x-app-layout>

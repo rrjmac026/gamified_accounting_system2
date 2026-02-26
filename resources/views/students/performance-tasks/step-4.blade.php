@@ -1,36 +1,110 @@
 <x-app-layout>
-    <!-- Handsontable -->
-    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.css" />
+    {{-- ═══════════════════════════ jSpreadsheet CDN ═══════════════════════════ --}}
+    <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/index.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/jspreadsheet.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.css" />
 
-    <!-- Main Container with proper spacing -->
+    <style>
+        body { overflow-x: hidden; }
+        #spreadsheet { width: 100%; }
+        #spreadsheet .jexcel_content { overflow: auto; }
+        .jexcel td { border-color: #d1d5db !important; }
+
+        /* Row 0: Company name — bold, centred, white bg (copied from answer sheet) */
+        .jexcel tbody tr:nth-child(1) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #ffffff !important;
+            font-size: 14px !important;
+            padding: 8px !important;
+        }
+
+        /* Row 1: Document title — bold, centred, white bg (copied from answer sheet) */
+        .jexcel tbody tr:nth-child(2) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #ffffff !important;
+            font-size: 14px !important;
+            padding: 8px !important;
+        }
+
+        /* Row 2: Date field — bold, centred, white bg (copied from answer sheet) */
+        .jexcel tbody tr:nth-child(3) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #ffffff !important;
+            font-size: 14px !important;
+            padding: 8px !important;
+        }
+
+        /* Row 3: Column headers — bold, centred, grey bg, double border (copied from answer sheet) */
+        .jexcel tbody tr:nth-child(4) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #f3f4f6 !important;
+            border-bottom: 2px solid #374151 !important;
+        }
+
+        /* Bold-cell class — toggled via context menu / Ctrl+B (copied from answer sheet) */
+        .jexcel td.bold-cell { font-weight: 700 !important; }
+
+        /* Peso-amount columns: right-align data rows */
+        .jexcel tbody tr:nth-child(n+5) td:nth-child(n+2) { text-align: right; }
+
+        /* Answer feedback cell colours */
+        .jexcel td.cell-correct {
+            background-color: #dcfce7 !important;
+            border: 2px solid #16a34a !important;
+            color: #166534 !important;
+        }
+        .jexcel td.cell-wrong {
+            background-color: #fee2e2 !important;
+            border: 2px solid #dc2626 !important;
+            color: #991b1b !important;
+        }
+
+        /* Selection tint */
+        .jexcel td.highlight { background-color: rgba(6,182,212,.08) !important; }
+
+        /* Scrollbar */
+        #spreadsheet ::-webkit-scrollbar        { width: 6px; height: 6px; }
+        #spreadsheet ::-webkit-scrollbar-track  { background: transparent; }
+        #spreadsheet ::-webkit-scrollbar-thumb  { background: #d1d5db; border-radius: 9999px; }
+
+        @media (max-width: 640px)                        { .jexcel td, .jexcel th { font-size: 12px; padding: 4px; } }
+        @media (min-width: 640px) and (max-width: 1024px) { .jexcel td, .jexcel th { font-size: 13px; } }
+
+        /* Animation for flash messages */
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slideDown { animation: slideDown 0.3s ease-out; }
+    </style>
+
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
-            
-            <!-- Flash Messages Container -->
+
+            {{-- ── Flash messages ──────────────────────────────────────────── --}}
             <div class="mb-6 space-y-4">
                 @if (session('error'))
                     <div class="animate-slideDown">
                         <div class="flex items-start gap-3 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg shadow-sm">
-                            <div class="flex-1">
+                            <div class="flex-1 min-w-0">
                                 <h3 class="text-sm font-semibold text-red-800 mb-1">Error</h3>
-                                <p class="text-sm text-red-700">{{ session('error') }}</p>
+                                <p class="text-sm text-red-700 leading-relaxed">{{ session('error') }}</p>
                             </div>
-                            <button onclick="this.closest('div.mb-6').remove()"
-                                    class="text-red-400 hover:text-red-600 transition-colors">✕</button>
                         </div>
                     </div>
                 @endif
-
                 @if (session('success'))
                     <div class="animate-slideDown">
                         <div class="flex items-start gap-3 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg shadow-sm">
-                            <div class="flex-1">
+                            <div class="flex-1 min-w-0">
                                 <h3 class="text-sm font-semibold text-green-800 mb-1">Success</h3>
-                                <p class="text-sm text-green-700">{{ session('success') }}</p>
+                                <p class="text-sm text-green-700 leading-relaxed">{{ session('success') }}</p>
                             </div>
-                            <button onclick="this.closest('div.mb-6').remove()"
-                                    class="text-green-400 hover:text-green-600 transition-colors">✕</button>
                         </div>
                     </div>
                 @endif
@@ -38,13 +112,11 @@
 
             <x-view-answers-button :submission="$submission" :performanceTask="$performanceTask" :step="$step" />
 
-            <!-- Enhanced Header Container with Card Design -->
+            {{-- ── Page Header ──────────────────────────────────────────────── --}}
             <div class="mb-6 sm:mb-8">
                 <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                    <!-- Colored Top Bar -->
                     <div class="h-2 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600"></div>
-                    
-                    <!-- Header Content -->
+
                     <div class="p-6 sm:p-8">
                         <!-- Step Indicator and Progress -->
                         <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -54,8 +126,7 @@
                                 </svg>
                                 <span>Step 4 of 10</span>
                             </div>
-                            
-                            <!-- Progress Bar -->
+
                             <div class="flex-1 max-w-xs">
                                 <div class="flex items-center gap-2">
                                     <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
@@ -65,15 +136,14 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Title Section with Icon -->
+
+                        <!-- Title -->
                         <div class="flex items-start gap-4 mb-4">
                             <div class="flex-shrink-0 w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center">
                                 <svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                                 </svg>
                             </div>
-                            
                             <div class="flex-1">
                                 <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight mb-2">
                                     Trial Balance
@@ -83,10 +153,9 @@
                                 </p>
                             </div>
                         </div>
-                        
-                        <!-- Meta Information Cards -->
+
+                        <!-- Meta Cards -->
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
-                            <!-- Attempts Card -->
                             <div class="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
                                 <div class="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
                                     <svg class="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
@@ -98,22 +167,21 @@
                                     <p class="text-lg font-bold text-amber-900">{{ $performanceTask->max_attempts - ($submission->attempts ?? 0) }}/{{ $performanceTask->max_attempts }}</p>
                                 </div>
                             </div>
-                            
-                            <!-- Status Card (if applicable) -->
+
                             @if($submission && $submission->status)
                             @php
                                 $statusColors = [
-                                    'correct' => ['bg' => 'bg-green-50', 'border' => 'border-green-200', 'icon-bg' => 'bg-green-100', 'text' => 'text-green-600', 'text-bold' => 'text-green-900'],
-                                    'passed' => ['bg' => 'bg-blue-50', 'border' => 'border-blue-200', 'icon-bg' => 'bg-blue-100', 'text' => 'text-blue-600', 'text-bold' => 'text-blue-900'],
-                                    'wrong' => ['bg' => 'bg-red-50', 'border' => 'border-red-200', 'icon-bg' => 'bg-red-100', 'text' => 'text-red-600', 'text-bold' => 'text-red-900'],
-                                    'in-progress' => ['bg' => 'bg-gray-50', 'border' => 'border-gray-200', 'icon-bg' => 'bg-gray-100', 'text' => 'text-gray-600', 'text-bold' => 'text-gray-900'],
+                                    'correct'     => ['bg'=>'bg-green-50','border'=>'border-green-200','icon-bg'=>'bg-green-100','text'=>'text-green-600','text-bold'=>'text-green-900'],
+                                    'passed'      => ['bg'=>'bg-blue-50', 'border'=>'border-blue-200', 'icon-bg'=>'bg-blue-100', 'text'=>'text-blue-600', 'text-bold'=>'text-blue-900'],
+                                    'wrong'       => ['bg'=>'bg-red-50',  'border'=>'border-red-200',  'icon-bg'=>'bg-red-100',  'text'=>'text-red-600',  'text-bold'=>'text-red-900'],
+                                    'in-progress' => ['bg'=>'bg-gray-50', 'border'=>'border-gray-200', 'icon-bg'=>'bg-gray-100', 'text'=>'text-gray-600', 'text-bold'=>'text-gray-900'],
                                 ];
-                                $currentStatus = $statusColors[$submission->status] ?? $statusColors['in-progress'];
+                                $cs = $statusColors[$submission->status] ?? $statusColors['in-progress'];
                             @endphp
-                            <div class="flex items-center gap-3 p-3 {{ $currentStatus['bg'] }} border {{ $currentStatus['border'] }} rounded-lg">
-                                <div class="flex-shrink-0 w-10 h-10 {{ $currentStatus['icon-bg'] }} rounded-full flex items-center justify-center">
-                                    <svg class="w-5 h-5 {{ $currentStatus['text'] }}" fill="currentColor" viewBox="0 0 20 20">
-                                        @if($submission->status === 'correct' || $submission->status === 'passed')
+                            <div class="flex items-center gap-3 p-3 {{ $cs['bg'] }} border {{ $cs['border'] }} rounded-lg">
+                                <div class="flex-shrink-0 w-10 h-10 {{ $cs['icon-bg'] }} rounded-full flex items-center justify-center">
+                                    <svg class="w-5 h-5 {{ $cs['text'] }}" fill="currentColor" viewBox="0 0 20 20">
+                                        @if(in_array($submission->status, ['correct','passed']))
                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                                         @elseif($submission->status === 'wrong')
                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
@@ -123,14 +191,12 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <p class="text-xs {{ $currentStatus['text'] }} font-medium">Status</p>
-                                    <p class="text-lg font-bold {{ $currentStatus['text-bold'] }}">{{ ucfirst($submission->status) }}</p>
+                                    <p class="text-xs {{ $cs['text'] }} font-medium">Status</p>
+                                    <p class="text-lg font-bold {{ $cs['text-bold'] }}">{{ ucfirst($submission->status) }}</p>
                                 </div>
                             </div>
                             @endif
 
-                            
-                            <!-- Score Card (if applicable) -->
                             @if(isset($submission->score))
                             <div class="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
                                 <div class="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
@@ -149,9 +215,10 @@
                 </div>
             </div>
 
-            <!-- Main Content Card -->
+            {{-- ── Main Content Card ────────────────────────────────────────── --}}
             <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                <!-- Instructions Section -->
+
+                <!-- Instructions -->
                 <div class="p-4 sm:p-6 bg-gradient-to-r from-cyan-50 to-blue-50 border-b border-cyan-100">
                     <div class="flex items-start gap-3">
                         <div class="flex-shrink-0 w-8 h-8 bg-cyan-100 rounded-lg flex items-center justify-center">
@@ -168,17 +235,31 @@
                     </div>
                 </div>
 
-                <form id="saveForm" method="POST" action="{{ route('students.performance-tasks.save-step', ['id' => $performanceTask->id, 'step' => 4]) }}">
+                {{-- ── Form ──────────────────────────────────────────────────── --}}
+                <form id="saveForm"
+                      method="POST"
+                      action="{{ route('students.performance-tasks.save-step', ['id' => $performanceTask->id, 'step' => 4]) }}">
                     @csrf
+
                     <div class="p-3 sm:p-4 lg:p-6">
                         <div class="border-2 border-gray-300 rounded-xl shadow-inner bg-gray-50 overflow-hidden">
-                            <div class="overflow-x-auto overflow-y-auto" style="max-height: calc(100vh - 400px); min-height: 400px;">
+                            <div class="overflow-x-auto overflow-y-auto"
+                                 style="max-height: calc(100vh - 400px); min-height: 400px;">
                                 <div id="spreadsheet" class="bg-white min-w-full"></div>
                             </div>
                             <input type="hidden" name="submission_data" id="submission_data" required>
                         </div>
+
+                        <div class="mt-3 flex items-center justify-center gap-2 text-xs text-gray-500 sm:hidden">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                            </svg>
+                            <span>Swipe to scroll spreadsheet</span>
+                        </div>
                     </div>
 
+                    <!-- Action Buttons -->
                     <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
                         <div class="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
                             <button type="button" onclick="window.history.back()"
@@ -188,7 +269,8 @@
                                 </svg>
                                 Back
                             </button>
-                            <button type="submit"
+
+                            <button type="submit" id="submitButton"
                                 class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:from-cyan-700 hover:to-blue-700 focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 transition-all text-sm font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                 {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,455 +282,290 @@
                     </div>
                 </form>
             </div>
+
         </div>
     </div>
 
+    {{-- ═══════════════════ jSpreadsheet initialisation ═══════════════════ --}}
+    {{-- Structure copied exactly from instructor answer sheet step 4        --}}
+    <script>
+    (function () {
 
-<script>
-let hot;
-document.addEventListener('DOMContentLoaded', function () {
-    const container = document.getElementById('spreadsheet');
-    const savedDataRaw = @json($submission->submission_data ?? null);
-    const correctDataRaw = @json($answerSheet->correct_data ?? null);
-    const submissionStatus = @json($submission->status ?? null);
-    const maxAttempts = @json($performanceTask->max_attempts);
-    const currentAttempts = @json($submission->attempts ?? 0);
-    const isReadOnly = currentAttempts >= maxAttempts;
+        const container = document.getElementById('spreadsheet');
 
-    // Parse saved data if it exists
-    let initialData, savedMetadata = null;
-    
-    if (savedDataRaw) {
-        const parsedSaved = typeof savedDataRaw === 'string' ? JSON.parse(savedDataRaw) : savedDataRaw;
-        if (parsedSaved && parsedSaved.data && parsedSaved.metadata) {
-            initialData = parsedSaved.data;
-            savedMetadata = parsedSaved.metadata;
-        } else if (parsedSaved) {
-            // Old format - just the data array
-            initialData = parsedSaved;
-        }
-    }
-    
-    if (!initialData) {
-        // Load default data with header rows (removed Total row)
-        initialData = [
+        // ── PHP → JS data ────────────────────────────────────────────────────
+        const savedDataRaw     = @json($submission->submission_data ?? null);
+        const correctDataRaw   = @json($answerSheet->correct_data ?? null);
+        const submissionStatus = @json($submission->status ?? null);
+        const maxAttempts      = @json($performanceTask->max_attempts);
+        const currentAttempts  = @json($submission->attempts ?? 0);
+        const isReadOnly       = currentAttempts >= maxAttempts;
+
+        // ── Constants (identical to answer sheet) ─────────────────────────────
+        const HEADER_ROWS   = 4;   // rows 0-3: company / title / date / col-headers
+        const COL_COUNT     = 3;
+        const MIN_DATA_ROWS = 12;
+
+        // ── Default header rows (identical to answer sheet) ───────────────────
+        const defaultHeaders = [
             ['Durano Enterprise', '', ''],
-            ['Trial Balance', '', ''],
-            ['Date: ____________', '', ''],
+            ['Trial Balance',     '', ''],
+            ['Date: ____________','', ''],
             ['Account Title', 'Debit (₱)', 'Credit (₱)'],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', '']
         ];
-    }
 
-    // Parse correct data if it exists
-    let correctData = null, correctMetadata = null;
-    
-    if (correctDataRaw) {
-        const parsedCorrect = typeof correctDataRaw === 'string' ? JSON.parse(correctDataRaw) : correctDataRaw;
-        if (parsedCorrect && parsedCorrect.data && parsedCorrect.metadata) {
-            correctData = parsedCorrect.data;
-            correctMetadata = parsedCorrect.metadata;
-        } else if (parsedCorrect) {
-            correctData = parsedCorrect;
-        }
-    }
+        // ── Restore saved data (same logic as answer sheet) ───────────────────
+        let dataRows;
+        let boldCells = {};   // key: "row,col" → true
 
-    // Initialize HyperFormula with whitespace support
-    const hyperformulaInstance = HyperFormula.buildEmpty({
-        licenseKey: 'internal-use-in-handsontable',
-        ignoreWhiteSpace: 'any', // Allows spaces in formulas
-    });
+        if (savedDataRaw) {
+            const parsedSaved = typeof savedDataRaw === 'string'
+                ? JSON.parse(savedDataRaw)
+                : savedDataRaw;
 
-    // Custom renderer to add peso sign and handle large numbers
-    function pesoRenderer(instance, td, row, col, prop, value, cellProperties) {
-        Handsontable.renderers.NumericRenderer.apply(this, arguments);
-        
-        if (value !== null && value !== undefined && value !== '') {
-            const numValue = typeof value === 'number' ? value : parseFloat(String(value).replace(/[,₱\s]/g, ''));
-            if (!isNaN(numValue)) {
-                td.innerHTML = '₱' + numValue.toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
+            // Support both new { data, metadata } format and legacy plain array
+            const rawData = (parsedSaved && parsedSaved.data) ? parsedSaved.data : parsedSaved;
+
+            dataRows = rawData.length <= MIN_DATA_ROWS
+                ? rawData                        // old format — no headers stored
+                : rawData.slice(HEADER_ROWS);    // new format — strip 4 header rows
+
+            // Restore bold metadata
+            if (parsedSaved && parsedSaved.metadata) {
+                parsedSaved.metadata.forEach((rowMeta, rIdx) => {
+                    if (!rowMeta) return;
+                    rowMeta.forEach((cellMeta, cIdx) => {
+                        if (cellMeta && cellMeta.bold) boldCells[`${rIdx},${cIdx}`] = true;
+                    });
                 });
             }
+        } else {
+            dataRows = Array(MIN_DATA_ROWS).fill(null).map(() => Array(COL_COUNT).fill(''));
         }
-        
-        return td;
-    }
 
-    hot = new Handsontable(container, {
-        data: initialData,
-        columns: [
-            { type: 'text' },
-            { type: 'numeric', renderer: pesoRenderer },
-            { type: 'numeric', renderer: pesoRenderer },
-        ],
-        rowHeaders: true,
-        licenseKey: 'non-commercial-and-evaluation',
-        height: 450,
-        stretchH: 'all',
-        readOnly: isReadOnly,
-        
-        // Formula support with whitespace handling
-        formulas: { engine: hyperformulaInstance },
-        
-        // Handle formula input with whitespace and numeric parsing
-        beforeChange: function(changes, source) {
-            if (changes) {
-                changes.forEach(function(change) {
-                    const [row, col, oldValue, newValue] = change;
-                    
-                    // Handle formulas
-                    if (newValue && typeof newValue === 'string' && newValue.startsWith('=')) {
-                        change[3] = newValue.trim();
-                    }
-                    // Handle numeric values - remove commas and peso signs
-                    else if (newValue && typeof newValue === 'string') {
-                        // Only process numeric columns (columns 1 and 2)
-                        if (col === 1 || col === 2) {
-                            const cleanValue = newValue.replace(/[,₱\s]/g, '');
-                            if (!isNaN(cleanValue) && cleanValue !== '') {
-                                change[3] = parseFloat(cleanValue);
-                            }
-                        }
-                    }
-                });
-            }
-        },
-        
-        // Context menu with bold toggle
-        contextMenu: !isReadOnly ? {
-            items: {
-                'row_above': {},
-                'row_below': {},
-                'col_left': {},
-                'col_right': {},
-                'remove_row': {},
-                'remove_col': {},
-                'undo': {},
-                'redo': {},
-                'make_read_only': {},
-                'alignment': {},
-                'separator1': '---------',
-                'bold': {
-                    name: '✓ Toggle Bold',
-                    callback: function() {
-                        const selected = this.getSelected();
-                        if (selected) {
-                            selected.forEach(([startRow, startCol, endRow, endCol]) => {
-                                for (let row = startRow; row <= endRow; row++) {
-                                    for (let col = startCol; col <= endCol; col++) {
-                                        const meta = this.getCellMeta(row, col);
-                                        
-                                        // Toggle bold state
-                                        if (!meta.className) {
-                                            this.setCellMeta(row, col, 'className', 'bold-cell');
-                                        } else if (meta.className.includes('bold-cell')) {
-                                            this.setCellMeta(row, col, 'className', 
-                                                meta.className.replace('bold-cell', '').trim());
-                                        } else {
-                                            this.setCellMeta(row, col, 'className', 
-                                                meta.className + ' bold-cell');
-                                        }
-                                    }
-                                }
-                            });
-                            this.render();
-                        }
-                    }
-                }
-            }
-        } : false,
-        undo: !isReadOnly,
-        manualColumnResize: true,
-        manualRowResize: true,
-        manualColumnMove: !isReadOnly,
-        manualRowMove: !isReadOnly,
-        fillHandle: !isReadOnly,
-        copyPaste: !isReadOnly,
-        minSpareRows: 0,
-        enterMoves: { row: 1, col: 0 },
-        tabMoves: { row: 0, col: 1 },
-        outsideClickDeselects: false,
-        selectionMode: 'multiple',
-        mergeCells: true,
-        comments: true,
-        customBorders: true,
-        className: 'htCenter htMiddle',
-        
-        cells: function(row, col) {
-            const cellProperties = {};
-            
-            if (row === 0) {
-                cellProperties.className = 'header-company';
-                if (col === 0 || col === 2) {
-                    cellProperties.renderer = function(instance, td) {
-                        td.innerHTML = '';
-                        td.style.background = 'white';
-                        td.style.border = 'none';
-                    };
-                } else if (col === 1) {
-                    cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.TextRenderer.apply(this, arguments);
-                        td.innerHTML = '<strong>' + (value || 'Durano Enterprise') + '</strong>';
-                        td.style.textAlign = 'center';
-                    };
-                }
-            }
-            
-            else if (row === 1) {
-                cellProperties.className = 'header-title';
-                if (col === 0 || col === 2) {
-                    cellProperties.renderer = function(instance, td) {
-                        td.innerHTML = '';
-                        td.style.background = 'white';
-                        td.style.border = 'none';
-                    };
-                } else if (col === 1) {
-                    cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.TextRenderer.apply(this, arguments);
-                        td.innerHTML = '<strong>' + (value || 'Trial Balance') + '</strong>';
-                        td.style.textAlign = 'center';
-                    };
-                }
-            }
-            
-            else if (row === 2) {
-                cellProperties.className = 'header-date';
-                if (col === 0 || col === 2) {
-                    cellProperties.renderer = function(instance, td) {
-                        td.innerHTML = '';
-                        td.style.background = 'white';
-                        td.style.border = 'none';
-                    };
-                } else if (col === 1) {
-                    cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.TextRenderer.apply(this, arguments);
-                        td.innerHTML = '<strong>' + (value || 'Date: ____________') + '</strong>';
-                        td.style.textAlign = 'center';
-                    };
-                }
-            }
-            
-            else if (row === 3) {
-                cellProperties.className = 'header-columns';
-                cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                    Handsontable.renderers.TextRenderer.apply(this, arguments);
-                    td.innerHTML = '<strong>' + value + '</strong>';
-                    td.style.textAlign = 'center';
-                    td.style.backgroundColor = '#f3f4f6';
-                };
-            }
-            
-            // All other cells - support bold and grading
-            else {
-                cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                    // Use appropriate base renderer
-                    if (col === 0) {
-                        Handsontable.renderers.TextRenderer.apply(this, arguments);
-                    } else {
-                        pesoRenderer.apply(this, arguments);
-                    }
-                    
-                    // Check if cell should be bold
-                    const meta = instance.getCellMeta(row, col);
-                    if (meta.className && meta.className.includes('bold-cell')) {
-                        td.style.fontWeight = 'bold';
-                    }
-                    
-                    // Formula cell styling
-                    if (value && typeof value === 'string' && value.startsWith('=')) {
-                        td.classList.add('formula-cell');
-                    }
-                    
-                    // Check if submission is graded and apply correct/wrong styling
-                    if (submissionStatus && correctData && row > 3) {
-                        const studentValue = instance.getDataAtCell(row, col);
-                        const correctValue = correctData[row]?.[col];
-                        
-                        if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
-                            const normalizeValue = (val) => {
-                                if (val === null || val === undefined || val === '') return '';
-                                if (typeof val === 'string') {
-                                    // Remove commas, peso signs, and whitespace for comparison
-                                    const cleaned = val.trim().replace(/[,₱\s]/g, '').toLowerCase();
-                                    // Try to parse as number
-                                    const num = parseFloat(cleaned);
-                                    if (!isNaN(num)) {
-                                        return num.toFixed(2);
-                                    }
-                                    return cleaned;
-                                }
-                                if (typeof val === 'number') return val.toFixed(2);
-                                return String(val);
-                            };
-                            
-                            const normalizedStudent = normalizeValue(studentValue);
-                            const normalizedCorrect = normalizeValue(correctValue);
-                            
-                            if (normalizedStudent === normalizedCorrect) {
-                                td.classList.add('cell-correct');
-                            } else {
-                                td.classList.add('cell-wrong');
-                            }
-                        }
-                    }
-                };
-            }
-            
-            return cellProperties;
+        while (dataRows.length < MIN_DATA_ROWS) dataRows.push(Array(COL_COUNT).fill(''));
+
+        // ── Parse correct data (same { data, metadata } or plain array) ───────
+        let correctData = null;
+        if (correctDataRaw) {
+            const parsedCorrect = typeof correctDataRaw === 'string'
+                ? JSON.parse(correctDataRaw)
+                : correctDataRaw;
+            correctData = (parsedCorrect && parsedCorrect.data) ? parsedCorrect.data : parsedCorrect;
         }
-    });
 
-    // Restore bold formatting if metadata exists
-    if (savedMetadata) {
-        savedMetadata.forEach((row, rowIndex) => {
-            if (row) {
-                row.forEach((cell, colIndex) => {
-                    if (cell && cell.bold) {
-                        hot.setCellMeta(rowIndex, colIndex, 'className', 'bold-cell');
-                    }
-                });
-            }
+        const fullData = [...defaultHeaders, ...dataRows];
+
+        // ── Merge cells — header rows span all 3 cols (identical to answer sheet) ──
+        const mergeCells = {
+            'A1': [3, 1],   // Company name
+            'A2': [3, 1],   // Document title
+            'A3': [3, 1],   // Date field
+        };
+
+        // ── Cell styles (identical to answer sheet) ───────────────────────────
+        const cellStyle = {};
+
+        // Rows 1-3: company / title / date — white, bold, centred
+        ['A1','B1','C1', 'A2','B2','C2', 'A3','B3','C3'].forEach(ref => {
+            cellStyle[ref] = 'font-weight:700;text-align:center;background:#ffffff;font-size:14px;padding:8px;';
         });
-        hot.render();
-    }
 
-    // Keyboard shortcut for bold (Ctrl+B / Cmd+B)
-    hot.addHook('beforeKeyDown', function(event) {
-        // Check for Ctrl+B (Windows/Linux) or Cmd+B (Mac)
-        if (!isReadOnly && (event.ctrlKey || event.metaKey) && event.key === 'b') {
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            
-            const selected = hot.getSelected();
-            if (selected) {
-                selected.forEach(([startRow, startCol, endRow, endCol]) => {
-                    for (let row = startRow; row <= endRow; row++) {
-                        for (let col = startCol; col <= endCol; col++) {
-                            const meta = hot.getCellMeta(row, col);
-                            
-                            // Toggle bold
-                            if (!meta.className) {
-                                hot.setCellMeta(row, col, 'className', 'bold-cell');
-                            } else if (meta.className.includes('bold-cell')) {
-                                hot.setCellMeta(row, col, 'className', 
-                                    meta.className.replace('bold-cell', '').trim());
+        // Row 4: column headers
+        ['A4','B4','C4'].forEach(ref => {
+            cellStyle[ref] = 'font-weight:700;text-align:center;background:#f3f4f6;border-bottom:2px solid #374151;';
+        });
+
+        // Apply restored bold metadata to data rows
+        Object.keys(boldCells).forEach(key => {
+            const [r, c] = key.split(',').map(Number);
+            const col = String.fromCharCode(65 + c);
+            const ref = `${col}${r + 1}`;   // 1-based jSS reference
+            cellStyle[ref] = (cellStyle[ref] || '') + 'font-weight:700;';
+        });
+
+        // ── Responsive dimensions ─────────────────────────────────────────────
+        const isMobile = window.innerWidth < 640;
+        const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+
+        const colWidth = isMobile ? 160 : (isTablet ? 200 : 260);
+        const numWidth = isMobile ? 120 : (isTablet ? 140 : 180);
+
+        // ── Init jSpreadsheet (identical to answer sheet + student flags) ─────
+        const table = jspreadsheet(container, {
+            data             : fullData,
+            mergeCells       : mergeCells,
+            style            : cellStyle,
+            minDimensions    : [COL_COUNT, fullData.length],
+            defaultColWidth  : colWidth,
+            tableWidth       : '100%',
+            tableOverflow    : true,
+            tableHeight      : isMobile ? '350px' : (isTablet ? '450px' : '500px'),
+            allowFormulas    : true,
+            columnSorting    : false,
+            columnDrag       : false,
+            rowDrag          : false,
+            allowInsertRow   : !isReadOnly,
+            allowInsertColumn: false,
+            allowDeleteRow   : !isReadOnly,
+            allowDeleteColumn: false,
+            columnResize     : true,
+            rowResize        : true,
+            copyCompatibility: true,
+            editable         : !isReadOnly,
+            minSpareRows     : isReadOnly ? 0 : 1,
+
+            columns: [
+                { title: 'Account Title', type: 'text',    width: colWidth },
+                { title: 'Debit (₱)',     type: 'numeric', width: numWidth, mask: '#,##0.00', decimal: '.' },
+                { title: 'Credit (₱)',    type: 'numeric', width: numWidth, mask: '#,##0.00', decimal: '.' },
+            ],
+
+            // Context menu with Bold toggle (identical to answer sheet + student read-only guard)
+            contextMenu: isReadOnly ? false : function (obj, x, y, e) {
+                return [
+                    { title: 'Insert row above', onclick: () => obj.insertRow(1, parseInt(y), true) },
+                    { title: 'Insert row below', onclick: () => obj.insertRow(1, parseInt(y)) },
+                    { title: 'Delete row',       onclick: () => obj.deleteRow(parseInt(y)) },
+                    { type: 'line' },
+                    { title: '✓ Toggle Bold', onclick: () => {
+                        const sel = obj.getSelectedCoords();
+                        if (!sel) return;
+                        const [c1, r1, c2, r2] = sel;
+                        for (let r = r1; r <= r2; r++) {
+                            for (let c = c1; c <= c2; c++) {
+                                const col = String.fromCharCode(65 + c);
+                                const ref = `${col}${r + 1}`;
+                                const cur = obj.getStyle(ref) || '';
+                                if (cur.includes('font-weight:700')) {
+                                    obj.setStyle(ref, 'font-weight', '');
+                                } else {
+                                    obj.setStyle(ref, 'font-weight', '700');
+                                }
+                            }
+                        }
+                    }},
+                    { type: 'line' },
+                    { title: 'Copy',  onclick: () => obj.copy(true) },
+                    { title: 'Paste', onclick: () => {
+                        if (navigator.clipboard) {
+                            navigator.clipboard.readText().then(t => obj.paste(x, y, t));
+                        }
+                    }},
+                ];
+            },
+
+            onload  : function () { applyAnswerStyles(); },
+            onchange: function () { applyAnswerStyles(); },
+        });
+
+        // ── Ctrl+B / Cmd+B keyboard shortcut (identical to answer sheet) ──────
+        if (!isReadOnly) {
+            document.addEventListener('keydown', function (e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                    e.preventDefault();
+                    const sel = table.getSelectedCoords();
+                    if (!sel) return;
+                    const [c1, r1, c2, r2] = sel;
+                    for (let r = r1; r <= r2; r++) {
+                        for (let c = c1; c <= c2; c++) {
+                            const col = String.fromCharCode(65 + c);
+                            const ref = `${col}${r + 1}`;
+                            const cur = table.getStyle(ref) || '';
+                            if (cur.includes('font-weight:700')) {
+                                table.setStyle(ref, 'font-weight', '');
                             } else {
-                                hot.setCellMeta(row, col, 'className', 
-                                    meta.className + ' bold-cell');
+                                table.setStyle(ref, 'font-weight', '700');
                             }
                         }
                     }
-                });
-                hot.render();
-            }
-        }
-    });
-
-    
-    const form = document.getElementById('saveForm');
-    if (form && !isReadOnly) {
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            
-            const data = hot.getData();
-            const metadata = [];
-            
-            for (let row = 0; row < data.length; row++) {
-                metadata[row] = [];
-                for (let col = 0; col < data[row].length; col++) {
-                    const meta = hot.getCellMeta(row, col);
-                    if (meta.className && meta.className.includes('bold-cell')) {
-                        metadata[row][col] = { bold: true };
-                    }
                 }
-            }
-            
-            document.getElementById('submission_data').value = JSON.stringify({
-                data: data,
-                metadata: metadata
             });
-            
-            this.submit();
+        }
+
+        // ── Answer-checking colour helper ─────────────────────────────────────
+        function applyAnswerStyles() {
+            if (!submissionStatus || !correctData) return;
+
+            try {
+                const data = table.getData();
+
+                // Start from row index 4 — skip the 4 header rows
+                for (let r = HEADER_ROWS; r < data.length; r++) {
+                    for (let c = 0; c < COL_COUNT; c++) {
+                        const studentVal = data[r][c];
+                        const correctVal = correctData[r] ? correctData[r][c] : undefined;
+
+                        const td = container.querySelector(
+                            `.jexcel tbody tr:nth-child(${r + 1}) td:nth-child(${c + 2})`
+                        );
+                        if (!td) continue;
+
+                        td.classList.remove('cell-correct', 'cell-wrong');
+
+                        if (studentVal !== null && studentVal !== undefined && String(studentVal).trim() !== '') {
+                            // Normalise: strip ₱, commas, whitespace; compare as numbers when possible
+                            const norm = val => {
+                                if (val === null || val === undefined || val === '') return '';
+                                const cleaned = String(val).trim().replace(/[,₱\s]/g, '').toLowerCase();
+                                const num = parseFloat(cleaned);
+                                return isNaN(num) ? cleaned : num.toFixed(2);
+                            };
+                            td.classList.add(norm(studentVal) === norm(correctVal) ? 'cell-correct' : 'cell-wrong');
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Error applying answer styles:', err);
+            }
+        }
+
+        // ── Responsive resize ─────────────────────────────────────────────────
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const el = container.querySelector('.jexcel_content');
+                if (el) {
+                    const nm = window.innerWidth < 640;
+                    const nt = window.innerWidth >= 640 && window.innerWidth < 1024;
+                    el.style.maxHeight = nm ? '350px' : (nt ? '450px' : '500px');
+                }
+            }, 250);
         });
-    }
-});
-</script>
 
-<style>
-    body { overflow-x: hidden; }
-    .handsontable td { 
-        border-color: #d1d5db;
-        background-color: #ffffff;
-    }
-    .handsontable .area { background-color: rgba(6, 182, 212, 0.1); }
-    #spreadsheet { isolation: isolate; }
-    
-    .handsontable td.total-row {
-        background-color: #f3f4f6 !important;
-        font-weight: 700;
-    }
+        // ── Form submit — persist data + bold metadata (identical to answer sheet) ──
+        const form = document.getElementById('saveForm');
+        if (form && !isReadOnly) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
 
-    .handsontable td.bold-cell {
-            font-weight: bold !important;
+                const data     = table.getData();
+                const metadata = [];
+
+                // Capture bold state per-cell by inspecting inline style
+                data.forEach((row, rIdx) => {
+                    metadata[rIdx] = [];
+                    row.forEach((_, cIdx) => {
+                        const col = String.fromCharCode(65 + cIdx);
+                        const ref = `${col}${rIdx + 1}`;
+                        const sty = table.getStyle(ref) || '';
+                        if (sty.includes('font-weight:700') || sty.includes('font-weight: 700')) {
+                            metadata[rIdx][cIdx] = { bold: true };
+                        }
+                    });
+                });
+
+                document.getElementById('submission_data').value = JSON.stringify({
+                    data    : data,
+                    metadata: metadata,
+                });
+
+                this.submit();
+            });
         }
 
-    .handsontable td.total-cell-bold {
-        border-top: 3px solid #374151 !important;
-        border-bottom: 3px double #374151 !important;
-    }
-    
-    .handsontable td.cell-correct {
-        background-color: #dcfce7 !important;
-        border: 2px solid #16a34a !important;
-        color: #166534;
-    }
-    
-    .handsontable td.cell-wrong {
-        background-color: #fee2e2 !important;
-        border: 2px solid #dc2626 !important;
-        color: #991b1b;
-    }
-    
-    .handsontable td.cell-correct.area,
-    .handsontable td.cell-correct.current {
-        background-color: #bbf7d0 !important;
-    }
+    })();
+    </script>
 
-    .handsontable td.cell-wrong.area,
-    .handsontable td.cell-wrong.current {
-        background-color: #fecaca !important;
-    }
-    
-    @media (max-width: 640px) {
-        .handsontable { font-size: 12px; }
-    }
-
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    .animate-slideDown {
-        animation: slideDown 0.3s ease-out;
-    }
-
-    
-</style>
 </x-app-layout>

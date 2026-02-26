@@ -1,9 +1,9 @@
 <x-app-layout>
-    <!-- Handsontable -->
-    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.css" />
-    <!-- Formula Parser (HyperFormula) -->
-    <script src="https://cdn.jsdelivr.net/npm/hyperformula@2.6.2/dist/hyperformula.full.min.js"></script>
+    {{-- ═══════════════════════════ jSpreadsheet CDN ═══════════════════════════ --}}
+    <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/index.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/jspreadsheet.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.css" />
     
     <!-- Main Container with proper spacing -->
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -221,17 +221,30 @@
 
     <!-- Keep all your existing scripts and styles -->
 <script>
-    let hot;
+    let hot;   // Keep for compatibility, but will use `table` for jSpreadsheet
     document.addEventListener("DOMContentLoaded", function () {
         const container = document.getElementById('spreadsheet');
         const savedData = @json($submission->submission_data ?? null);
 
-        // Header rows as editable data
+        // Header rows
         const headerRow1 = ['', 'ASSETS', '', '', '', '', '', 'LIABILITIES', '', "OWNER'S EQUITY", '', '', 'EXPENSES', '', ''];
-        const headerRow2 = ['', 'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixtures', 'Land', 'Equipment', 'Accounts Payable', 'Notes Payable', 'Capital', 'Withdrawal', 'Service Revenue', 'Rent Expense', 'Utilities Expense', 'Salaries Expense', 'Misc. Expense'];
-        const blankRows = Array(15).fill(null).map(() => Array(15).fill(''));
+        const headerRow2 = ['', 'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixtures', 'Land', 'Equipment', 'Accounts Payable', 'Notes Payable', 'Capital', 'Withdrawal', 'Service Revenue', 'Rent Expense', 'Utilities Expense', 'Salaries Expense'];
+        const blankRow = () => Array(15).fill('');
 
-        const initialData = savedData ? JSON.parse(savedData) : [headerRow1, headerRow2, ...blankRows];
+        // Build initial data
+        let dataRows;
+        if (savedData) {
+            const parsed = JSON.parse(savedData);
+            dataRows = parsed.length <= 17
+                ? parsed.slice(2)  // Strip headers if present
+                : parsed.slice(2);
+        } else {
+            dataRows = Array(15).fill(null).map(blankRow);
+        }
+
+        while (dataRows.length < 15) dataRows.push(blankRow());
+
+        const fullData = [headerRow1, headerRow2, ...dataRows];
 
         const correctData = @json($answerSheet->correct_data ?? null);
         const submissionStatus = @json($submission->status ?? null);
@@ -241,208 +254,203 @@
 
         const isMobile = window.innerWidth < 640;
         const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+        const colW = isMobile ? 90 : 110;
 
-        hot = new Handsontable(container, {
-            data: initialData,
-            colHeaders: false,
-            rowHeaders: true,
-            width: '100%',
-            height: isMobile ? 350 : (isTablet ? 450 : 500),
-            licenseKey: 'non-commercial-and-evaluation',
-            readOnly: isReadOnly,
+        const columns = Array(15).fill(null).map(() => ({
+            type  : 'text',
+            width : colW,
+            align : 'center',
+            wordWrap: true,
+        }));
 
-            columns: Array(15).fill({ type: 'text' }),
-            colWidths: isMobile ? 100 : (isTablet ? 110 : 120),
+        const mergeCells = {
+            'B1': [6, 1],   // ASSETS → B1..G1
+            'H1': [2, 1],   // LIABILITIES → H1..I1
+            'J1': [3, 1],   // OWNER'S EQUITY → J1..L1
+            'M1': [3, 1],   // EXPENSES → M1..O1
+        };
 
-            // Merge cells to replicate the colspan behavior of nestedHeaders
-            mergeCells: [
-                { row: 0, col: 1, rowspan: 1, colspan: 6 },  // ASSETS
-                { row: 0, col: 7, rowspan: 1, colspan: 2 },  // LIABILITIES
-                { row: 0, col: 9, rowspan: 1, colspan: 3 },  // OWNER'S EQUITY
-                { row: 0, col: 12, rowspan: 1, colspan: 4 }, // EXPENSES
-            ],
+        const letters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O'];
+        const headerStyle = {};
+        letters.forEach(l => {
+            headerStyle[`${l}1`] = 'font-weight:700;text-align:center;background:#f0fdf4;';
+            headerStyle[`${l}2`] = 'font-weight:700;text-align:center;background:#f0fdf4;';
+        });
 
-            contextMenu: !isReadOnly,
-            undo: !isReadOnly,
-            manualColumnResize: true,
-            manualRowResize: true,
-            manualColumnMove: !isReadOnly,
-            manualRowMove: !isReadOnly,
-            fillHandle: !isReadOnly,
-            autoColumnSize: false,
-            autoRowSize: false,
-            copyPaste: !isReadOnly,
-            minRows: 17,
-            minCols: 15,
-            maxRows: 52,
-            maxCols: 20,
-            stretchH: 'none',
-            enterMoves: { row: 1, col: 0 },
-            tabMoves: { row: 0, col: 1 },
-            outsideClickDeselects: false,
-            selectionMode: 'multiple',
-            comments: true,
-            customBorders: true,
+        // ── Init jSpreadsheet ─────────────────────────────────────────────
+        const table = jspreadsheet(container, {
+            data             : fullData,
+            columns          : columns,
+            mergeCells       : mergeCells,
+            style            : headerStyle,
+            defaultColWidth  : colW,
+            minDimensions    : [15, fullData.length],
+            tableWidth       : '100%',
+            tableOverflow    : true,
+            tableHeight      : isMobile ? '350px' : (isTablet ? '450px' : '500px'),
+            allowFormulas    : true,
+            columnSorting    : false,
+            columnDrag       : false,
+            rowDrag          : false,
+            allowInsertRow   : !isReadOnly,
+            allowInsertColumn: false,
+            allowDeleteRow   : !isReadOnly,
+            allowDeleteColumn: false,
+            columnResize     : true,
+            rowResize        : true,
+            copyCompatibility: true,
+            parseFormulas    : true,
 
-            afterRenderer: function (TD, row, col, prop, value, cellProperties) {
+            // ── Context menu ─────────────────────────────────────────────────
+            contextMenu: !isReadOnly ? function(obj, x, y, e) {
+                const items = [];
+                items.push({ title: 'Insert row above', onclick: () => obj.insertRow(1, parseInt(y), true) });
+                items.push({ title: 'Insert row below', onclick: () => obj.insertRow(1, parseInt(y)) });
+                items.push({ title: 'Delete row',       onclick: () => obj.deleteRow(parseInt(y)) });
+                items.push({ type: 'line' });
+                items.push({ title: 'Copy',  onclick: () => obj.copy(true) });
+                items.push({ title: 'Paste', onclick: () => {
+                    if (navigator.clipboard) {
+                        navigator.clipboard.readText().then(t => obj.paste(x, y, t));
+                    }
+                }});
+                return items;
+            } : false,
+        });
 
-                // Style row 0 and row 1 — plain, bold, centered, no color
-                if (row === 0 || row === 1) {
-                    TD.style.fontWeight = 'bold';
-                    TD.style.textAlign = 'center';
-                    TD.style.verticalAlign = 'middle';
-                    TD.style.whiteSpace = 'normal';
-                    TD.style.wordBreak = 'break-word';
-                    return; // Skip answer checking for header rows
-                }
+        // Expose for compatibility
+        hot = table;
+        window.table = table;
 
-                // Answer checking styling for data rows (row 2 onwards)
-                if (submissionStatus && correctData && savedData) {
-                    try {
-                        const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
-                        const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
+        // ── Answer checking with jSpreadsheet ────────────────────────────
+        if (submissionStatus && correctData && savedData) {
+            try {
+                const parsedCorrect = typeof correctData === 'string' ? JSON.parse(correctData) : correctData;
+                const parsedStudent = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
 
-                        const studentValue = parsedStudent[row]?.[col];
-                        const correctValue = parsedCorrect[row]?.[col];
+                // Apply answer checking styles
+                const data = table.getData();
+                data.forEach((row, rIdx) => {
+                    row.forEach((cell, cIdx) => {
+                        if (rIdx < 2) return; // Skip header rows
+
+                        const studentValue = parsedStudent[rIdx]?.[cIdx];
+                        const correctValue = parsedCorrect[rIdx]?.[cIdx];
 
                         if (studentValue !== null && studentValue !== undefined && studentValue !== '') {
                             const normalizedStudent = String(studentValue).trim().toLowerCase();
                             const normalizedCorrect = String(correctValue || '').trim().toLowerCase();
 
+                            const col = letters[cIdx] || String.fromCharCode(65 + cIdx);
+                            const ref = `${col}${rIdx + 1}`;
+
                             if (normalizedStudent === normalizedCorrect) {
-                                TD.classList.add('cell-correct');
+                                const currentStyle = table.getStyle(ref) || '';
+                                table.setStyle(ref, 'background', '#dcfce7');
+                                table.setStyle(ref, 'border', '2px solid #16a34a');
+                                table.setStyle(ref, 'color', '#166534');
                             } else {
-                                TD.classList.add('cell-wrong');
+                                const currentStyle = table.getStyle(ref) || '';
+                                table.setStyle(ref, 'background', '#fee2e2');
+                                table.setStyle(ref, 'border', '2px solid #dc2626');
+                                table.setStyle(ref, 'color', '#991b1b');
                             }
                         }
-                    } catch (error) {
-                        console.warn('Error applying answer styling:', error);
-                    }
-                }
+                    });
+                });
+            } catch (error) {
+                console.warn('Error applying answer styling:', error);
             }
-        });
+        }
 
-        // Responsive resize handler
+        // ── Responsive resize handler ───────────────────────────────────
         let resizeTimer;
         window.addEventListener('resize', function () {
             clearTimeout(resizeTimer);
             resizeTimer = setTimeout(function () {
                 const newIsMobile = window.innerWidth < 640;
                 const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-                const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
-                hot.updateSettings({
-                    height: newHeight,
-                    colWidths: newIsMobile ? 100 : (newIsTablet ? 110 : 120)
-                });
+                const newColW = newIsMobile ? 90 : 110;
+                const newHeight = newIsMobile ? '350px' : (newIsTablet ? '450px' : '500px');
+
+                const el = container.querySelector('.jexcel_content');
+                if (el) {
+                    el.style.maxHeight = newHeight;
+                }
             }, 250);
         });
 
-        // Capture spreadsheet data on submit
+        // ── Form submit ──────────────────────────────────────────────────
         const taskForm = document.getElementById("taskForm");
         if (taskForm && !isReadOnly) {
             taskForm.addEventListener("submit", function (e) {
                 e.preventDefault();
-                const data = hot.getData();
+                const data = table.getData();
                 document.getElementById("submissionData").value = JSON.stringify(data);
                 this.submit();
             });
         }
-
-        // Add CSS for answer styling only
-        const style = document.createElement('style');
-        style.textContent = `
-            .cell-correct {
-                background-color: #dcfce7 !important;
-                border: 2px solid #16a34a !important;
-                color: #166534 !important;
-            }
-            .cell-wrong {
-                background-color: #fee2e2 !important;
-                border: 2px solid #dc2626 !important;
-                color: #991b1b !important;
-            }
-
-            /* Prevent selected cells from overriding correct/wrong colors */
-            .handsontable td.cell-correct.area,
-            .handsontable td.cell-correct.current {
-                background-color: #bbf7d0 !important;
-            }
-            .handsontable td.cell-wrong.area,
-            .handsontable td.cell-wrong.current {
-                background-color: #fecaca !important;
-            }
-        `;
-        document.head.appendChild(style);
     });
 </script>
 
     <style>
-        .cell-correct {
-            background-color: #dcfce7 !important;
+        /* ── jSpreadsheet overrides ───────────────────────────────────── */
+        body { overflow-x: hidden; }
+
+        /* Wrapper sizing */
+        #spreadsheet { width: 100%; }
+        #spreadsheet .jexcel_content { overflow: auto; }
+
+        /* Zebra + border styling to match instructor view */
+        .jexcel tbody tr:nth-child(odd)  td { background-color: #fafafa; }
+        .jexcel tbody tr:nth-child(even) td { background-color: #ffffff; }
+        .jexcel td { border-color: #d1d5db !important; }
+
+        /* Header row styles (rows 1–2 in jss = index 0–1) */
+        .jexcel tbody tr:nth-child(1) td,
+        .jexcel tbody tr:nth-child(2) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #f0fdf4 !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+
+        /* Answer checking highlighting */
+        .jexcel td[style*="background: #dcfce7"],
+        .jexcel td[style*="background:#dcfce7"] {
             border: 2px solid #16a34a !important;
+            color: #166534 !important;
         }
-        .cell-wrong {
-            background-color: #fee2e2 !important;
+        .jexcel td[style*="background: #fee2e2"],
+        .jexcel td[style*="background:#fee2e2"] {
             border: 2px solid #dc2626 !important;
+            color: #991b1b !important;
         }
-        .handsontable td.cell-correct.area,
-        .handsontable td.cell-correct.current {
-            background-color: #bbf7d0 !important;
-        }
-        .handsontable td.cell-wrong.area,
-        .handsontable td.cell-wrong.current {
-            background-color: #fecaca !important;
-        }
-        .handsontable.readOnly td {
-            background-color: #f9fafb;
+
+        /* Selection highlight */
+        .jexcel td.highlight { background-color: rgba(147,51,234,.1) !important; }
+
+        /* Scrollbar */
+        #spreadsheet ::-webkit-scrollbar { width:6px; height:6px; }
+        #spreadsheet ::-webkit-scrollbar-track { background: transparent; }
+        #spreadsheet ::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:9999px; }
+
+        /* Read-only styling */
+        .jexcel.readOnly td {
+            background-color: #f9fafb !important;
             cursor: not-allowed;
         }
-        body {
-            overflow-x: hidden;
-        }
-        .handsontable .font-bold {
-            font-weight: bold;
-        }
-        .handsontable .bg-gray-100 {
-            background-color: #f3f4f6 !important;
-        }
-        .handsontable .bg-blue-50 {
-            background-color: #eff6ff !important;
-        }
-        .handsontable td {
-            border-color: #d1d5db;
-        }
-        .handsontable .area {
-            background-color: rgba(59, 130, 246, 0.1);
-        }
-        .border-red-500 {
-            border-color: #ef4444 !important;
-        }
-        .handsontable {
-            position: relative;
-            z-index: 1;
-        }
-        #spreadsheet {
-            isolation: isolate;
-        }
-        .overflow-x-auto {
-            -webkit-overflow-scrolling: touch;
-            scroll-behavior: smooth;
-        }
+
+        /* Responsive */
         @media (max-width: 640px) {
-            .handsontable {
-                font-size: 12px;
-            }
-            .handsontable th,
-            .handsontable td {
-                padding: 4px;
-            }
+            .jexcel td, .jexcel th { font-size: 12px; padding: 4px; }
         }
         @media (min-width: 640px) and (max-width: 1024px) {
-            .handsontable {
-                font-size: 13px;
-            }
+            .jexcel td, .jexcel th { font-size: 13px; }
         }
+
+        /* Animations */
         @keyframes spin {
             to { transform: rotate(360deg); }
         }

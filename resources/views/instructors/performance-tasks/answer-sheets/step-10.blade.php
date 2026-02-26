@@ -335,7 +335,7 @@
         const headerRow1 = ['Durano Enterprise', '', '', ''];
         const headerRow2 = ['POST-CLOSING TRIAL BALANCE', '', '', ''];
         const headerRow3 = ['December 31, 2024', '', '', ''];
-        const headerRow4 = ['Account Title', 'Ref.', 'Debit (₱)', 'Credit (₱)'];
+        const headerRow4 = ['Account Title', '', 'Debit (₱)', 'Credit (₱)'];
         const blankRow   = () => Array(COL_COUNT).fill('');
 
         // ── Restore saved data ────────────────────────────────────────────────
