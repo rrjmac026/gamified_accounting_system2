@@ -256,13 +256,23 @@
                             Back to Answer Sheets
                         </a>
 
-                        <button type="submit"
-                                class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 transition-colors text-sm sm:text-base">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                            </svg>
-                            Save Answer Key &amp; Continue
-                        </button>
+                        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                            <button type="button" onclick="openImportModal()"
+                                    class="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 transition-colors text-sm sm:text-base">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                Import File
+                            </button>
+                            <button type="submit"
+                                    class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 transition-colors text-sm sm:text-base">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Save Answer Key &amp; Continue
+                            </button>
+                        </div>
 
                     </div>
                 </div>
@@ -609,6 +619,111 @@
 
             this.submit();
         });
+
+    })();
+    </script>
+
+    {{-- ═══════════════════════════ Import modal ════════════════════════════════ --}}
+    @include('instructors.performance-tasks.answer-sheets._import-modal', ['step' => 7])
+
+    {{-- ── Import modal bridge ────────────────────────────────────────────── --}}
+    <script>
+    (function () {
+
+        const HEADER_ROWS   = 3;  // 3 header rows
+        const COL_COUNT     = 12;
+        const MIN_DATA_ROWS = 35;
+
+        const COLS = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+
+        const HEADER_KEYWORDS = [
+            'date', 'debit', 'credit', 'account', 'description', 'title', 'durano',
+            'income', 'statement', 'changes', 'equity', 'balance', 'sheet', 'assets',
+            'liabilities', 'revenues', 'expenses', 'capital', 'withdrawals', 'enterprise',
+        ];
+
+        window.applyImport = function () {
+            const rawImport = window.__importParsedData;
+
+            if (!rawImport || !rawImport.length) {
+                document.getElementById('importErrorText').textContent = 'No data to import.';
+                document.getElementById('importError').style.display   = 'flex';
+                return;
+            }
+            if (typeof table === 'undefined' || !table) {
+                document.getElementById('importErrorText').textContent = 'Spreadsheet not ready.';
+                document.getElementById('importError').style.display   = 'flex';
+                return;
+            }
+
+            let dataRows = [...rawImport];
+
+            const markerIdx = dataRows.findIndex(row =>
+                String(row[0] ?? '').trim() === '##DATA_START##'
+            );
+            if (markerIdx !== -1) {
+                dataRows = dataRows.slice(markerIdx + 1);
+            } else {
+                function rowIsHeader(row) {
+                    const cells = row.map(c => String(c ?? '').trim());
+                    if (!cells.some(c => c !== '')) return false;
+                    if (cells.some(c => c !== '' && !isNaN(parseFloat(c)))) return false;
+                    return cells.some(cell =>
+                        HEADER_KEYWORDS.some(kw => cell.toLowerCase().includes(kw))
+                    );
+                }
+                let stripped = 0;
+                while (dataRows.length > 0 && stripped < 10 && rowIsHeader(dataRows[0])) {
+                    dataRows.shift(); stripped++;
+                }
+                if (dataRows.length > 0 && dataRows[0].every(c => String(c ?? '').trim() === '')) {
+                    dataRows.shift();
+                }
+            }
+
+            while (dataRows.length > 0 &&
+                   dataRows[dataRows.length - 1].every(c => String(c ?? '').trim() === '')) {
+                dataRows.pop();
+            }
+
+            if (dataRows.length === 0) {
+                document.getElementById('importErrorText').textContent =
+                    'No data rows found. Make sure the template data cells are filled in.';
+                document.getElementById('importError').style.display = 'flex';
+                return;
+            }
+
+            const norm = row => {
+                const r = row.map(c => (c === null || c === undefined) ? '' : String(c));
+                while (r.length < COL_COUNT) r.push('');
+                return r.slice(0, COL_COUNT);
+            };
+
+            const currentFull = table.getData();
+            const headers     = currentFull.slice(0, HEADER_ROWS);
+
+            let newFull = [...headers, ...dataRows.map(norm)];
+            while (newFull.length < HEADER_ROWS + MIN_DATA_ROWS) {
+                newFull.push(Array(COL_COUNT).fill(''));
+            }
+
+            table.setData(newFull);
+            closeImportModal();
+
+            const t = document.getElementById('importToast');
+            const m = document.getElementById('importToastMsg');
+            if (t && m) {
+                m.textContent     = `Imported ${dataRows.length} data rows successfully. Review then save.`;
+                t.style.display   = 'flex';
+                t.style.opacity   = '1';
+                t.style.transform = 'translateY(0)';
+                setTimeout(() => {
+                    t.style.opacity   = '0';
+                    t.style.transform = 'translateY(8px)';
+                    setTimeout(() => { t.style.display = 'none'; }, 300);
+                }, 3500);
+            }
+        };
 
     })();
     </script>
