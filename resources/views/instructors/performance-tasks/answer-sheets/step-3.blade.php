@@ -1,12 +1,11 @@
 <x-app-layout>
-    <!-- Handsontable -->
-    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.css" />
-    <!-- Formula Parser (HyperFormula) -->
-    <script src="https://cdn.jsdelivr.net/npm/hyperformula@2.6.2/dist/hyperformula.full.min.js"></script>
+    {{-- ═══════════════════════════ jSpreadsheet CDN ═══════════════════════════ --}}
+    <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/index.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/jspreadsheet.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.css" />
 
     <style>
-        /* Enhanced Header Section Styles */
         .answer-key-header {
             background: linear-gradient(135deg, #f9fafb 0%, #f3e8ff 50%, #faf5ff 100%);
             border-radius: 1rem;
@@ -17,31 +16,24 @@
             position: relative;
             overflow: hidden;
         }
-
         .answer-key-header::before {
             content: '';
             position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
+            top: -50%; right: -10%;
+            width: 300px; height: 300px;
             background: radial-gradient(circle, rgba(167, 139, 250, 0.15) 0%, transparent 70%);
             border-radius: 50%;
             pointer-events: none;
         }
-
         .answer-key-header::after {
             content: '';
             position: absolute;
-            bottom: -30%;
-            left: -5%;
-            width: 200px;
-            height: 200px;
+            bottom: -30%; left: -5%;
+            width: 200px; height: 200px;
             background: radial-gradient(circle, rgba(196, 181, 253, 0.15) 0%, transparent 70%);
             border-radius: 50%;
             pointer-events: none;
         }
-
         .step-badge {
             display: inline-flex;
             align-items: center;
@@ -58,23 +50,12 @@
             z-index: 1;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-
         .step-badge:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 8px -1px rgba(139, 92, 246, 0.4), 0 3px 5px -1px rgba(139, 92, 246, 0.3);
         }
-
-        .step-badge svg {
-            width: 1rem;
-            height: 1rem;
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
+        .step-badge svg { width: 1rem; height: 1rem; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         .header-title {
             font-size: 2.25rem;
             font-weight: 800;
@@ -87,7 +68,6 @@
             position: relative;
             z-index: 1;
         }
-
         .header-description {
             color: #6b7280;
             font-size: 1rem;
@@ -97,7 +77,6 @@
             position: relative;
             z-index: 1;
         }
-
         .task-info-badge {
             display: inline-flex;
             align-items: center;
@@ -114,19 +93,8 @@
             z-index: 1;
             transition: all 0.2s ease;
         }
-
-        .task-info-badge:hover {
-            background: #faf5ff;
-            border-color: #d8b4fe;
-            transform: translateX(4px);
-        }
-
-        .task-info-badge svg {
-            width: 1rem;
-            height: 1rem;
-        }
-
-        /* Instructions Box Enhancement */
+        .task-info-badge:hover { background: #faf5ff; border-color: #d8b4fe; transform: translateX(4px); }
+        .task-info-badge svg { width: 1rem; height: 1rem; }
         .instructions-box {
             background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
             border: 1px solid #e9d5ff;
@@ -135,7 +103,6 @@
             padding: 1.5rem;
             box-shadow: 0 2px 4px rgba(139, 92, 246, 0.08);
         }
-
         .instructions-box h3 {
             color: #581c87;
             font-size: 0.9375rem;
@@ -145,104 +112,54 @@
             align-items: center;
             gap: 0.5rem;
         }
+        .instructions-box p { color: #6b21a8; font-size: 0.875rem; line-height: 1.5; }
+        .instructions-icon { width: 1.25rem; height: 1.25rem; color: #8b5cf6; flex-shrink: 0; }
 
-        .instructions-box p {
-            color: #6b21a8;
-            font-size: 0.875rem;
-            line-height: 1.5;
-        }
-
-        .instructions-icon {
-            width: 1.25rem;
-            height: 1.25rem;
-            color: #8b5cf6;
-            flex-shrink: 0;
-        }
-
-        /* Responsive adjustments */
         @media (max-width: 640px) {
-            .answer-key-header {
-                padding: 1.5rem;
-            }
-
-            .header-title {
-                font-size: 1.75rem;
-            }
-
-            .header-description {
-                font-size: 0.875rem;
-            }
-
-            .step-badge {
-                font-size: 0.75rem;
-                padding: 0.375rem 0.75rem;
-            }
+            .answer-key-header { padding: 1.5rem; }
+            .header-title { font-size: 1.75rem; }
+            .header-description { font-size: 0.875rem; }
+            .step-badge { font-size: 0.75rem; padding: 0.375rem 0.75rem; }
         }
-
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .header-title {
-                font-size: 2rem;
-            }
-        }
-
-        @media (min-width: 1024px) {
-            .header-title {
-                font-size: 2.5rem;
-            }
-        }
+        @media (min-width: 640px) and (max-width: 1024px) { .header-title { font-size: 2rem; } }
+        @media (min-width: 1024px) { .header-title { font-size: 2.5rem; } }
 
         body { overflow-x: hidden; }
-        .handsontable td { border-color: #d1d5db; }
-        .handsontable .area { background-color: rgba(147, 51, 234, 0.1); }
-        .handsontable { position: relative; z-index: 1; }
-        #spreadsheet { isolation: isolate; }
-        .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
-        
-        /* T-Account Styling */
-        .handsontable td.t-account-date {
-            background-color: #f9fafb;
-            font-size: 0.85em;
+        #spreadsheet { width: 100%; }
+        #spreadsheet .jexcel_content { overflow: auto; }
+
+        .jexcel td { border-color: #d1d5db !important; }
+
+        /* Row 1 — account name headers */
+        .jexcel tbody tr:nth-child(1) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #e5e7eb !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            border-bottom: 2px solid #6b7280 !important;
         }
-        
-        .handsontable td.t-account-debit {
-            border-right: 2px solid #6b7280 !important;
-            background-color: #fef3c7;
+
+        /* Row 2 — Date / Debit / Credit sub-labels */
+        .jexcel tbody tr:nth-child(2) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #f3f4f6 !important;
+            border-bottom: 2px solid #6b7280 !important;
         }
-        
-        .handsontable td.t-account-credit {
-            background-color: #dbeafe;
-        }
-        .handsontable td.t-account-row-bold {
-            font-weight: 700;
-            border-bottom: 2px solid #6b7280;
-        }
-        
-        /* Highlight the vertical line between debit and credit */
-        .handsontable th {
-            font-weight: 600;
-        }
-        
-        /* Style the nested headers to look like T-accounts */
-        .handsontable thead th {
-            background-color: #f3f4f6;
-        }
-        
-        .handsontable thead tr:first-child th {
-            background-color: #e5e7eb;
-            font-weight: 700;
-            border-bottom: 2px solid #6b7280;
-        }
-        
-        @media (max-width: 640px) {
-            .handsontable { font-size: 12px; }
-            .handsontable th, .handsontable td { padding: 4px; }
-        }
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .handsontable { font-size: 13px; }
-        }
+
+        .jexcel td.highlight { background-color: rgba(147, 51, 234, 0.08) !important; }
+
+        #spreadsheet ::-webkit-scrollbar        { width: 6px; height: 6px; }
+        #spreadsheet ::-webkit-scrollbar-track  { background: transparent; }
+        #spreadsheet ::-webkit-scrollbar-thumb  { background: #d1d5db; border-radius: 9999px; }
+
+        @media (max-width: 640px) { .jexcel td, .jexcel th { font-size: 12px; padding: 4px; } }
+        @media (min-width: 640px) and (max-width: 1024px) { .jexcel td, .jexcel th { font-size: 13px; } }
     </style>
 
     <div class="py-4 sm:py-6 lg:py-8">
+
         @if (session('error'))
             <div class="mb-6 animate-slideDown">
                 <div class="flex items-start gap-3 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg shadow-sm">
@@ -294,15 +211,13 @@
                 </svg>
                 <span>Answer Key - Step 3 of 10</span>
             </div>
-            
-            <h1 class="header-title">
-                Answer Key: Posting Transactions (T-Accounts)
-            </h1>
-            
+
+            <h1 class="header-title">Answer Key: Posting Transactions (T-Accounts)</h1>
+
             <p class="header-description">
                 Create the correct answer key using T-account format. Each account shows debits on the left and credits on the right.
             </p>
-            
+
             <div class="task-info-badge">
                 <svg fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
@@ -328,291 +243,377 @@
                 </div>
             </div>
 
-            <form id="answerKeyForm" action="{{ route('instructors.performance-tasks.answer-sheets.update', ['task' => $task, 'step' => 3]) }}" method="POST">
+            <form id="answerKeyForm"
+                  action="{{ route('instructors.performance-tasks.answer-sheets.update', ['task' => $task, 'step' => 3]) }}"
+                  method="POST">
                 @csrf
                 @method('PUT')
+
                 <div class="p-3 sm:p-4 lg:p-6">
                     <div class="border rounded-lg shadow-inner bg-gray-50 overflow-hidden">
-                        <div class="overflow-x-auto overflow-y-auto" style="max-height: calc(100vh - 400px); min-height: 400px;">
+                        <div class="overflow-x-auto overflow-y-auto"
+                             style="max-height: calc(100vh - 400px); min-height: 400px;">
                             <div id="spreadsheet" class="bg-white min-w-full"></div>
                         </div>
                         <input type="hidden" name="correct_data" id="correctData" required>
                     </div>
                     <div class="mt-2 text-xs text-gray-500 sm:hidden text-center">
                         <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
                         </svg>
                         Swipe to scroll spreadsheet
                     </div>
                 </div>
-                         <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
-                            <div class="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
 
-                                <a href="{{ route('instructors.performance-tasks.answer-sheets.show', $task) }}"
-                                class="inline-flex items-center justify-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm sm:text-base">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                                    </svg>
-                                    Back to Answer Sheets
-                                </a>
+                <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
+                    <div class="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
 
-                                <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                                    <button type="button" onclick="openImportModal()"
-                                        class="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 transition-colors text-sm sm:text-base">
-                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                                        </svg>
-                                        Import File
-                                    </button>
-                                    <button type="submit"
-                                        class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 transition-colors text-sm sm:text-base">
-                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                        </svg>
-                                        Save Answer Key & Continue
-                                    </button>
-                                </div>
+                        <a href="{{ route('instructors.performance-tasks.answer-sheets.show', $task) }}"
+                           class="inline-flex items-center justify-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm sm:text-base">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                            </svg>
+                            Back to Answer Sheets
+                        </a>
 
-                            </div>
+                        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                            <button type="button" onclick="openImportModal()"
+                                    class="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 transition-colors text-sm sm:text-base">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                Import File
+                            </button>
+                            <button type="submit"
+                                    class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 transition-colors text-sm sm:text-base">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Save Answer Key &amp; Continue
+                            </button>
                         </div>
+
+                    </div>
+                </div>
             </form>
         </div>
     </div>
 
-<script>
-    let hot;
+    {{-- ═══════════════════ jSpreadsheet initialisation ═══════════════════ --}}
+    <script>
+    (function () {
 
-    document.addEventListener("DOMContentLoaded", function () {
         const container = document.getElementById('spreadsheet');
         const savedData = @json($sheet->correct_data ?? null);
 
         const accounts = [
             'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixture',
-            'Land', 'Equipment','Accumulated Depreciation - F&F',
+            'Land', 'Equipment', 'Accumulated Depreciation - F&F',
             'Accumulated Depreciation - Equipment',
-            'Accounts Payable', 'Notes Payable', 'Utilities Payable', 'Capital', 
+            'Accounts Payable', 'Notes Payable', 'Utilities Payable', 'Capital',
             'Withdrawals', 'Service Revenue', 'Rent Expense', 'Utilities Expense',
             'Salaries Expense', 'Supplies Expense', 'Depreciation Expense',
             'Income Summary'
         ];
 
-        const numCols = accounts.length * 6;
+        // Original HOT used 6 cols per account: Date | blank | Debit | Credit | blank | Date
+        const COLS_PER_ACCOUNT = 6;
+        const COL_COUNT        = accounts.length * COLS_PER_ACCOUNT;
+        const HEADER_ROWS      = 2;
+        const MIN_DATA_ROWS    = 15;
 
-        // Header rows as editable data
+        // ── Header rows — identical content to original HOT ───────────────────
         const headerRow1 = accounts.flatMap(name => [name, '', '', '', '', '']);
         const headerRow2 = Array(accounts.length).fill(['Date', '', 'Debit (₱)', 'Credit (₱)', '', 'Date']).flat();
-        const blankRows = Array(15).fill(null).map(() => Array(numCols).fill(''));
+        const blankRow   = () => Array(COL_COUNT).fill('');
 
-        let initialData;
+        // ── Restore saved data ────────────────────────────────────────────────
+        let dataRows;
         if (savedData) {
             const parsed = JSON.parse(savedData);
-            if (parsed.length <= 15) {
-                // Old format, no headers — prepend them
-                initialData = [headerRow1, headerRow2, ...parsed];
+            if (parsed.length <= MIN_DATA_ROWS) {
+                // Old format without headers
+                dataRows = parsed;
             } else {
-                // New format, already has headers — force correct headers
-                initialData = [headerRow1, headerRow2, ...parsed.slice(2)];
+                // New format — strip the 2 header rows
+                dataRows = parsed.slice(2);
             }
         } else {
-            initialData = [headerRow1, headerRow2, ...blankRows];
+            dataRows = Array(MIN_DATA_ROWS).fill(null).map(blankRow);
         }
 
-        // Initialize HyperFormula for Excel-like formulas with whitespace support
-        const hyperformulaInstance = HyperFormula.buildEmpty({
-            licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any',
+        while (dataRows.length < MIN_DATA_ROWS) dataRows.push(blankRow());
+
+        const fullData = [headerRow1, headerRow2, ...dataRows];
+
+        // ── Column-letter helper ──────────────────────────────────────────────
+        function colLetter(idx) {
+            let s = '', n = idx + 1;
+            while (n > 0) {
+                const r = (n - 1) % 26;
+                s = String.fromCharCode(65 + r) + s;
+                n = Math.floor((n - 1) / 26);
+            }
+            return s;
+        }
+
+        // ── Merge cells — account name spans 6 cols in row 1 ─────────────────
+        const mergeCells = {};
+        accounts.forEach((_, i) => {
+            mergeCells[`${colLetter(i * COLS_PER_ACCOUNT)}1`] = [COLS_PER_ACCOUNT, 1];
         });
 
-        // Determine responsive dimensions
+        // ── Cell styles ───────────────────────────────────────────────────────
+        const cellStyle = {};
+
+        // Row 1: account name headers
+        accounts.forEach((_, i) => {
+            for (let c = 0; c < COLS_PER_ACCOUNT; c++) {
+                cellStyle[`${colLetter(i * COLS_PER_ACCOUNT + c)}1`] =
+                    'font-weight:700;text-align:center;background:#e5e7eb;border-bottom:2px solid #6b7280;white-space:normal;word-break:break-word;';
+            }
+        });
+
+        // Row 2: sub-label headers
+        for (let c = 0; c < COL_COUNT; c++) {
+            cellStyle[`${colLetter(c)}2`] =
+                'font-weight:700;text-align:center;background:#f3f4f6;border-bottom:2px solid #6b7280;';
+        }
+
+        // ── Responsive dimensions ─────────────────────────────────────────────
         const isMobile = window.innerWidth < 640;
         const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
 
-        // Merge cells for account name headers (row 0, every 6 cols)
-        const mergeCellsConfig = accounts.map((_, i) => ({
-            row: 0, col: i * 6, rowspan: 1, colspan: 6
-        }));
+        // ── Init jSpreadsheet ─────────────────────────────────────────────────
+        const table = jspreadsheet(container, {
+            data             : fullData,
+            mergeCells       : mergeCells,
+            style            : cellStyle,
+            minDimensions    : [COL_COUNT, fullData.length],
+            defaultColWidth  : isMobile ? 80 : (isTablet ? 90 : 100),
+            tableWidth       : '100%',
+            tableOverflow    : true,
+            tableHeight      : isMobile ? '350px' : (isTablet ? '450px' : '500px'),
+            allowFormulas    : true,
+            columnSorting    : false,
+            columnDrag       : false,
+            rowDrag          : false,
+            allowInsertRow   : true,
+            allowInsertColumn: false,
+            allowDeleteRow   : true,
+            allowDeleteColumn: false,
+            columnResize     : true,
+            rowResize        : true,
+            copyCompatibility: true,
+            minSpareRows     : 1,
 
-        // Custom renderer to add peso sign and handle large numbers
-        function pesoRenderer(instance, td, row, col, prop, value, cellProperties) {
-            Handsontable.renderers.NumericRenderer.apply(this, arguments);
-            
-            if (value !== null && value !== undefined && value !== '') {
-                const numValue = typeof value === 'number' ? value : parseFloat(String(value).replace(/[,₱\s]/g, ''));
-                if (!isNaN(numValue)) {
-                    td.innerHTML = '₱' + numValue.toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                    });
-                }
-            }
-            
-            return td;
-        }
-
-        const columns = [];
-        for (let i = 0; i < accounts.length; i++) {
-            const baseWidth = isMobile ? 80 : (isTablet ? 90 : 100);
-            const numericWidth = isMobile ? 100 : (isTablet ? 110 : 120);
-            
-            columns.push(
-                { type: 'text', width: baseWidth },
-                { type: 'text', width: 40 },
-                { type: 'numeric', renderer: pesoRenderer, width: numericWidth },
-                { type: 'numeric', renderer: pesoRenderer, width: numericWidth },
-                { type: 'text', width: 40 },
-                { type: 'text', width: baseWidth }
-            );
-        }
-
-        hot = new Handsontable(container, {
-            data: initialData,
-            rowHeaders: true,
-            columns: columns,
-            width: '100%',
-            height: isMobile ? 350 : (isTablet ? 450 : 500),
-            licenseKey: 'non-commercial-and-evaluation',
-
-            // ✅ mergeCells replaces nestedHeaders colspan behavior
-            mergeCells: mergeCellsConfig,
-
-            // Formula support with whitespace handling
-            formulas: { engine: hyperformulaInstance },
-
-            // Handle formula input with whitespace and numeric parsing
-            beforeChange: function(changes, source) {
-                if (changes) {
-                    changes.forEach(function(change) {
-                        const [row, col, oldValue, newValue] = change;
-                        
-                        if (newValue && typeof newValue === 'string' && newValue.startsWith('=')) {
-                            change[3] = newValue.trim();
-                        } else if (newValue && typeof newValue === 'string') {
-                            const colIndex = col % 6;
-                            if (colIndex === 2 || colIndex === 3) {
-                                const cleanValue = newValue.replace(/[,₱\s]/g, '');
-                                if (!isNaN(cleanValue) && cleanValue !== '') {
-                                    change[3] = parseFloat(cleanValue);
-                                }
-                            }
+            contextMenu: function (obj, x, y, e) {
+                return [
+                    { title: 'Insert row above', onclick: () => obj.insertRow(1, parseInt(y), true) },
+                    { title: 'Insert row below', onclick: () => obj.insertRow(1, parseInt(y)) },
+                    { title: 'Delete row',       onclick: () => obj.deleteRow(parseInt(y)) },
+                    { type: 'line' },
+                    { title: 'Copy',  onclick: () => obj.copy(true) },
+                    { title: 'Paste', onclick: () => {
+                        if (navigator.clipboard) {
+                            navigator.clipboard.readText().then(t => obj.paste(x, y, t));
                         }
-                    });
-                }
+                    }},
+                ];
             },
 
-            // Full feature set
-            contextMenu: true,
-            undo: true,
-            manualColumnResize: true,
-            manualRowResize: true,
-            manualColumnMove: true,
-            manualRowMove: true,
-            fillHandle: true,
-            autoColumnSize: false,
-            autoRowSize: false,
-            copyPaste: true,
-            minRows: 17,
-            minCols: numCols,
-            stretchH: 'none',
-            enterMoves: { row: 1, col: 0 },
-            tabMoves: { row: 0, col: 1 },
-            outsideClickDeselects: false,
-            selectionMode: 'multiple',
-            comments: true,
-            customBorders: true,
-            minSpareRows: 1,
-
-            cells: function (row, col) {
-                const cellProperties = {};
-                const colIndex = col % 6;
-                const cellData = this.instance.getDataAtCell(row, col);
-
-                // ✅ Header rows — force editable + plain bold centered styling
-                if (row === 0 || row === 1) {
-                    cellProperties.readOnly = false;
-                    cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.TextRenderer.call(
-                            this, instance, td, row, col, prop, value, cellProperties
-                        );
-                        td.style.fontWeight = 'bold';
-                        td.style.textAlign = 'center';
-                        td.style.verticalAlign = 'middle';
-                        td.style.whiteSpace = 'normal';
-                        td.style.wordBreak = 'break-word';
-                    };
-                    return cellProperties;
-                }
-
-                // Formula cell styling
-                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
-                    cellProperties.className = (cellProperties.className || '') + ' formula-cell';
-                }
-
-                // T-account styling
-                if (colIndex === 0 || colIndex === 5) {
-                    cellProperties.className = (cellProperties.className || '') + ' t-account-date';
-                } else if (colIndex === 1 || colIndex === 4) {
-                    cellProperties.className = (cellProperties.className || '') + ' t-account-blank';
-                    cellProperties.readOnly = false;
-                } else if (colIndex === 2) {
-                    cellProperties.className = (cellProperties.className || '') + ' t-account-debit';
-                } else if (colIndex === 3) {
-                    cellProperties.className = (cellProperties.className || '') + ' t-account-credit';
-                }
-
-                return cellProperties;
-            },
+            onload  : function () { applyColumnTints(); },
+            onchange: function () { applyColumnTints(); },
         });
 
-        // Responsive resize handler
-        let resizeTimer;
-        window.addEventListener('resize', function() {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {
-                const newIsMobile = window.innerWidth < 640;
-                const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-                const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
-                
-                const newColumns = [];
-                for (let i = 0; i < accounts.length; i++) {
-                    const baseWidth = newIsMobile ? 80 : (newIsTablet ? 90 : 100);
-                    const numericWidth = newIsMobile ? 100 : (newIsTablet ? 110 : 120);
-                    
-                    newColumns.push(
-                        { type: 'text', width: baseWidth },
-                        { type: 'text', width: 40 },
-                        { type: 'numeric', renderer: pesoRenderer, width: numericWidth },
-                        { type: 'numeric', renderer: pesoRenderer, width: numericWidth },
-                        { type: 'text', width: 40 },
-                        { type: 'text', width: baseWidth }
-                    );
-                }
-                
-                hot.updateSettings({
-                    height: newHeight,
-                    columns: newColumns
+        // ── T-account column tinting ──────────────────────────────────────────
+        // Per-account block (6 cols): 0=Date, 1=blank, 2=Debit, 3=Credit, 4=blank, 5=Date
+        function applyColumnTints() {
+            const tbody = container.querySelector('.jexcel tbody');
+            if (!tbody) return;
+            tbody.querySelectorAll('tr').forEach((tr, rowIdx) => {
+                if (rowIdx < HEADER_ROWS) return;
+                const cells = tr.querySelectorAll('td');
+                cells.forEach((td, tdIdx) => {
+                    // tdIdx 0 is the row number header — skip it
+                    if (tdIdx === 0) return;
+                    const colIdx = tdIdx - 1; // actual data column index
+                    const pattern = colIdx % COLS_PER_ACCOUNT;
+                    td.style.background  = '';
+                    td.style.borderRight = '';
+                    if      (pattern === 0 || pattern === 5) td.style.background = '#f9fafb';
+                    else if (pattern === 2) {
+                        td.style.background  = '#fef3c7';
+                        td.style.borderRight = '2px solid #6b7280';
+                    }
+                    else if (pattern === 3) td.style.background = '#dbeafe';
                 });
-            }, 250);
-        });
-
-        // Capture spreadsheet data on submit
-        const answerKeyForm = document.getElementById("answerKeyForm");
-        if (answerKeyForm) {
-            answerKeyForm.addEventListener("submit", function (e) {
-                e.preventDefault();
-                document.getElementById("correctData").value = JSON.stringify(hot.getData());
-                this.submit();
             });
         }
 
-        // Add CSS for formula + t-account styling
-        const style = document.createElement('style');
-        style.textContent = `
-            .formula-cell {
-                background-color: #f8f9fa !important;
+        setTimeout(applyColumnTints, 100);
+
+        // ── Expose for import modal ───────────────────────────────────────────
+        window.table = table;
+
+        // ── Responsive resize ─────────────────────────────────────────────────
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const nm = window.innerWidth < 640;
+                const nt = window.innerWidth >= 640 && window.innerWidth < 1024;
+                const el = container.querySelector('.jexcel_content');
+                if (el) el.style.maxHeight = nm ? '350px' : (nt ? '450px' : '500px');
+            }, 250);
+        });
+
+        // ── Form submit ───────────────────────────────────────────────────────
+        document.getElementById('answerKeyForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            document.getElementById('correctData').value = JSON.stringify(table.getData());
+            this.submit();
+        });
+
+    })();
+    </script>
+
+    {{-- ═══════════════════════ Import modal ════════════════════════════════ --}}
+    @include('instructors.performance-tasks.answer-sheets._import-modal', ['step' => 3])
+
+    {{-- ── Import modal bridge ────────────────────────────────────────────── --}}
+    <script>
+    (function () {
+
+        const HEADER_ROWS      = 2;
+        const COLS_PER_ACCOUNT = 6;
+        const MIN_DATA_ROWS    = 15;
+
+        const accounts = [
+            'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixture',
+            'Land', 'Equipment', 'Accumulated Depreciation - F&F',
+            'Accumulated Depreciation - Equipment',
+            'Accounts Payable', 'Notes Payable', 'Utilities Payable', 'Capital',
+            'Withdrawals', 'Service Revenue', 'Rent Expense', 'Utilities Expense',
+            'Salaries Expense', 'Supplies Expense', 'Depreciation Expense',
+            'Income Summary'
+        ];
+
+        const COL_COUNT = accounts.length * COLS_PER_ACCOUNT;
+
+        const HEADER_KEYWORDS = [
+            'date', 'debit', 'credit', 'account', 'description', 'title',
+            'amount', 'month', 'day', 'revenue', 'expense', 'balance',
+            'assets', 'liabilities', 'equity', 'transaction', 'explanation',
+        ];
+
+        // 1. Intercept XLSX parsing
+        if (typeof XLSX !== 'undefined') {
+            const _orig = XLSX.utils.sheet_to_json;
+            XLSX.utils.sheet_to_json = function (ws, opts) {
+                const result = _orig.call(this, ws, opts);
+                if (opts && opts.header === 1) {
+                    window.__importParsedData = result.filter((row, i) =>
+                        i < 3 || row.some(c => c !== '' && c != null)
+                    );
+                }
+                return result;
+            };
+        }
+
+        // 2. Replace applyImport
+        window.applyImport = function () {
+            const rawImport = window.__importParsedData;
+
+            if (!rawImport || !rawImport.length) {
+                document.getElementById('importErrorText').textContent = 'No data to import.';
+                document.getElementById('importError').style.display   = 'flex';
+                return;
             }
-        `;
-        document.head.appendChild(style);
-    });
-</script>
-@include('instructors.performance-tasks.answer-sheets._import-modal', ['step' => 3])
+            if (typeof table === 'undefined' || !table) {
+                document.getElementById('importErrorText').textContent = 'Spreadsheet not ready.';
+                document.getElementById('importError').style.display   = 'flex';
+                return;
+            }
+
+            let dataRows = [...rawImport];
+
+            // Strategy 1 — sentinel marker
+            const markerIdx = dataRows.findIndex(row =>
+                String(row[0] ?? '').trim() === '##DATA_START##'
+            );
+            if (markerIdx !== -1) {
+                dataRows = dataRows.slice(markerIdx + 1);
+            } else {
+                // Strategy 2 — strip header-looking rows
+                function rowIsHeader(row) {
+                    const cells = row.map(c => String(c ?? '').trim());
+                    if (!cells.some(c => c !== '')) return false;
+                    if (cells.some(c => c !== '' && !isNaN(parseFloat(c)))) return false;
+                    return cells.some(cell =>
+                        HEADER_KEYWORDS.some(kw => cell.toLowerCase().includes(kw))
+                    );
+                }
+                let stripped = 0;
+                while (dataRows.length > 0 && stripped < 10 && rowIsHeader(dataRows[0])) {
+                    dataRows.shift(); stripped++;
+                }
+                if (dataRows.length > 0 && dataRows[0].every(c => String(c ?? '').trim() === '')) {
+                    dataRows.shift();
+                }
+            }
+
+            // Strip trailing blank rows
+            while (dataRows.length > 0 &&
+                   dataRows[dataRows.length - 1].every(c => String(c ?? '').trim() === '')) {
+                dataRows.pop();
+            }
+
+            if (dataRows.length === 0) {
+                document.getElementById('importErrorText').textContent =
+                    'No data rows found. Make sure the template data cells are filled in.';
+                document.getElementById('importError').style.display = 'flex';
+                return;
+            }
+
+            // Normalise column count
+            const norm = row => {
+                const r = row.map(c => (c === null || c === undefined) ? '' : String(c));
+                while (r.length < COL_COUNT) r.push('');
+                return r.slice(0, COL_COUNT);
+            };
+
+            // Preserve header rows, replace data rows
+            const currentFull = table.getData();
+            const headers     = currentFull.slice(0, HEADER_ROWS);
+
+            let newFull = [...headers, ...dataRows.map(norm)];
+            while (newFull.length < HEADER_ROWS + MIN_DATA_ROWS) {
+                newFull.push(Array(COL_COUNT).fill(''));
+            }
+
+            table.setData(newFull);
+            closeImportModal();
+
+            // Toast notification
+            const t = document.getElementById('importToast');
+            const m = document.getElementById('importToastMsg');
+            if (t && m) {
+                m.textContent     = `Imported ${dataRows.length} data rows successfully. Review then save.`;
+                t.style.display   = 'flex';
+                t.style.opacity   = '1';
+                t.style.transform = 'translateY(0)';
+                setTimeout(() => {
+                    t.style.opacity   = '0';
+                    t.style.transform = 'translateY(8px)';
+                    setTimeout(() => { t.style.display = 'none'; }, 300);
+                }, 3500);
+            }
+        };
+
+    })();
+    </script>
+
 </x-app-layout>

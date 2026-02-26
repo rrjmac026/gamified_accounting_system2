@@ -1,10 +1,12 @@
 <x-app-layout>
-    <!-- Handsontable -->
-    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.css" />
-    
+    {{-- ═══════════════════════════ jSpreadsheet CDN ═══════════════════════════ --}}
+    <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/index.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/jspreadsheet.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.css" />
+
     <style>
-        /* Enhanced Header Section Styles */
+        /* ── Page header / badge styles ──────────────────────────────────────── */
         .answer-key-header {
             background: linear-gradient(135deg, #f9fafb 0%, #f3e8ff 50%, #faf5ff 100%);
             border-radius: 1rem;
@@ -15,31 +17,24 @@
             position: relative;
             overflow: hidden;
         }
-
         .answer-key-header::before {
             content: '';
             position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
+            top: -50%; right: -10%;
+            width: 300px; height: 300px;
             background: radial-gradient(circle, rgba(167, 139, 250, 0.15) 0%, transparent 70%);
             border-radius: 50%;
             pointer-events: none;
         }
-
         .answer-key-header::after {
             content: '';
             position: absolute;
-            bottom: -30%;
-            left: -5%;
-            width: 200px;
-            height: 200px;
+            bottom: -30%; left: -5%;
+            width: 200px; height: 200px;
             background: radial-gradient(circle, rgba(196, 181, 253, 0.15) 0%, transparent 70%);
             border-radius: 50%;
             pointer-events: none;
         }
-
         .step-badge {
             display: inline-flex;
             align-items: center;
@@ -56,23 +51,12 @@
             z-index: 1;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-
         .step-badge:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 8px -1px rgba(139, 92, 246, 0.4), 0 3px 5px -1px rgba(139, 92, 246, 0.3);
         }
-
-        .step-badge svg {
-            width: 1rem;
-            height: 1rem;
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
+        .step-badge svg { width: 1rem; height: 1rem; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         .header-title {
             font-size: 2.25rem;
             font-weight: 800;
@@ -85,7 +69,6 @@
             position: relative;
             z-index: 1;
         }
-
         .header-description {
             color: #6b7280;
             font-size: 1rem;
@@ -95,7 +78,6 @@
             position: relative;
             z-index: 1;
         }
-
         .task-info-badge {
             display: inline-flex;
             align-items: center;
@@ -112,19 +94,8 @@
             z-index: 1;
             transition: all 0.2s ease;
         }
-
-        .task-info-badge:hover {
-            background: #faf5ff;
-            border-color: #d8b4fe;
-            transform: translateX(4px);
-        }
-
-        .task-info-badge svg {
-            width: 1rem;
-            height: 1rem;
-        }
-
-        /* Instructions Box Enhancement */
+        .task-info-badge:hover { background: #faf5ff; border-color: #d8b4fe; transform: translateX(4px); }
+        .task-info-badge svg { width: 1rem; height: 1rem; }
         .instructions-box {
             background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
             border: 1px solid #e9d5ff;
@@ -133,7 +104,6 @@
             padding: 1.5rem;
             box-shadow: 0 2px 4px rgba(139, 92, 246, 0.08);
         }
-
         .instructions-box h3 {
             color: #581c87;
             font-size: 0.9375rem;
@@ -143,72 +113,66 @@
             align-items: center;
             gap: 0.5rem;
         }
-
-        .instructions-box p {
+        .instructions-box p, .instructions-box ol {
             color: #6b21a8;
             font-size: 0.875rem;
             line-height: 1.5;
         }
+        .instructions-box ol { margin-left: 1rem; margin-top: 0.5rem; }
+        .instructions-box li { margin-bottom: 0.25rem; }
+        .instructions-icon { width: 1.25rem; height: 1.25rem; color: #8b5cf6; flex-shrink: 0; }
 
-        .instructions-icon {
-            width: 1.25rem;
-            height: 1.25rem;
-            color: #8b5cf6;
-            flex-shrink: 0;
-        }
-
-        /* Responsive adjustments */
         @media (max-width: 640px) {
-            .answer-key-header {
-                padding: 1.5rem;
-            }
-
-            .header-title {
-                font-size: 1.75rem;
-            }
-
-            .header-description {
-                font-size: 0.875rem;
-            }
-
-            .step-badge {
-                font-size: 0.75rem;
-                padding: 0.375rem 0.75rem;
-            }
+            .answer-key-header { padding: 1.5rem; }
+            .header-title { font-size: 1.75rem; }
+            .header-description { font-size: 0.875rem; }
+            .step-badge { font-size: 0.75rem; padding: 0.375rem 0.75rem; }
         }
+        @media (min-width: 640px) and (max-width: 1024px) { .header-title { font-size: 2rem; } }
+        @media (min-width: 1024px) { .header-title { font-size: 2.5rem; } }
 
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .header-title {
-                font-size: 2rem;
-            }
-        }
-
-        @media (min-width: 1024px) {
-            .header-title {
-                font-size: 2.5rem;
-            }
-        }
-
+        /* ── jSpreadsheet overrides ───────────────────────────────────────────── */
         body { overflow-x: hidden; }
-        .handsontable .font-bold { font-weight: bold; }
-        .handsontable .bg-gray-100 { background-color: #f3f4f6 !important; }
-        .handsontable td { border-color: #d1d5db; }
-        .handsontable .area { background-color: rgba(147, 51, 234, 0.1); }
-        .handsontable { position: relative; z-index: 1; }
-        #spreadsheet { isolation: isolate; }
-        .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+        #spreadsheet { width: 100%; }
+        #spreadsheet .jexcel_content { overflow: auto; }
+        .jexcel td { border-color: #d1d5db !important; }
 
-        @media (max-width: 640px) {
-            .handsontable { font-size: 12px; }
-            .handsontable th, .handsontable td { padding: 4px; }
+        /* ── Rows 1-3: company / title / date — white/fafafa bg, bold, centred ── */
+        .jexcel tbody tr:nth-child(1) td,
+        .jexcel tbody tr:nth-child(2) td,
+        .jexcel tbody tr:nth-child(3) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #fafafa !important;
+            font-size: 14px !important;
+            padding: 8px !important;
         }
 
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .handsontable { font-size: 13px; }
+        /* ── Row 4: column headers — grey bg, bold, centred, bottom border ───── */
+        .jexcel tbody tr:nth-child(4) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #f3f4f6 !important;
+            border-bottom: 2px solid #374151 !important;
         }
+
+        /* ── Bold-cell toggle ────────────────────────────────────────────────── */
+        .jexcel td.bold-cell { font-weight: 700 !important; }
+
+        /* ── Right-align numeric columns (B, C, D) for data rows ────────────── */
+        .jexcel tbody tr:nth-child(n+5) td:nth-child(n+2) { text-align: right; }
+
+        /* ── Scrollbar polish ────────────────────────────────────────────────── */
+        #spreadsheet ::-webkit-scrollbar        { width: 6px; height: 6px; }
+        #spreadsheet ::-webkit-scrollbar-track  { background: transparent; }
+        #spreadsheet ::-webkit-scrollbar-thumb  { background: #d1d5db; border-radius: 9999px; }
+
+        @media (max-width: 640px) { .jexcel td, .jexcel th { font-size: 12px; padding: 4px; } }
+        @media (min-width: 640px) and (max-width: 1024px) { .jexcel td, .jexcel th { font-size: 13px; } }
     </style>
-    
+
     <div class="py-4 sm:py-6 lg:py-8">
+
         @if (session('error'))
             <div class="mb-6 animate-slideDown">
                 <div class="flex items-start gap-3 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg shadow-sm">
@@ -260,15 +224,13 @@
                 </svg>
                 <span>Answer Key - Step 10 of 10</span>
             </div>
-            
-            <h1 class="header-title">
-                Answer Key: Post-Closing Trial Balance
-            </h1>
-            
+
+            <h1 class="header-title">Answer Key: Post-Closing Trial Balance</h1>
+
             <p class="header-description">
                 Create the correct answer key for the Post-Closing Trial Balance. This will be used to automatically grade student submissions.
             </p>
-            
+
             <div class="task-info-badge">
                 <svg fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
@@ -288,214 +250,284 @@
                         </svg>
                         Instructions for Creating Answer Key
                     </h3>
-                    <p>
-                        Fill in the correct account titles and amounts in the editable cells. The format follows McGraw Hill's standard Post-Closing Trial Balance layout. Students' answers will be compared cell-by-cell with your answer key.
-                    </p>
+                    <p><strong>Post-Closing Trial Balance Format:</strong></p>
+                    <ol>
+                        <li>List all permanent (real) accounts with remaining balances after closing</li>
+                        <li>Only asset, liability, and owner's capital accounts should appear</li>
+                        <li>Enter each account's balance in either the Debit or Credit column</li>
+                        <li>Verify total Debits equal total Credits in the Totals row</li>
+                    </ol>
+                    <p style="margin-top: 0.5rem;"><em>Note: Indent account titles with spaces. Empty cells will be ignored during grading.</em></p>
                 </div>
             </div>
 
-            <form id="answerKeyForm" action="{{ route('instructors.performance-tasks.answer-sheets.update', ['task' => $task, 'step' => 10]) }}" method="POST">
+            <form id="answerKeyForm"
+                  action="{{ route('instructors.performance-tasks.answer-sheets.update', ['task' => $task, 'step' => 10]) }}"
+                  method="POST">
                 @csrf
                 @method('PUT')
-                
-                <!-- Spreadsheet Section -->
+
                 <div class="p-3 sm:p-4 lg:p-6">
                     <div class="border rounded-lg shadow-inner bg-gray-50 overflow-hidden">
-                        <div class="overflow-x-auto overflow-y-auto" style="max-height: calc(100vh - 400px); min-height: 500px;">
+                        <div class="overflow-x-auto overflow-y-auto"
+                             style="max-height: calc(100vh - 400px); min-height: 400px;">
                             <div id="spreadsheet" class="bg-white min-w-full"></div>
                         </div>
                         <input type="hidden" name="correct_data" id="correctData" required>
                     </div>
-
-                    <!-- Mobile Scroll Hint -->
                     <div class="mt-2 text-xs text-gray-500 sm:hidden text-center">
                         <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
                         </svg>
                         Swipe to scroll spreadsheet
                     </div>
                 </div>
 
-                <!-- Action Buttons -->
                 <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
                     <div class="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
-                        <a href="{{ route('instructors.performance-tasks.answer-sheets.show', $task) }}" 
+
+                        <a href="{{ route('instructors.performance-tasks.answer-sheets.show', $task) }}"
                            class="inline-flex items-center justify-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm sm:text-base">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                             </svg>
                             Back to Answer Sheets
                         </a>
-                        <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 transition-colors text-sm sm:text-base">
+
+                        <button type="submit"
+                                class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 transition-colors text-sm sm:text-base">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
                             Save Answer Key
                         </button>
+
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
-<script>
-    let hot;
+    {{-- ═══════════════════ jSpreadsheet initialisation ═══════════════════ --}}
+    <script>
+    (function () {
 
-    document.addEventListener("DOMContentLoaded", function () {
-        const container = document.getElementById('spreadsheet');
-        
-        const savedData = @json($sheet->correct_data ?? null);
-        
-        // McGraw Hill Post-Closing Trial Balance Format
-        const initialData = savedData ? JSON.parse(savedData) : [
-            ['POST-CLOSING TRIAL BALANCE', '', '', ''],
-            ['December 31, 2024', '', '', ''],
-            ['', '', '', ''],
-            ['Account Title', '', 'Credit', 'Debit'],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['', '', '', ''],
-            ['Totals', '', '', '']
-        ];
+        const container    = document.getElementById('spreadsheet');
+        const savedDataRaw = @json($sheet->correct_data ?? null);
 
-        // Initialize HyperFormula with whitespace support
-        const hyperformulaInstance = HyperFormula.buildEmpty({
-            licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any',
+        // ── Constants ─────────────────────────────────────────────────────────
+        const HEADER_ROWS   = 4;   // rows 0-3: company / title / date / col-headers
+        const COL_COUNT     = 4;   // Account Title | Ref | Debit | Credit
+        const MIN_DATA_ROWS = 16;
+
+        // ── Fixed header rows ─────────────────────────────────────────────────
+        const headerRow1 = ['Durano Enterprise', '', '', ''];
+        const headerRow2 = ['POST-CLOSING TRIAL BALANCE', '', '', ''];
+        const headerRow3 = ['December 31, 2024', '', '', ''];
+        const headerRow4 = ['Account Title', 'Ref.', 'Debit (₱)', 'Credit (₱)'];
+        const blankRow   = () => Array(COL_COUNT).fill('');
+
+        // ── Restore saved data ────────────────────────────────────────────────
+        let dataRows, boldCells = {};
+
+        if (savedDataRaw) {
+            const parsed = typeof savedDataRaw === 'string'
+                ? JSON.parse(savedDataRaw)
+                : savedDataRaw;
+
+            const rawData = (parsed && parsed.data) ? parsed.data : parsed;
+
+            if (rawData.length <= MIN_DATA_ROWS) {
+                // Old format — no headers stored
+                dataRows = rawData;
+            } else {
+                // New format — strip the 4 header rows
+                dataRows = rawData.slice(HEADER_ROWS);
+            }
+
+            // Restore bold metadata
+            if (parsed && parsed.metadata) {
+                parsed.metadata.forEach((rowMeta, rIdx) => {
+                    if (!rowMeta) return;
+                    rowMeta.forEach((cellMeta, cIdx) => {
+                        if (cellMeta && cellMeta.bold) boldCells[`${rIdx},${cIdx}`] = true;
+                    });
+                });
+            }
+        } else {
+            dataRows = Array(MIN_DATA_ROWS).fill(null).map(blankRow);
+            // Pre-populate a Totals row at the end
+            dataRows[MIN_DATA_ROWS - 1] = ['Totals', '', '', ''];
+        }
+
+        while (dataRows.length < MIN_DATA_ROWS) dataRows.push(blankRow());
+
+        const fullData = [headerRow1, headerRow2, headerRow3, headerRow4, ...dataRows];
+
+        // ── Merge cells — rows 1-3 span all 4 cols ───────────────────────────
+        const mergeCells = {
+            'A1': [4, 1],   // Company name
+            'A2': [4, 1],   // Document title
+            'A3': [4, 1],   // Date
+        };
+
+        // ── Cell styles ───────────────────────────────────────────────────────
+        const cellStyle = {};
+
+        // Rows 1-3: white/fafafa, bold, centred, 14px, padding 8px
+        ['A1','B1','C1','D1', 'A2','B2','C2','D2', 'A3','B3','C3','D3'].forEach(ref => {
+            cellStyle[ref] = 'font-weight:700;text-align:center;background:#fafafa;font-size:14px;padding:8px;';
         });
 
+        // Row 4: column headers — grey, bold, centred, heavy bottom border
+        ['A4','B4','C4','D4'].forEach(ref => {
+            cellStyle[ref] = 'font-weight:700;text-align:center;background:#f3f4f6;border-bottom:2px solid #374151;';
+        });
+
+        // Apply saved bold metadata
+        Object.keys(boldCells).forEach(key => {
+            const [r, c] = key.split(',').map(Number);
+            const col = String.fromCharCode(65 + c);
+            const ref = `${col}${r + 1}`;
+            cellStyle[ref] = (cellStyle[ref] || '') + 'font-weight:700;';
+        });
+
+        // ── Responsive dimensions ─────────────────────────────────────────────
         const isMobile = window.innerWidth < 640;
         const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-        
-        hot = new Handsontable(container, {
-            data: initialData,
-            rowHeaders: true,
-            colHeaders: ['A', 'B', 'C', 'D'],
+        const colWidth = isMobile ? 160 : (isTablet ? 200 : 260);
+        const refWidth = isMobile ? 50  : (isTablet ? 60  : 80);
+        const numWidth = isMobile ? 110 : (isTablet ? 130 : 160);
+
+        // ── Init jSpreadsheet ─────────────────────────────────────────────────
+        const table = jspreadsheet(container, {
+            data             : fullData,
+            minDimensions    : [COL_COUNT, fullData.length],
+            defaultColWidth  : isMobile ? 120 : 150,
+            mergeCells       : mergeCells,
+            style            : cellStyle,
+            tableWidth       : '100%',
+            tableOverflow    : true,
+            tableHeight      : isMobile ? '350px' : (isTablet ? '450px' : '500px'),
+            allowFormulas    : true,
+            columnSorting    : false,
+            columnDrag       : false,
+            rowDrag          : false,
+            allowInsertRow   : true,
+            allowInsertColumn: false,
+            allowDeleteRow   : true,
+            allowDeleteColumn: false,
+            columnResize     : true,
+            rowResize        : true,
+            copyCompatibility: true,
+            minSpareRows     : 1,
+
             columns: [
-                { type: 'text' },
-                { type: 'text' },
-                { type: 'numeric', numericFormat: { pattern: '0,0.00' } },
-                { type: 'numeric', numericFormat: { pattern: '0,0.00' } }
             ],
 
-            // Formula support with whitespace handling
-            formulas: { engine: hyperformulaInstance },
-
-            // Handle formula input with whitespace
-            beforeChange: function(changes, source) {
-                if (changes) {
-                    changes.forEach(function(change) {
-                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
-                            change[3] = change[3].trim();
+            // ── Context menu with Bold toggle ─────────────────────────────────
+            contextMenu: function (obj, x, y, e) {
+                return [
+                    { title: 'Insert row above', onclick: () => obj.insertRow(1, parseInt(y), true) },
+                    { title: 'Insert row below', onclick: () => obj.insertRow(1, parseInt(y)) },
+                    { title: 'Delete row',       onclick: () => obj.deleteRow(parseInt(y)) },
+                    { type: 'line' },
+                    { title: '✓ Toggle Bold', onclick: () => {
+                        const sel = obj.getSelectedCoords();
+                        if (!sel) return;
+                        const [c1, r1, c2, r2] = sel;
+                        for (let r = r1; r <= r2; r++) {
+                            for (let c = c1; c <= c2; c++) {
+                                const col = String.fromCharCode(65 + c);
+                                const ref = `${col}${r + 1}`;
+                                const cur = obj.getStyle(ref) || '';
+                                if (cur.includes('font-weight:700') || cur.includes('font-weight: 700')) {
+                                    obj.setStyle(ref, 'font-weight', '');
+                                } else {
+                                    obj.setStyle(ref, 'font-weight', '700');
+                                }
+                            }
                         }
-                    });
-                }
+                    }},
+                    { type: 'line' },
+                    { title: 'Copy',  onclick: () => obj.copy(true) },
+                    { title: 'Paste', onclick: () => {
+                        if (navigator.clipboard) {
+                            navigator.clipboard.readText().then(t => obj.paste(x, y, t));
+                        }
+                    }},
+                ];
             },
-
-            cells: function(row, col) {
-                const cellProperties = {};
-                const cellData = this.instance.getDataAtCell(row, col);
-
-                // Add formula cell styling
-                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
-                    cellProperties.className = (cellProperties.className || '') + ' formula-cell';
-                }
-                
-                // Title row (row 0) — editable, styling preserved
-                if (row === 0 && col === 0) {
-                    cellProperties.className = 'htCenter htMiddle font-bold';
-                }
-                
-                // Date row (row 1) — editable, styling preserved
-                if (row === 1 && col === 0) {
-                    cellProperties.className = 'htCenter htMiddle';
-                }
-                
-                // Header row (row 3) — editable, styling preserved
-                if (row === 3) {
-                    cellProperties.className = 'htCenter htMiddle font-bold bg-gray-100';
-                }
-                
-                // Totals row (row 19) — editable, styling preserved
-                if (row === 19 && col === 0) {
-                    cellProperties.className = 'htLeft htMiddle font-bold';
-                }
-
-                return cellProperties;
-            },
-
-            width: '100%',
-            height: isMobile ? 500 : (isTablet ? 550 : 600),
-            colWidths: isMobile ? [200, 50, 120, 120] : (isTablet ? [250, 60, 140, 140] : [300, 80, 160, 160]),
-            licenseKey: 'non-commercial-and-evaluation',
-
-            // Full feature set
-            contextMenu: true,
-            undo: true,
-            manualColumnResize: true,
-            manualRowResize: true,
-            manualColumnMove: true,
-            manualRowMove: true,
-            fillHandle: true,
-            autoColumnSize: false,
-            autoRowSize: false,
-            copyPaste: true,
-            minRows: 20,
-            minCols: 4,
-            minSpareRows: 0,
-            stretchH: 'all',
-            enterMoves: { row: 1, col: 0 },
-            tabMoves: { row: 0, col: 1 },
-            outsideClickDeselects: false,
-            selectionMode: 'multiple',
-            comments: true,
-            customBorders: true,
-
-            mergeCells: [
-                { row: 0, col: 0, rowspan: 1, colspan: 4 },
-                { row: 1, col: 0, rowspan: 1, colspan: 4 }
-            ]
         });
 
-        // Responsive resize handler
+        // ── Ctrl+B / Cmd+B keyboard shortcut ─────────────────────────────────
+        document.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                e.preventDefault();
+                const sel = table.getSelectedCoords();
+                if (!sel) return;
+                const [c1, r1, c2, r2] = sel;
+                for (let r = r1; r <= r2; r++) {
+                    for (let c = c1; c <= c2; c++) {
+                        const col = String.fromCharCode(65 + c);
+                        const ref = `${col}${r + 1}`;
+                        const cur = table.getStyle(ref) || '';
+                        if (cur.includes('font-weight:700') || cur.includes('font-weight: 700')) {
+                            table.setStyle(ref, 'font-weight', '');
+                        } else {
+                            table.setStyle(ref, 'font-weight', '700');
+                        }
+                    }
+                }
+            }
+        });
+
+        // ── Expose for potential external use ─────────────────────────────────
+        window.table = table;
+
+        // ── Responsive resize ─────────────────────────────────────────────────
         let resizeTimer;
-        window.addEventListener('resize', function() {
+        window.addEventListener('resize', () => {
             clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {
-                const newIsMobile = window.innerWidth < 640;
-                const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-                const newHeight = newIsMobile ? 500 : (newIsTablet ? 550 : 600);
-                const newColWidths = newIsMobile ? [200, 50, 120, 120] : (newIsTablet ? [250, 60, 140, 140] : [300, 80, 160, 160]);
-                
-                hot.updateSettings({
-                    height: newHeight,
-                    colWidths: newColWidths
-                });
+            resizeTimer = setTimeout(() => {
+                const el = container.querySelector('.jexcel_content');
+                if (el) {
+                    const nm = window.innerWidth < 640;
+                    const nt = window.innerWidth >= 640 && window.innerWidth < 1024;
+                    el.style.maxHeight = nm ? '350px' : (nt ? '450px' : '500px');
+                }
             }, 250);
         });
 
-        // Form submission
-        const answerKeyForm = document.getElementById("answerKeyForm");
-        if (answerKeyForm) {
-            answerKeyForm.addEventListener("submit", function (e) {
-                e.preventDefault();
-                const data = hot.getData();
-                document.getElementById("correctData").value = JSON.stringify(data);
-                this.submit();
+        // ── Form submit — persist data + bold metadata ────────────────────────
+        document.getElementById('answerKeyForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const data     = table.getData();
+            const metadata = [];
+
+            data.forEach((row, rIdx) => {
+                metadata[rIdx] = [];
+                row.forEach((_, cIdx) => {
+                    const col = String.fromCharCode(65 + cIdx);
+                    const ref = `${col}${rIdx + 1}`;
+                    const sty = table.getStyle(ref) || '';
+                    if (sty.includes('font-weight:700') || sty.includes('font-weight: 700')) {
+                        metadata[rIdx][cIdx] = { bold: true };
+                    }
+                });
             });
-        }
-    });
-</script>
+
+            document.getElementById('correctData').value = JSON.stringify({
+                data     : data,
+                metadata : metadata,
+            });
+
+            this.submit();
+        });
+
+    })();
+    </script>
+
 </x-app-layout>

@@ -1,12 +1,12 @@
 <x-app-layout>
-    <!-- Handsontable -->
-    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.css" />
-    <!-- Formula Parser (HyperFormula) -->
-    <script src="https://cdn.jsdelivr.net/npm/hyperformula@2.6.2/dist/hyperformula.full.min.js"></script>
-    
+    {{-- ═══════════════════════════ jSpreadsheet CDN ═══════════════════════════ --}}
+    <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/index.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/jspreadsheet.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.css" />
+
     <style>
-        /* Enhanced Header Section Styles */
+        /* ── Page header / badge styles ──────────────────────────────────────── */
         .answer-key-header {
             background: linear-gradient(135deg, #f9fafb 0%, #f3e8ff 50%, #faf5ff 100%);
             border-radius: 1rem;
@@ -17,31 +17,24 @@
             position: relative;
             overflow: hidden;
         }
-
         .answer-key-header::before {
             content: '';
             position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
+            top: -50%; right: -10%;
+            width: 300px; height: 300px;
             background: radial-gradient(circle, rgba(167, 139, 250, 0.15) 0%, transparent 70%);
             border-radius: 50%;
             pointer-events: none;
         }
-
         .answer-key-header::after {
             content: '';
             position: absolute;
-            bottom: -30%;
-            left: -5%;
-            width: 200px;
-            height: 200px;
+            bottom: -30%; left: -5%;
+            width: 200px; height: 200px;
             background: radial-gradient(circle, rgba(196, 181, 253, 0.15) 0%, transparent 70%);
             border-radius: 50%;
             pointer-events: none;
         }
-
         .step-badge {
             display: inline-flex;
             align-items: center;
@@ -58,23 +51,12 @@
             z-index: 1;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-
         .step-badge:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 8px -1px rgba(139, 92, 246, 0.4), 0 3px 5px -1px rgba(139, 92, 246, 0.3);
         }
-
-        .step-badge svg {
-            width: 1rem;
-            height: 1rem;
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
+        .step-badge svg { width: 1rem; height: 1rem; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         .header-title {
             font-size: 2.25rem;
             font-weight: 800;
@@ -87,7 +69,6 @@
             position: relative;
             z-index: 1;
         }
-
         .header-description {
             color: #6b7280;
             font-size: 1rem;
@@ -97,7 +78,6 @@
             position: relative;
             z-index: 1;
         }
-
         .task-info-badge {
             display: inline-flex;
             align-items: center;
@@ -114,55 +94,51 @@
             z-index: 1;
             transition: all 0.2s ease;
         }
+        .task-info-badge:hover { background: #faf5ff; border-color: #d8b4fe; transform: translateX(4px); }
+        .task-info-badge svg { width: 1rem; height: 1rem; }
 
-        .task-info-badge:hover {
-            background: #faf5ff;
-            border-color: #d8b4fe;
-            transform: translateX(4px);
-        }
-
-        .task-info-badge svg {
-            width: 1rem;
-            height: 1rem;
-        }
-
-        .handsontable td.bold-cell {
-            font-weight: bold !important;
-        }
-
+        /* ── jSpreadsheet overrides ───────────────────────────────────────────── */
         body { overflow-x: hidden; }
-        .handsontable .font-bold { font-weight: bold; }
-        .handsontable .bg-gray-100 { background-color: #f3f4f6 !important; }
-        .handsontable .bg-blue-50 { background-color: #eff6ff !important; }
-        .handsontable td { border-color: #d1d5db; }
-        .handsontable .area { background-color: rgba(147, 51, 234, 0.1); }
-        .handsontable { position: relative; z-index: 1; }
-        #spreadsheet { isolation: isolate; }
-        .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
-        .handsontable .htMerge { background-color: #f8fafc; }
+        #spreadsheet { width: 100%; }
+        #spreadsheet .jexcel_content { overflow: auto; }
+        .jexcel td { border-color: #d1d5db !important; }
 
-        /* McGraw Hill style formatting */
-        .handsontable th {
-            background-color: #e5e7eb;
-            font-weight: 600;
+        /* ── Rows 1-3: company / statement title / period — bold, centred ─────── */
+        .jexcel tbody tr:nth-child(1) td,
+        .jexcel tbody tr:nth-child(2) td,
+        .jexcel tbody tr:nth-child(3) td {
+            font-weight: 700 !important;
+            text-align: center !important;
         }
+        .jexcel tbody tr:nth-child(1) td { font-size: 14px !important; }
+        .jexcel tbody tr:nth-child(2) td,
+        .jexcel tbody tr:nth-child(3) td { font-size: 13px !important; }
 
-        .handsontable .total-row {
-            background-color: #f3f4f6;
-            font-weight: bold;
-        }
+        /* ── Separator columns (D = col index 3, H = col index 7) ───────────── */
+        /* Applied dynamically via applyColumnStyles() */
 
-        @media (max-width: 640px) {
-            .handsontable { font-size: 11px; }
-            .handsontable th, .handsontable td { padding: 3px; }
-        }
+        /* ── Bold-cell toggle ────────────────────────────────────────────────── */
+        .jexcel td.bold-cell { font-weight: 700 !important; }
 
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .handsontable { font-size: 12px; }
-        }
+        /* ── Right-align numeric value columns ───────────────────────────────── */
+        /* Cols B,C,F,G,J,K,L (indices 1,2,5,6,9,10,11) for data rows ────────── */
+        /* Applied dynamically via applyColumnStyles() */
+
+        /* ── Total / double-underline rows ───────────────────────────────────── */
+        .jexcel td.total-border-top    { border-top: 1px solid #000 !important; font-weight: 700 !important; }
+        .jexcel td.total-double-bottom { border-bottom: 3px double #000 !important; }
+
+        /* ── Scrollbar polish ────────────────────────────────────────────────── */
+        #spreadsheet ::-webkit-scrollbar        { width: 6px; height: 6px; }
+        #spreadsheet ::-webkit-scrollbar-track  { background: transparent; }
+        #spreadsheet ::-webkit-scrollbar-thumb  { background: #d1d5db; border-radius: 9999px; }
+
+        @media (max-width: 640px) { .jexcel td, .jexcel th { font-size: 11px; padding: 3px; } }
+        @media (min-width: 640px) and (max-width: 1024px) { .jexcel td, .jexcel th { font-size: 12px; } }
     </style>
 
     <div class="py-4 sm:py-6 lg:py-8">
+
         @if (session('error'))
             <div class="mb-6 animate-slideDown">
                 <div class="flex items-start gap-3 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg shadow-sm">
@@ -214,15 +190,13 @@
                 </svg>
                 <span>Answer Key - Step 7 of 10</span>
             </div>
-            
-            <h1 class="header-title">
-                Answer Key: Financial Statements
-            </h1>
-            
+
+            <h1 class="header-title">Answer Key: Financial Statements</h1>
+
             <p class="header-description">
                 Create the correct answer key for the Financial Statements following McGraw Hill format. This will be used to automatically grade student submissions.
             </p>
-            
+
             <div class="task-info-badge">
                 <svg fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
@@ -236,7 +210,7 @@
             <!-- Instructions Section -->
             <div class="p-4 sm:p-6 bg-purple-50 border-b border-purple-100">
                 <div class="flex items-start gap-3">
-                    <svg class="w-5 h-5 text-purple-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                     </svg>
                     <div>
@@ -248,522 +222,395 @@
                 </div>
             </div>
 
-            <form id="answerKeyForm" action="{{ route('instructors.performance-tasks.answer-sheets.update', ['task' => $task, 'step' => 7]) }}" method="POST">
+            <form id="answerKeyForm"
+                  action="{{ route('instructors.performance-tasks.answer-sheets.update', ['task' => $task, 'step' => 7]) }}"
+                  method="POST">
                 @csrf
                 @method('PUT')
-                
-                <!-- Spreadsheet Section -->
+
                 <div class="p-3 sm:p-4 lg:p-6">
                     <div class="border rounded-lg shadow-inner bg-gray-50 overflow-hidden">
-                        <div class="overflow-x-auto overflow-y-auto" style="max-height: calc(100vh - 400px); min-height: 400px;">
+                        <div class="overflow-x-auto overflow-y-auto"
+                             style="max-height: calc(100vh - 400px); min-height: 400px;">
                             <div id="spreadsheet" class="bg-white min-w-full"></div>
                         </div>
                         <input type="hidden" name="correct_data" id="correctData" required>
                     </div>
-
-                    <!-- Mobile Scroll Hint -->
                     <div class="mt-2 text-xs text-gray-500 sm:hidden text-center">
                         <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
                         </svg>
                         Swipe to scroll spreadsheet
                     </div>
                 </div>
 
-                <!-- Action Buttons -->
                 <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
                     <div class="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
-                        <a href="{{ route('instructors.performance-tasks.answer-sheets.show', $task) }}" 
+
+                        <a href="{{ route('instructors.performance-tasks.answer-sheets.show', $task) }}"
                            class="inline-flex items-center justify-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm sm:text-base">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                             </svg>
                             Back to Answer Sheets
                         </a>
-                        <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 transition-colors text-sm sm:text-base">
+
+                        <button type="submit"
+                                class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 transition-colors text-sm sm:text-base">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
-                            Save Answer Key & Continue
+                            Save Answer Key &amp; Continue
                         </button>
+
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
-<script>
-    let hot;
+    {{-- ═══════════════════ jSpreadsheet initialisation ═══════════════════ --}}
+    <script>
+    (function () {
 
-    document.addEventListener("DOMContentLoaded", function () {
-        const container = document.getElementById('spreadsheet');
-        
-        // Get saved answer key data if it exists
-        const savedData = @json($sheet->correct_data ?? null);
-        
-        // Parse saved data if it exists
-        const parsedSaved = savedData ? (typeof savedData === 'string' ? JSON.parse(savedData) : savedData) : null;
-        
-        // Check if saved data has new format with metadata
-        let initialData, savedMetadata = null;
-        
-        if (parsedSaved) {
-            if (parsedSaved.data && parsedSaved.metadata) {
-                initialData = parsedSaved.data;
-                savedMetadata = parsedSaved.metadata;
-            } else {
-                // Old format - just the data array
-                initialData = parsedSaved;
+        const container    = document.getElementById('spreadsheet');
+        const savedDataRaw = @json($sheet->correct_data ?? null);
+
+        // ── Constants ─────────────────────────────────────────────────────────
+        const COL_COUNT     = 12;
+        const MIN_DATA_ROWS = 35;
+
+        // ── Column letter helper ──────────────────────────────────────────────
+        const COLS = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+
+        // ── Default initial data (matches HOT initialData exactly) ───────────
+        const defaultData = [
+            ["Durano Enterprise", null, null, null, "Durano Enterprise", null, null, null, "Durano Enterprise", null, null, null],
+            ["Income Statement", null, null, null, "Statement of Changes in Equity", null, null, null, "Balance Sheet", null, null, null],
+            ["For the month ended February 29, 2024", null, null, null, "For the month ended February 29, 2024", null, null, null, "As of February 29, 2024", null, null, null],
+            ["", "", "", "", "", "", "", "", "", "", "", ""],
+            ["Revenues:", "", "", "", "Durano, Capital, beginning", "", "", "", "Assets", "", "", ""],
+            ["Service Revenue", "", "", "", "Add: Investment", "", "", "", "Current assets", "", "", ""],
+            ["", "", "", "", "          Net Income", "", "", "", "Cash", "", "", ""],
+            ["Less: Expenses", "", "", "", "Total", "", "", "", "Accounts receivable", "", "", ""],
+            ["Rent expense", "", "", "", "Less: Durano, Withdrawals", "", "", "", "Supplies", "", "", ""],
+            ["Utilities expense", "", "", "", "Durano, Capital, ending", "", "", "", "Total current assets", "", "", ""],
+            ["Salaries expense", "", "", "", "", "", "", "", "", "", "", ""],
+            ["Supplies expense", "", "", "", "", "", "", "", "Non-current assets", "", "", ""],
+            ["Depreciation expense", "", "", "", "", "", "", "", "Furniture and fixture", "", "", ""],
+            ["Net Income", "", "", "", "", "", "", "", "Accumulated depreciation-furniture and fixture", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Equipment", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Accumulated depreciation-equipment", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Land", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Total Non-current assets", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Total Assets", "", "", ""],
+            ["", "", "", "", "", "", "", "", "", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Liabilities", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Accounts payable", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Notes payable", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Utilities payable", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Total liabilities", "", "", ""],
+            ["", "", "", "", "", "", "", "", "", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Owner's Equity", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Durano, Capital", "", "", ""],
+            ["", "", "", "", "", "", "", "", "Total Liabilities and Owner's Equity", "", "", ""],
+            ["", "", "", "", "", "", "", "", "", "", "", ""],
+            [null, null, null, null, null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null, null, null, null, null],
+        ];
+
+        // ── Restore / build initial data ──────────────────────────────────────
+        let fullData, boldCells = {};
+
+        if (savedDataRaw) {
+            const parsed = typeof savedDataRaw === 'string'
+                ? JSON.parse(savedDataRaw)
+                : savedDataRaw;
+
+            fullData = (parsed && parsed.data) ? parsed.data : parsed;
+
+            // Restore bold metadata
+            if (parsed && parsed.metadata) {
+                parsed.metadata.forEach((rowMeta, rIdx) => {
+                    if (!rowMeta) return;
+                    rowMeta.forEach((cellMeta, cIdx) => {
+                        if (cellMeta && cellMeta.bold) boldCells[`${rIdx},${cIdx}`] = true;
+                    });
+                });
             }
         } else {
-            // Initialize with horizontal layout matching the image exactly
-            initialData = [
-                ["Durano Enterprise", null, null, null, "Durano Enterprise", null, null, null, "Durano Enterprise", null, null, null],
-                ["Income Statement", null, null, null, "Statement of Changes in Equity", null, null, null, "Balance Sheet", null, null, null],
-                ["For the month ended February 29, 2024", null, null, null, "For the month ended February 29, 2024", null, null, null, "As of February 29, 2024", null, null, null],
-                ["", "", "", "", "", "", "", "", "", "", "", ""],
-                ["Revenues:", "", "", "", "Durano, Capital, beginning", "", "", "", "Assets", "", "", ""],
-                ["Service Revenue", "", "", "", "Add: Investment", "", "", "", "Current assets", "", "", ""],
-                ["", "", "", "", "          Net Income", "", "", "", "Cash", "", "", ""],
-                ["Less: Expenses", "", "", "", "Total", "", "", "", "Accounts receivable", "", "", ""],
-                ["Rent expense", "", "", "", "Less: Durano, Withdrawals", "", "", "", "Supplies", "", "", ""],
-                ["Utilities expense", "", "", "", "Durano, Capital, ending", "", "", "", "Total current assets", "", "", ""],
-                ["Salaries expense", "", "", "", "", "", "", "", "", "", "", ""],
-                ["Supplies expense", "", "", "", "", "", "", "", "Non-current assets", "", "", ""],
-                ["Depreciation expense", "", "", "", "", "", "", "", "Furniture and fixture", "", "", ""],
-                ["Net Income", "", "", "", "", "", "", "", "Accumulated depreciation-furniture and fixture", "", "", ""],
-                ["", "", "", "", "", "", "", "", "Equipment", "", "", ""],
-                ["", "", "", "", "", "", "", "", "Accumulated depreciation-equipment", "", "", ""],
-                ["", "", "", "", "", "", "", "", "Land", "", "", ""],
-                ["", "", "", "", "", "", "", "", "Total Non-current assets", "", "", ""],
-                ["", "", "", "", "", "", "", "", "Total Assets", "", "", ""],
-                ["", "", "", "", "", "", "", "", "", "", "", ""],
-                ["", "", "", "", "", "", "", "", "Liabilities", "", "", ""],
-                ["", "", "", "", "", "", "", "", "Accounts payable", "", "", ""],
-                ["", "", "", "", "", "", "", "", "Notes payable", "", "", ""],
-                ["", "", "", "", "", "", "", "", "Utilities payable", "", "", ""],
-                ["", "", "", "", "", "", "", "", "Total liabilities", "", "", ""],
-                ["", "", "", "", "", "", "", "", "", "", "", ""],
-                ["", "", "", "", "", "", "", "", "Owner's Equity", "", "", ""],
-                ["", "", "", "", "", "", "", "", "Durano, Capital", "", "", ""],
-                ["", "", "", "", "", "", "", "", "Total Liabilities and Owner's Equity", "", "", ""],
-                ["", "", "", "", "", "", "", "", "", "", "", ""],
-                [null, null, null, null, null, null, null, null, null, null, null, null],
-                [null, null, null, null, null, null, null, null, null, null, null, null],
-                [null, null, null, null, null, null, null, null, null, null, null, null],
-                [null, null, null, null, null, null, null, null, null, null, null, null],
-                [null, null, null, null, null, null, null, null, null, null, null, null]
-            ];
+            fullData = defaultData;
         }
 
-        // Function to add comma separators to numbers
-        function addCommas(value) {
-            if (!value || value === '') return value;
-            
-            // If it's a formula, don't format it
-            if (typeof value === 'string' && value.startsWith('=')) return value;
-            
-            // Remove existing formatting
-            let cleanValue = String(value).replace(/[₱,\s]/g, '');
-            
-            // Check if it's a negative number (in parentheses)
-            let isNegative = cleanValue.includes('(') || cleanValue.includes(')');
-            cleanValue = cleanValue.replace(/[()]/g, '');
-            
-            // Check if it's a valid number
-            if (isNaN(cleanValue) || cleanValue === '') return value;
-            
-            // Convert to number and back to string to handle decimals properly
-            let num = parseFloat(cleanValue);
-            if (isNaN(num)) return value;
-            
-            // Format with commas
-            let parts = num.toFixed(2).split('.');
-            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            let formatted = parts.join('.');
-            
-            // Add back parentheses for negative numbers
-            if (isNegative) {
-                formatted = '(' + formatted + ')';
-            }
-            
-            return formatted;
+        // Ensure minimum rows
+        while (fullData.length < MIN_DATA_ROWS) {
+            fullData.push(Array(COL_COUNT).fill(null));
         }
 
-        // Initialize HyperFormula
-        const hyperformulaInstance = HyperFormula.buildEmpty({
-            licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any',
+        // ── Merge cells — mirrors HOT mergeCells config exactly ───────────────
+        const mergeCells = {
+            // Income Statement header (cols A-D = indices 0-3)
+            'A1': [4, 1], 'A2': [4, 1], 'A3': [4, 1],
+            // Statement of Changes in Equity header (cols E-H = indices 4-7)
+            'E1': [4, 1], 'E2': [4, 1], 'E3': [4, 1],
+            // Balance Sheet header (cols I-L = indices 8-11)
+            'I1': [4, 1], 'I2': [4, 1], 'I3': [4, 1],
+        };
+
+        // ── Cell styles ───────────────────────────────────────────────────────
+        const cellStyle = {};
+
+        // Rows 1-3: bold, centred per-section headers
+        // Row 1: font-size 14px
+        COLS.forEach(c => {
+            cellStyle[`${c}1`] = 'font-weight:700;text-align:center;font-size:14px;';
+            cellStyle[`${c}2`] = 'font-weight:700;text-align:center;font-size:13px;';
+            cellStyle[`${c}3`] = 'font-weight:700;text-align:center;font-size:13px;';
         });
 
-        // Responsive dimensions
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        const isMobile = viewportWidth < 640;
-        const isTablet = viewportWidth >= 640 && viewportWidth < 1024;
+        // Separator cols D and H (index 3 and 7): grey bg + right border
+        fullData.forEach((_, rIdx) => {
+            const rNum = rIdx + 1;
+            cellStyle[`D${rNum}`] = (cellStyle[`D${rNum}`] || '') + 'background:#f8f9fa;border-right:2px solid #dee2e6;';
+            cellStyle[`H${rNum}`] = (cellStyle[`H${rNum}`] || '') + 'background:#f8f9fa;border-right:2px solid #dee2e6;';
+        });
 
-        let tableHeight;
-        if (isMobile) {
-            tableHeight = Math.min(Math.max(viewportHeight * 0.5, 350), 500);
-        } else if (isTablet) {
-            tableHeight = Math.min(Math.max(viewportHeight * 0.6, 450), 600);
-        } else {
-            tableHeight = Math.min(Math.max(viewportHeight * 0.65, 550), 700);
-        }
+        // Section label bold rows (matching HOT renderer conditions)
+        const boldLabelRows = {
+            // Income Statement labels — col A (index 0)
+            'Revenues:': 0, 'Less: Expenses': 0, 'Net Income': 0,
+            // Statement of Changes labels — col E (index 4)
+            'Total': 4, 'Durano, Capital, ending': 4,
+            // Balance Sheet labels — col I (index 8)
+            'Assets': 8, 'Current assets': 8, 'Non-current assets': 8,
+            'Liabilities': 8, "Owner's Equity": 8,
+            'Total current assets': 8, 'Total Non-current assets': 8,
+            'Total Assets': 8, 'Total liabilities': 8,
+            "Total Liabilities and Owner's Equity": 8,
+        };
 
-        // Column widths for 12 columns
-        let colWidths;
-        if (isMobile) {
-            colWidths = Array(12).fill(100);
-        } else if (isTablet) {
-            colWidths = [200, 100, 100, 20, 200, 100, 100, 20, 200, 100, 100, 120];
-        } else {
-            colWidths = [240, 110, 110, 30, 240, 110, 110, 30, 240, 110, 110, 130];
-        }
-            
-        hot = new Handsontable(container, {
-            data: initialData,
-            rowHeaders: true,
-            colHeaders: ['', '', '', '', '', '', '', '', '', '', '', ''],
-            columns: Array(12).fill(null).map((_, colIndex) => ({
-                type: 'text',
-                renderer: function(instance, td, row, col, prop, value, cellProperties) {
-                    Handsontable.renderers.TextRenderer.apply(this, arguments);
-                    
-                    // Apply bold formatting if cell has bold-cell class
-                    const meta = instance.getCellMeta(row, col);
-                    if (meta.className && meta.className.includes('bold-cell')) {
-                        td.style.fontWeight = 'bold';
-                    }
-                    
-                    // Formula cells
-                    if (value && typeof value === 'string' && value.startsWith('=')) {
-                        td.classList.add('formula-cell');
-                    }
-                    
-                    // Company name and statement titles (bold, centered)
-                    if (row <= 2 && value && value.trim() !== '') {
-                        td.style.fontWeight = 'bold';
-                        td.style.textAlign = 'center';
-                        td.style.fontSize = row === 0 ? '14px' : '13px';
-                    }
-                    
-                    // Section headers - Income Statement
-                    if (col <= 3 && value && (value === 'Revenues:' || value === 'Less: Expenses')) {
-                        td.style.fontWeight = 'bold';
-                    }
-                    
-                    // Section headers - Balance Sheet
-                    if (col >= 8 && value && (
-                        value === 'Assets' ||
-                        value === 'Liabilities' ||
-                        value === "Owner's Equity" ||
-                        value === 'Current assets' ||
-                        value === 'Non-current assets'
-                    )) {
-                        td.style.fontWeight = 'bold';
-                    }
-                    
-                    // Total rows styling
-                    const firstColValue = instance.getDataAtCell(row, 0);
-                    const middleColValue = instance.getDataAtCell(row, 4);
-                    const lastColValue = instance.getDataAtCell(row, 8);
-                    
-                    // Income Statement totals
-                    if (col <= 3 && (firstColValue === 'Net Income' || value === 'Net Income')) {
-                        td.style.fontWeight = 'bold';
-                        td.style.borderTop = '1px solid #000';
-                    }
-                    
-                    // Statement of Changes totals
-                    if (col >= 4 && col <= 7 && (
-                        middleColValue === 'Total' || 
-                        middleColValue === 'Durano, Capital, ending' ||
-                        value === 'Total' ||
-                        value === 'Durano, Capital, ending'
-                    )) {
-                        td.style.fontWeight = 'bold';
-                        td.style.borderTop = '1px solid #000';
-                    }
-                    
-                    // Balance Sheet totals
-                    if (col >= 8 && (
-                        lastColValue === 'Total current assets' ||
-                        lastColValue === 'Total Non-current assets' ||
-                        lastColValue === 'Total Assets' ||
-                        lastColValue === 'Total liabilities' ||
-                        lastColValue === "Total Liabilities and Owner's Equity" ||
-                        value === 'Total current assets' ||
-                        value === 'Total Non-current assets' ||
-                        value === 'Total Assets' ||
-                        value === 'Total liabilities' ||
-                        value === "Total Liabilities and Owner's Equity"
-                    )) {
-                        td.style.fontWeight = 'bold';
-                        td.style.borderTop = '1px solid #000';
-                    }
-                    
-                    // Double underline for final totals
-                    if (col >= 4 && col <= 7 && middleColValue === 'Durano, Capital, ending') {
-                        td.style.borderBottom = '3px double #000';
-                    }
-                    
-                    if (col >= 8 && (
-                        lastColValue === 'Total Assets' ||
-                        lastColValue === "Total Liabilities and Owner's Equity"
-                    )) {
-                        td.style.borderBottom = '3px double #000';
-                    }
-                    
-                    // Separator columns
-                    if (col === 3 || col === 7) {
-                        td.style.backgroundColor = '#f8f9fa';
-                        td.style.borderRight = '2px solid #dee2e6';
-                        td.style.width = '30px';
-                    }
-                    
-                    // Right align numbers
-                    if ((col === 1 || col === 2 || col === 5 || col === 6 || col === 9 || col === 10 || col === 11) && 
-                        value && (value.includes('₱') || value.includes(',') || !isNaN(value.replace(/[₱,()]/g, '')))) {
-                        td.style.textAlign = 'right';
-                    }
+        // Total border-top rows (matching HOT borderTop logic)
+        const totalBorderLabels = new Set([
+            'Net Income', 'Total', 'Durano, Capital, ending',
+            'Total current assets', 'Total Non-current assets',
+            'Total Assets', 'Total liabilities',
+            "Total Liabilities and Owner's Equity",
+        ]);
+
+        // Double-bottom rows
+        const doubleBottomLabels = new Set([
+            'Durano, Capital, ending', 'Total Assets',
+            "Total Liabilities and Owner's Equity",
+        ]);
+
+        fullData.forEach((row, rIdx) => {
+            if (rIdx < 3) return; // skip header rows already styled
+            const rNum = rIdx + 1;
+            row.forEach((val, cIdx) => {
+                if (!val || String(val).trim() === '') return;
+                const cellVal = String(val).trim();
+                const ref = `${COLS[cIdx]}${rNum}`;
+
+                // Bold section labels
+                if (boldLabelRows.hasOwnProperty(cellVal)) {
+                    cellStyle[ref] = (cellStyle[ref] || '') + 'font-weight:700;';
                 }
-            })),
-            width: '100%',
-            height: tableHeight,
-            colWidths: colWidths,
-            licenseKey: 'non-commercial-and-evaluation',
-            formulas: { engine: hyperformulaInstance },
-            beforeChange: function(changes, source) {
-                if (changes) {
-                    changes.forEach(function(change) {
-                        const row = change[0];
-                        const col = change[1];
-                        let newValue = change[3];
-                        
-                        // Don't format formulas
-                        if (newValue && typeof newValue === 'string' && newValue.startsWith('=')) {
-                            change[3] = newValue.trim();
-                            return;
-                        }
-                        
-                        // Auto-format numbers in value columns (1, 2, 5, 6, 9, 10, 11)
-                        if (col === 1 || col === 2 || col === 5 || col === 6 || col === 9 || col === 10 || col === 11) {
-                            if (newValue && newValue !== '') {
-                                change[3] = addCommas(newValue);
-                            }
-                        }
+
+                // Total rows — border-top + bold
+                if (totalBorderLabels.has(cellVal)) {
+                    cellStyle[ref] = (cellStyle[ref] || '') + 'font-weight:700;border-top:1px solid #000;';
+                    // Apply border-top to numeric siblings in same row
+                    // IS numeric cols: 1,2 → B,C; SCE: 5,6 → F,G; BS: 9,10,11 → J,K,L
+                    [1,2,5,6,9,10,11].forEach(nIdx => {
+                        const nRef = `${COLS[nIdx]}${rNum}`;
+                        cellStyle[nRef] = (cellStyle[nRef] || '') + 'border-top:1px solid #000;';
                     });
                 }
-            },
-            contextMenu: {
-                items: {
-                    'row_above': {},
-                    'row_below': {},
-                    'col_left': {},
-                    'col_right': {},
-                    'remove_row': {},
-                    'remove_col': {},
-                    'undo': {},
-                    'redo': {},
-                    'make_read_only': {},
-                    'alignment': {},
-                    'separator1': '---------',
-                    'bold': {
-                        name: '✓ Toggle Bold',
-                        callback: function() {
-                            const selected = this.getSelected();
-                            if (selected) {
-                                selected.forEach(([startRow, startCol, endRow, endCol]) => {
-                                    for (let row = startRow; row <= endRow; row++) {
-                                        for (let col = startCol; col <= endCol; col++) {
-                                            const meta = this.getCellMeta(row, col);
-                                            
-                                            // Toggle bold state
-                                            if (!meta.className) {
-                                                this.setCellMeta(row, col, 'className', 'bold-cell');
-                                            } else if (meta.className.includes('bold-cell')) {
-                                                this.setCellMeta(row, col, 'className', 
-                                                    meta.className.replace('bold-cell', '').trim());
-                                            } else {
-                                                this.setCellMeta(row, col, 'className', 
-                                                    meta.className + ' bold-cell');
-                                            }
-                                        }
-                                    }
-                                });
-                                this.render();
-                            }
-                        }
-                    }
-                }
-            },
-            undo: true,
-            manualColumnResize: true,
-            manualRowResize: true,
-            fillHandle: true,
-            autoColumnSize: false,
-            autoRowSize: false,
-            copyPaste: true,
-            minRows: 35,
-            minCols: 12,
-            minSpareRows: 1,
-            stretchH: 'none',
-            enterMoves: { row: 1, col: 0 },
-            tabMoves: { row: 0, col: 1 },
-            outsideClickDeselects: false,
-            selectionMode: 'multiple',
-            comments: true,
-            customBorders: true,
-            className: 'htLeft htMiddle',
-            mergeCells: [
-                // Income Statement header merges
-                { row: 0, col: 0, rowspan: 1, colspan: 4 },
-                { row: 1, col: 0, rowspan: 1, colspan: 4 },
-                { row: 2, col: 0, rowspan: 1, colspan: 4 },
-                // Statement of Changes in Equity header merges
-                { row: 0, col: 4, rowspan: 1, colspan: 4 },
-                { row: 1, col: 4, rowspan: 1, colspan: 4 },
-                { row: 2, col: 4, rowspan: 1, colspan: 4 },
-                // Balance Sheet header merges
-                { row: 0, col: 8, rowspan: 1, colspan: 4 },
-                { row: 1, col: 8, rowspan: 1, colspan: 4 },
-                { row: 2, col: 8, rowspan: 1, colspan: 4 }
-            ]
-        });
 
-        // Restore bold formatting if metadata exists
-        if (savedMetadata) {
-            savedMetadata.forEach((row, rowIndex) => {
-                if (row) {
-                    row.forEach((cell, colIndex) => {
-                        if (cell && cell.bold) {
-                            hot.setCellMeta(rowIndex, colIndex, 'className', 'bold-cell');
-                        }
+                // Double underline for final totals
+                if (doubleBottomLabels.has(cellVal)) {
+                    cellStyle[ref] = (cellStyle[ref] || '') + 'border-bottom:3px double #000;';
+                    [1,2,5,6,9,10,11].forEach(nIdx => {
+                        const nRef = `${COLS[nIdx]}${rNum}`;
+                        cellStyle[nRef] = (cellStyle[nRef] || '') + 'border-bottom:3px double #000;';
                     });
                 }
             });
-            hot.render();
-        }
+        });
 
-        // Keyboard shortcut for bold (Ctrl+B / Cmd+B)
-        hot.addHook('beforeKeyDown', function(event) {
-            // Check for Ctrl+B (Windows/Linux) or Cmd+B (Mac)
-            if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                
-                const selected = hot.getSelected();
-                if (selected) {
-                    selected.forEach(([startRow, startCol, endRow, endCol]) => {
-                        for (let row = startRow; row <= endRow; row++) {
-                            for (let col = startCol; col <= endCol; col++) {
-                                const meta = hot.getCellMeta(row, col);
-                                
-                                // Toggle bold
-                                if (!meta.className) {
-                                    hot.setCellMeta(row, col, 'className', 'bold-cell');
-                                } else if (meta.className.includes('bold-cell')) {
-                                    hot.setCellMeta(row, col, 'className', 
-                                        meta.className.replace('bold-cell', '').trim());
+        // Right-align numeric value columns for data rows (row 4+)
+        const numericColIndices = [1, 2, 5, 6, 9, 10, 11];
+        fullData.forEach((_, rIdx) => {
+            if (rIdx < 3) return;
+            const rNum = rIdx + 1;
+            numericColIndices.forEach(cIdx => {
+                const ref = `${COLS[cIdx]}${rNum}`;
+                cellStyle[ref] = (cellStyle[ref] || '') + 'text-align:right;';
+            });
+        });
+
+        // Apply saved bold metadata
+        Object.keys(boldCells).forEach(key => {
+            const [r, c] = key.split(',').map(Number);
+            const ref = `${COLS[c]}${r + 1}`;
+            cellStyle[ref] = (cellStyle[ref] || '') + 'font-weight:700;';
+        });
+
+        // ── Responsive dimensions ─────────────────────────────────────────────
+        const isMobile = window.innerWidth < 640;
+        const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+
+        const colWidths = isMobile
+            ? Array(12).fill(100)
+            : (isTablet
+                ? [200, 100, 100, 20, 200, 100, 100, 20, 200, 100, 100, 120]
+                : [240, 110, 110, 30, 240, 110, 110, 30, 240, 110, 110, 130]);
+
+        const tableH = isMobile
+            ? Math.min(Math.max(window.innerHeight * 0.5, 350), 500)
+            : (isTablet
+                ? Math.min(Math.max(window.innerHeight * 0.6, 450), 600)
+                : Math.min(Math.max(window.innerHeight * 0.65, 550), 700));
+
+        // ── Build columns array ───────────────────────────────────────────────
+        const columns = COLS.map((_, i) => ({
+            type : numericColIndices.includes(i) ? 'numeric' : 'text',
+            width: colWidths[i],
+            ...(numericColIndices.includes(i) ? { mask: '#,##0.00', decimal: '.' } : {}),
+        }));
+
+        // ── Init jSpreadsheet ─────────────────────────────────────────────────
+        const table = jspreadsheet(container, {
+            data             : fullData,
+            minDimensions    : [COL_COUNT, fullData.length],
+            defaultColWidth  : isMobile ? 120 : 150,
+            mergeCells       : mergeCells,
+            style            : cellStyle,
+            columns          : columns,
+            minDimensions    : [COL_COUNT, fullData.length],
+            tableWidth       : '100%',
+            tableOverflow    : true,
+            tableHeight      : `${tableH}px`,
+            allowFormulas    : true,
+            columnSorting    : false,
+            columnDrag       : false,
+            rowDrag          : false,
+            allowInsertRow   : true,
+            allowInsertColumn: false,
+            allowDeleteRow   : true,
+            allowDeleteColumn: false,
+            columnResize     : true,
+            rowResize        : true,
+            copyCompatibility: true,
+            minSpareRows     : 1,
+
+            // ── Context menu with Bold toggle ─────────────────────────────────
+            contextMenu: function (obj, x, y, e) {
+                return [
+                    { title: 'Insert row above', onclick: () => obj.insertRow(1, parseInt(y), true) },
+                    { title: 'Insert row below', onclick: () => obj.insertRow(1, parseInt(y)) },
+                    { title: 'Delete row',       onclick: () => obj.deleteRow(parseInt(y)) },
+                    { type: 'line' },
+                    { title: '✓ Toggle Bold', onclick: () => {
+                        const sel = obj.getSelectedCoords();
+                        if (!sel) return;
+                        const [c1, r1, c2, r2] = sel;
+                        for (let r = r1; r <= r2; r++) {
+                            for (let c = c1; c <= c2; c++) {
+                                const ref = `${COLS[c]}${r + 1}`;
+                                const cur = obj.getStyle(ref) || '';
+                                if (cur.includes('font-weight:700') || cur.includes('font-weight: 700')) {
+                                    obj.setStyle(ref, 'font-weight', '');
                                 } else {
-                                    hot.setCellMeta(row, col, 'className', 
-                                        meta.className + ' bold-cell');
+                                    obj.setStyle(ref, 'font-weight', '700');
                                 }
                             }
                         }
-                    });
-                    hot.render();
+                    }},
+                    { type: 'line' },
+                    { title: 'Copy',  onclick: () => obj.copy(true) },
+                    { title: 'Paste', onclick: () => {
+                        if (navigator.clipboard) {
+                            navigator.clipboard.readText().then(t => obj.paste(x, y, t));
+                        }
+                    }},
+                ];
+            },
+        });
+
+        // ── Ctrl+B / Cmd+B keyboard shortcut ─────────────────────────────────
+        document.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                e.preventDefault();
+                const sel = table.getSelectedCoords();
+                if (!sel) return;
+                const [c1, r1, c2, r2] = sel;
+                for (let r = r1; r <= r2; r++) {
+                    for (let c = c1; c <= c2; c++) {
+                        const ref = `${COLS[c]}${r + 1}`;
+                        const cur = table.getStyle(ref) || '';
+                        if (cur.includes('font-weight:700') || cur.includes('font-weight: 700')) {
+                            table.setStyle(ref, 'font-weight', '');
+                        } else {
+                            table.setStyle(ref, 'font-weight', '700');
+                        }
+                    }
                 }
             }
         });
 
-        // Window resize handler
+        // ── Expose for potential external use ─────────────────────────────────
+        window.table = table;
+
+        // ── Responsive resize ─────────────────────────────────────────────────
         let resizeTimer;
-        const handleResize = function() {
+        window.addEventListener('resize', () => {
             clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {
-                const newViewportWidth = window.innerWidth;
-                const newViewportHeight = window.innerHeight;
-                const newIsMobile = newViewportWidth < 640;
-                const newIsTablet = newViewportWidth >= 640 && newViewportWidth < 1024;
-                
-                let newHeight;
-                if (newIsMobile) {
-                    newHeight = Math.min(Math.max(newViewportHeight * 0.5, 350), 500);
-                } else if (newIsTablet) {
-                    newHeight = Math.min(Math.max(newViewportHeight * 0.6, 450), 600);
-                } else {
-                    newHeight = Math.min(Math.max(newViewportHeight * 0.65, 550), 700);
-                }
-                
-                let newColWidths;
-                if (newIsMobile) {
-                    newColWidths = Array(12).fill(100);
-                } else if (newIsTablet) {
-                    newColWidths = [200, 100, 100, 20, 200, 100, 100, 20, 200, 100, 100, 120];
-                } else {
-                    newColWidths = [240, 110, 110, 30, 240, 110, 110, 30, 240, 110, 110, 130];
-                }
-                
-                hot.updateSettings({
-                    height: newHeight,
-                    colWidths: newColWidths,
-                    width: '100%'
-                });
-                
-                hot.render();
+            resizeTimer = setTimeout(() => {
+                const el = container.querySelector('.jexcel_content');
+                if (!el) return;
+                const nm = window.innerWidth < 640;
+                const nt = window.innerWidth >= 640 && window.innerWidth < 1024;
+                const nh = nm
+                    ? Math.min(Math.max(window.innerHeight * 0.5, 350), 500)
+                    : (nt
+                        ? Math.min(Math.max(window.innerHeight * 0.6, 450), 600)
+                        : Math.min(Math.max(window.innerHeight * 0.65, 550), 700));
+                el.style.maxHeight = `${nh}px`;
             }, 250);
-        };
+        });
 
-        window.addEventListener('resize', handleResize);
-        
-        // Detect zoom changes
-        let lastWidth = window.innerWidth;
-        let lastHeight = window.innerHeight;
-        
-        const checkZoom = function() {
-            const currentWidth = window.innerWidth;
-            const currentHeight = window.innerHeight;
-            
-            if (currentWidth !== lastWidth || currentHeight !== lastHeight) {
-                lastWidth = currentWidth;
-                lastHeight = currentHeight;
-                handleResize();
-            }
-        };
-        
-        setInterval(checkZoom, 500);
+        // ── Form submit — persist data + bold metadata ────────────────────────
+        document.getElementById('answerKeyForm').addEventListener('submit', function (e) {
+            e.preventDefault();
 
-        // Capture spreadsheet data on submit with bold metadata
-        const answerKeyForm = document.getElementById("answerKeyForm");
-        if (answerKeyForm) {
-            answerKeyForm.addEventListener("submit", function (e) {
-                e.preventDefault();
-                
-                const data = hot.getData();
-                const metadata = [];
-                
-                // Capture bold formatting
-                for (let row = 0; row < data.length; row++) {
-                    metadata[row] = [];
-                    for (let col = 0; col < data[row].length; col++) {
-                        const meta = hot.getCellMeta(row, col);
-                        if (meta.className && meta.className.includes('bold-cell')) {
-                            metadata[row][col] = { bold: true };
-                        }
+            const data     = table.getData();
+            const metadata = [];
+
+            data.forEach((row, rIdx) => {
+                metadata[rIdx] = [];
+                row.forEach((_, cIdx) => {
+                    const ref = `${COLS[cIdx]}${rIdx + 1}`;
+                    const sty = table.getStyle(ref) || '';
+                    if (sty.includes('font-weight:700') || sty.includes('font-weight: 700')) {
+                        metadata[rIdx][cIdx] = { bold: true };
                     }
-                }
-                
-                // Save data with metadata
-                document.getElementById("correctData").value = JSON.stringify({
-                    data: data,
-                    metadata: metadata
                 });
-                
-                this.submit();
             });
-        }
-    });
-</script>
+
+            document.getElementById('correctData').value = JSON.stringify({
+                data     : data,
+                metadata : metadata,
+            });
+
+            this.submit();
+        });
+
+    })();
+    </script>
+
 </x-app-layout>

@@ -1,12 +1,12 @@
 <x-app-layout>
-    <!-- Handsontable -->
-    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.css" />
-    <!-- Formula Parser (HyperFormula) -->
-    <script src="https://cdn.jsdelivr.net/npm/hyperformula@2.6.2/dist/hyperformula.full.min.js"></script>
-    
+    {{-- ═══════════════════════════ jSpreadsheet CDN ═══════════════════════════ --}}
+    <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/index.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/jspreadsheet.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.css" />
+
     <style>
-        /* Enhanced Header Section Styles */
+        /* ── Page header / badge styles ──────────────────────────────────────── */
         .answer-key-header {
             background: linear-gradient(135deg, #f9fafb 0%, #f3e8ff 50%, #faf5ff 100%);
             border-radius: 1rem;
@@ -17,31 +17,24 @@
             position: relative;
             overflow: hidden;
         }
-
         .answer-key-header::before {
             content: '';
             position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
+            top: -50%; right: -10%;
+            width: 300px; height: 300px;
             background: radial-gradient(circle, rgba(167, 139, 250, 0.15) 0%, transparent 70%);
             border-radius: 50%;
             pointer-events: none;
         }
-
         .answer-key-header::after {
             content: '';
             position: absolute;
-            bottom: -30%;
-            left: -5%;
-            width: 200px;
-            height: 200px;
+            bottom: -30%; left: -5%;
+            width: 200px; height: 200px;
             background: radial-gradient(circle, rgba(196, 181, 253, 0.15) 0%, transparent 70%);
             border-radius: 50%;
             pointer-events: none;
         }
-
         .step-badge {
             display: inline-flex;
             align-items: center;
@@ -58,23 +51,12 @@
             z-index: 1;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-
         .step-badge:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 8px -1px rgba(139, 92, 246, 0.4), 0 3px 5px -1px rgba(139, 92, 246, 0.3);
         }
-
-        .step-badge svg {
-            width: 1rem;
-            height: 1rem;
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
+        .step-badge svg { width: 1rem; height: 1rem; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         .header-title {
             font-size: 2.25rem;
             font-weight: 800;
@@ -87,7 +69,6 @@
             position: relative;
             z-index: 1;
         }
-
         .header-description {
             color: #6b7280;
             font-size: 1rem;
@@ -97,7 +78,6 @@
             position: relative;
             z-index: 1;
         }
-
         .task-info-badge {
             display: inline-flex;
             align-items: center;
@@ -114,38 +94,44 @@
             z-index: 1;
             transition: all 0.2s ease;
         }
+        .task-info-badge:hover { background: #faf5ff; border-color: #d8b4fe; transform: translateX(4px); }
+        .task-info-badge svg { width: 1rem; height: 1rem; }
 
-        .task-info-badge:hover {
-            background: #faf5ff;
-            border-color: #d8b4fe;
-            transform: translateX(4px);
-        }
-
-        .task-info-badge svg {
-            width: 1rem;
-            height: 1rem;
-        }
-
+        /* ── jSpreadsheet overrides ───────────────────────────────────────────── */
         body { overflow-x: hidden; }
-        .handsontable td { 
-            border-color: #d1d5db;
-        }
-        .handsontable .area { background-color: rgba(147, 51, 234, 0.1); }
-        .handsontable { position: relative; z-index: 1; }
-        #spreadsheet { isolation: isolate; }
-        .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+        #spreadsheet { width: 100%; }
+        #spreadsheet .jexcel_content { overflow: auto; }
+        .jexcel td { border-color: #d1d5db !important; }
 
-        @media (max-width: 640px) {
-            .handsontable { font-size: 12px; }
-            .handsontable th, .handsontable td { padding: 4px; }
+        /* ── Row 1 — main header: Date | … | Account Titles | Acct No. | Debit | Credit ── */
+        .jexcel tbody tr:nth-child(1) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #e5e7eb !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            border-bottom: 2px solid #6b7280 !important;
         }
 
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .handsontable { font-size: 13px; }
+        /* ── Row 2 — sub-labels: Month | Day | … ────────────────────────────── */
+        .jexcel tbody tr:nth-child(2) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #f3f4f6 !important;
+            border-bottom: 2px solid #6b7280 !important;
         }
+
+        /* ── Scrollbar polish ────────────────────────────────────────────────── */
+        #spreadsheet ::-webkit-scrollbar        { width: 6px; height: 6px; }
+        #spreadsheet ::-webkit-scrollbar-track  { background: transparent; }
+        #spreadsheet ::-webkit-scrollbar-thumb  { background: #d1d5db; border-radius: 9999px; }
+
+        @media (max-width: 640px) { .jexcel td, .jexcel th { font-size: 12px; padding: 4px; } }
+        @media (min-width: 640px) and (max-width: 1024px) { .jexcel td, .jexcel th { font-size: 13px; } }
     </style>
 
     <div class="py-4 sm:py-6 lg:py-8">
+
         @if (session('error'))
             <div class="mb-6 animate-slideDown">
                 <div class="flex items-start gap-3 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg shadow-sm">
@@ -197,15 +183,13 @@
                 </svg>
                 <span>Answer Key - Step 8 of 10</span>
             </div>
-            
-            <h1 class="header-title">
-                Answer Key: Balance Sheet
-            </h1>
-            
+
+            <h1 class="header-title">Answer Key: Balance Sheet</h1>
+
             <p class="header-description">
                 Create the correct answer key for the Balance Sheet. This will be used to automatically grade student submissions.
             </p>
-            
+
             <div class="task-info-badge">
                 <svg fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
@@ -219,7 +203,7 @@
             <!-- Instructions Section -->
             <div class="p-4 sm:p-6 bg-purple-50 border-b border-purple-100">
                 <div class="flex items-start gap-3">
-                    <svg class="w-5 h-5 text-purple-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                     </svg>
                     <div>
@@ -231,225 +215,203 @@
                 </div>
             </div>
 
-            <form id="answerKeyForm" action="{{ route('instructors.performance-tasks.answer-sheets.update', ['task' => $task, 'step' => 8]) }}" method="POST">
+            <form id="answerKeyForm"
+                  action="{{ route('instructors.performance-tasks.answer-sheets.update', ['task' => $task, 'step' => 8]) }}"
+                  method="POST">
                 @csrf
                 @method('PUT')
-                
-                <!-- Spreadsheet Section -->
+
                 <div class="p-3 sm:p-4 lg:p-6">
                     <div class="border rounded-lg shadow-inner bg-gray-50 overflow-hidden">
-                        <div class="overflow-x-auto overflow-y-auto" style="max-height: calc(100vh - 400px); min-height: 400px;">
+                        <div class="overflow-x-auto overflow-y-auto"
+                             style="max-height: calc(100vh - 400px); min-height: 400px;">
                             <div id="spreadsheet" class="bg-white min-w-full"></div>
                         </div>
                         <input type="hidden" name="correct_data" id="correctData" required>
                     </div>
-
-                    <!-- Mobile Scroll Hint -->
                     <div class="mt-2 text-xs text-gray-500 sm:hidden text-center">
                         <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
                         </svg>
                         Swipe to scroll spreadsheet
                     </div>
                 </div>
 
-                <!-- Action Buttons -->
                 <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
                     <div class="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
-                        <a href="{{ route('instructors.performance-tasks.answer-sheets.show', $task) }}" 
+
+                        <a href="{{ route('instructors.performance-tasks.answer-sheets.show', $task) }}"
                            class="inline-flex items-center justify-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm sm:text-base">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                             </svg>
                             Back to Answer Sheets
                         </a>
-                        <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 transition-colors text-sm sm:text-base">
+
+                        <button type="submit"
+                                class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 transition-colors text-sm sm:text-base">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
-                            Save Answer Key & Continue
+                            Save Answer Key &amp; Continue
                         </button>
+
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
-<script>
-    let hot;
+    {{-- ═══════════════════ jSpreadsheet initialisation ═══════════════════ --}}
+    <script>
+    (function () {
 
-    document.addEventListener("DOMContentLoaded", function () {
-        const container = document.getElementById('spreadsheet');
-        
-        const savedData = @json($sheet->correct_data ?? null);
+        const container  = document.getElementById('spreadsheet');
+        const savedData  = @json($sheet->correct_data ?? null);
 
-        // Header rows as editable data
+        // ── Constants ─────────────────────────────────────────────────────────
+        const HEADER_ROWS   = 1;
+        const COL_COUNT     = 6;
+        const MIN_DATA_ROWS = 15;
+
+        // ── Header rows — identical to HOT version ────────────────────────────
         const headerRow1 = ['Date', '', 'Account Titles and Explanation', 'Account Number', 'Debit (₱)', 'Credit (₱)'];
-        const headerRow2 = ['Month', 'Day', '', '', '', ''];
-        const blankRows = Array(15).fill(null).map(() => Array(6).fill(''));
+        const blankRow   = () => Array(COL_COUNT).fill('');
 
-        let initialData;
+        // ── Restore saved data ────────────────────────────────────────────────
+        let dataRows;
         if (savedData) {
             const parsed = JSON.parse(savedData);
-            if (parsed.length <= 15) {
-                // Old format, no headers — prepend them
-                initialData = [headerRow1, headerRow2, ...parsed];
+            if (parsed.length <= MIN_DATA_ROWS) {
+                // Old format — no headers stored
+                dataRows = parsed;
             } else {
-                // New format, already has headers — force correct headers
-                initialData = [headerRow1, headerRow2, ...parsed.slice(2)];
+                // New format — strip the 2 header rows
+                dataRows = parsed.slice(HEADER_ROWS);
             }
         } else {
-            initialData = [headerRow1, headerRow2, ...blankRows];
+            dataRows = Array(MIN_DATA_ROWS).fill(null).map(blankRow);
         }
 
-        // Initialize HyperFormula with whitespace support
-        const hyperformulaInstance = HyperFormula.buildEmpty({
-            licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any',
+        while (dataRows.length < MIN_DATA_ROWS) dataRows.push(blankRow());
+
+        const fullData = [headerRow1, ...dataRows];
+
+        // ── Merge cells — "Date" spans cols A-B in row 1 ─────────────────────
+        const mergeCells = {
+            'A1': [2, 1],
+        };
+
+        // ── Cell styles ───────────────────────────────────────────────────────
+        const cellStyle = {};
+
+        // Row 1: main headers — grey background, bold, centred
+        ['A1','B1','C1','D1','E1','F1'].forEach(ref => {
+            cellStyle[ref] = 'font-weight:700;text-align:center;background:#e5e7eb;white-space:normal;word-break:break-word;border-bottom:2px solid #6b7280;';
         });
 
-        // Determine responsive dimensions
+        // Row 2: sub-labels — light grey, bold, centred
+        ['A2','B2','C2','D2','E2','F2'].forEach(ref => {
+            cellStyle[ref] = 'font-weight:700;text-align:center;background:#f3f4f6;border-bottom:2px solid #6b7280;';
+        });
+
+        // ── Responsive dimensions ─────────────────────────────────────────────
         const isMobile = window.innerWidth < 640;
         const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-        
-        hot = new Handsontable(container, {
-            data: initialData,
-            rowHeaders: true,
-            width: '100%',
-            height: isMobile ? 350 : (isTablet ? 450 : 500),
-            licenseKey: 'non-commercial-and-evaluation',
 
-            // ✅ mergeCells replaces nestedHeaders colspan behavior
-            mergeCells: [
-                { row: 0, col: 0, rowspan: 1, colspan: 2 }, // Date spanning Month + Day
-            ],
+        // ── Init jSpreadsheet ─────────────────────────────────────────────────
+        const table = jspreadsheet(container, {
+            data             : fullData,
+            minDimensions    : [COL_COUNT, fullData.length],
+            defaultColWidth  : isMobile ? 120 : 150,
+            mergeCells       : mergeCells,
+            style            : cellStyle,
+            minDimensions    : [COL_COUNT, fullData.length],
+            tableWidth       : '100%',
+            tableOverflow    : true,
+            tableHeight      : isMobile ? '350px' : (isTablet ? '450px' : '500px'),
+            allowFormulas    : true,
+            columnSorting    : false,
+            columnDrag       : false,
+            rowDrag          : false,
+            allowInsertRow   : true,
+            allowInsertColumn: false,
+            allowDeleteRow   : true,
+            allowDeleteColumn: false,
+            columnResize     : true,
+            rowResize        : true,
+            copyCompatibility: true,
+            minSpareRows     : 1,
 
             columns: [
-                { type: 'text', width: isMobile ? 80 : 100 },
-                { type: 'text', width: isMobile ? 80 : 100 },
-                { type: 'text', width: isMobile ? 300 : 400 },
-                { type: 'text', width: isMobile ? 80 : 100 },
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
-                { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: isMobile ? 120 : 150 },
             ],
 
-            // Formula support with whitespace handling
-            formulas: { engine: hyperformulaInstance },
-
-            // Handle formula input with whitespace
-            beforeChange: function(changes, source) {
-                if (changes) {
-                    changes.forEach(function(change) {
-                        if (change[3] && typeof change[3] === 'string' && change[3].startsWith('=')) {
-                            change[3] = change[3].trim();
+            contextMenu: function (obj, x, y, e) {
+                return [
+                    { title: 'Insert row above', onclick: () => obj.insertRow(1, parseInt(y), true) },
+                    { title: 'Insert row below', onclick: () => obj.insertRow(1, parseInt(y)) },
+                    { title: 'Delete row',       onclick: () => obj.deleteRow(parseInt(y)) },
+                    { type: 'line' },
+                    { title: 'Copy',  onclick: () => obj.copy(true) },
+                    { title: 'Paste', onclick: () => {
+                        if (navigator.clipboard) {
+                            navigator.clipboard.readText().then(t => obj.paste(x, y, t));
                         }
-                    });
-                }
+                    }},
+                ];
             },
 
-            // Cell renderer for header styling + formula indicator
-            cells: function(row, col) {
-                const cellProperties = {};
-
-                // ✅ Header rows — force editable + plain bold centered styling
-                if (row === 0 || row === 1) {
-                    cellProperties.readOnly = false;
-                    cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.TextRenderer.call(
-                            this, instance, td, row, col, prop, value, cellProperties
-                        );
-                        td.style.fontWeight = 'bold';
-                        td.style.textAlign = 'center';
-                        td.style.verticalAlign = 'middle';
-                        td.style.whiteSpace = 'normal';
-                        td.style.wordBreak = 'break-word';
-                    };
-                    return cellProperties;
-                }
-
-                // Formula cell indicator
-                const cellData = this.instance.getDataAtCell(row, col);
-                if (cellData && typeof cellData === 'string' && cellData.startsWith('=')) {
-                    cellProperties.className = 'formula-cell';
-                }
-
-                return cellProperties;
-            },
-
-            // Full feature set
-            stretchH: 'none',
-            contextMenu: true,
-            undo: true,
-            manualColumnResize: true,
-            manualRowResize: true,
-            manualColumnMove: true,
-            manualRowMove: true,
-            fillHandle: true,
-            autoColumnSize: false,
-            autoRowSize: false,
-            copyPaste: true,
-            minRows: 17,
-            minCols: 6,
-            minSpareRows: 1,
-            enterMoves: { row: 1, col: 0 },
-            tabMoves: { row: 0, col: 1 },
-            outsideClickDeselects: false,
-            selectionMode: 'multiple',
-            comments: true,
-            customBorders: true,
-
-            afterRenderer: function (TD, row, col, prop, value, cellProperties) {
-                // Skip header rows
-                if (row === 0 || row === 1) return;
-
-                if (col === 5) {
-                    TD.style.borderRight = '3px solid #000000';
-                }
-            }
+            onload  : function () { applyBorders(); },
+            onchange: function () { applyBorders(); },
         });
 
-        // Responsive resize handler
-        let resizeTimer;
-        window.addEventListener('resize', function() {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {
-                const newIsMobile = window.innerWidth < 640;
-                const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-                const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
-                
-                hot.updateSettings({
-                    height: newHeight,
-                    columns: [
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'text', width: newIsMobile ? 300 : 400 },
-                        { type: 'text', width: newIsMobile ? 80 : 100 },
-                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 120 : 150 },
-                        { type: 'numeric', numericFormat: { pattern: '₱0,0.00' }, width: newIsMobile ? 120 : 150 },
-                    ]
+        // ── Right-border on Credit column (col F / index 5) ──────────────────
+        // Mirrors HOT afterRenderer: TD.style.borderRight = '3px solid #000000'
+        function applyBorders() {
+            const tbody = container.querySelector('.jexcel tbody');
+            if (!tbody) return;
+            tbody.querySelectorAll('tr').forEach((tr, rowIdx) => {
+                if (rowIdx < HEADER_ROWS) return;
+                const cells = tr.querySelectorAll('td');
+                cells.forEach((td, tdIdx) => {
+                    if (tdIdx === 0) return;          // skip row-number td
+                    const colIdx = tdIdx - 1;         // real 0-based data column
+                    td.style.borderRight = '';
+                    if (colIdx === 5) {
+                        td.style.borderRight = '3px solid #000000';
+                    }
                 });
-            }, 250);
-        });
-
-        // Capture spreadsheet data on submit
-        const answerKeyForm = document.getElementById("answerKeyForm");
-        if (answerKeyForm) {
-            answerKeyForm.addEventListener("submit", function (e) {
-                e.preventDefault();
-                const data = hot.getData();
-                document.getElementById("correctData").value = JSON.stringify(data);
-                this.submit();
             });
         }
 
-        // Add CSS for formula cells
-        const style = document.createElement('style');
-        style.textContent = `
-            .formula-cell {
-                background-color: #f8f9fa !important;
-            }
-        `;
-        document.head.appendChild(style);
-    });
-</script>
+        setTimeout(applyBorders, 100);
+
+        // ── Expose for potential external use ─────────────────────────────────
+        window.table = table;
+
+        // ── Responsive resize ─────────────────────────────────────────────────
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const el = container.querySelector('.jexcel_content');
+                if (el) {
+                    const nm = window.innerWidth < 640;
+                    const nt = window.innerWidth >= 640 && window.innerWidth < 1024;
+                    el.style.maxHeight = nm ? '350px' : (nt ? '450px' : '500px');
+                }
+            }, 250);
+        });
+
+        // ── Form submit ───────────────────────────────────────────────────────
+        document.getElementById('answerKeyForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            document.getElementById('correctData').value = JSON.stringify(table.getData());
+            this.submit();
+        });
+
+    })();
+    </script>
+
 </x-app-layout>

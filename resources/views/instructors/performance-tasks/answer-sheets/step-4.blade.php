@@ -1,11 +1,12 @@
 <x-app-layout>
-    <!-- Handsontable + HyperFormula -->
-    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/hyperformula@2.6.2/dist/hyperformula.full.min.js"></script>
+    {{-- ═══════════════════════════ jSpreadsheet CDN ═══════════════════════════ --}}
+    <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/index.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/jspreadsheet.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.css" />
 
     <style>
-        /* Enhanced Header Section Styles */
+        /* ── Page header / badge styles (unchanged from HOT version) ─────────── */
         .answer-key-header {
             background: linear-gradient(135deg, #f9fafb 0%, #f3e8ff 50%, #faf5ff 100%);
             border-radius: 1rem;
@@ -16,31 +17,24 @@
             position: relative;
             overflow: hidden;
         }
-
         .answer-key-header::before {
             content: '';
             position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
+            top: -50%; right: -10%;
+            width: 300px; height: 300px;
             background: radial-gradient(circle, rgba(167, 139, 250, 0.15) 0%, transparent 70%);
             border-radius: 50%;
             pointer-events: none;
         }
-
         .answer-key-header::after {
             content: '';
             position: absolute;
-            bottom: -30%;
-            left: -5%;
-            width: 200px;
-            height: 200px;
+            bottom: -30%; left: -5%;
+            width: 200px; height: 200px;
             background: radial-gradient(circle, rgba(196, 181, 253, 0.15) 0%, transparent 70%);
             border-radius: 50%;
             pointer-events: none;
         }
-
         .step-badge {
             display: inline-flex;
             align-items: center;
@@ -57,23 +51,12 @@
             z-index: 1;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-
         .step-badge:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 8px -1px rgba(139, 92, 246, 0.4), 0 3px 5px -1px rgba(139, 92, 246, 0.3);
         }
-
-        .step-badge svg {
-            width: 1rem;
-            height: 1rem;
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
+        .step-badge svg { width: 1rem; height: 1rem; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         .header-title {
             font-size: 2.25rem;
             font-weight: 800;
@@ -86,7 +69,6 @@
             position: relative;
             z-index: 1;
         }
-
         .header-description {
             color: #6b7280;
             font-size: 1rem;
@@ -96,7 +78,6 @@
             position: relative;
             z-index: 1;
         }
-
         .task-info-badge {
             display: inline-flex;
             align-items: center;
@@ -113,19 +94,8 @@
             z-index: 1;
             transition: all 0.2s ease;
         }
-
-        .task-info-badge:hover {
-            background: #faf5ff;
-            border-color: #d8b4fe;
-            transform: translateX(4px);
-        }
-
-        .task-info-badge svg {
-            width: 1rem;
-            height: 1rem;
-        }
-
-        /* Instructions Box Enhancement */
+        .task-info-badge:hover { background: #faf5ff; border-color: #d8b4fe; transform: translateX(4px); }
+        .task-info-badge svg { width: 1rem; height: 1rem; }
         .instructions-box {
             background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
             border: 1px solid #e9d5ff;
@@ -134,7 +104,6 @@
             padding: 1.5rem;
             box-shadow: 0 2px 4px rgba(139, 92, 246, 0.08);
         }
-
         .instructions-box h3 {
             color: #581c87;
             font-size: 0.9375rem;
@@ -144,100 +113,76 @@
             align-items: center;
             gap: 0.5rem;
         }
+        .instructions-box p { color: #6b21a8; font-size: 0.875rem; line-height: 1.5; }
+        .instructions-icon { width: 1.25rem; height: 1.25rem; color: #8b5cf6; flex-shrink: 0; }
 
-        .instructions-box p {
-            color: #6b21a8;
-            font-size: 0.875rem;
-            line-height: 1.5;
-        }
-
-        .instructions-icon {
-            width: 1.25rem;
-            height: 1.25rem;
-            color: #8b5cf6;
-            flex-shrink: 0;
-        }
-
-        /* Responsive adjustments */
         @media (max-width: 640px) {
-            .answer-key-header {
-                padding: 1.5rem;
-            }
-
-            .header-title {
-                font-size: 1.75rem;
-            }
-
-            .header-description {
-                font-size: 0.875rem;
-            }
-
-            .step-badge {
-                font-size: 0.75rem;
-                padding: 0.375rem 0.75rem;
-            }
+            .answer-key-header { padding: 1.5rem; }
+            .header-title { font-size: 1.75rem; }
+            .header-description { font-size: 0.875rem; }
+            .step-badge { font-size: 0.75rem; padding: 0.375rem 0.75rem; }
         }
+        @media (min-width: 640px) and (max-width: 1024px) { .header-title { font-size: 2rem; } }
+        @media (min-width: 1024px) { .header-title { font-size: 2.5rem; } }
 
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .header-title {
-                font-size: 2rem;
-            }
-        }
-
-        @media (min-width: 1024px) {
-            .header-title {
-                font-size: 2.5rem;
-            }
-        }
-
+        /* ── jSpreadsheet overrides ───────────────────────────────────────────── */
         body { overflow-x: hidden; }
-        .handsontable td { border-color: #d1d5db; }
-        .handsontable .area { background-color: rgba(147, 51, 234, 0.1); }
-        .handsontable { position: relative; z-index: 1; }
-        #spreadsheet { isolation: isolate; }
-        .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
-        
-        /* Header rows styling */
-        .handsontable td.header-company,
-        .handsontable td.header-title,
-        .handsontable td.header-date {
-            background-color: white !important;
-            font-size: 14px;
-            padding: 8px;
+        #spreadsheet { width: 100%; }
+        #spreadsheet .jexcel_content { overflow: auto; }
+        .jexcel td { border-color: #d1d5db !important; }
+
+        /* ── Row 0: Company name — bold, centred, white bg ───────────────────── */
+        .jexcel tbody tr:nth-child(1) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #ffffff !important;
+            font-size: 14px !important;
+            padding: 8px !important;
         }
 
-        .handsontable td.bold-cell {
-            font-weight: bold !important;
+        /* ── Row 1: Document title — bold, centred, white bg ─────────────────── */
+        .jexcel tbody tr:nth-child(2) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #ffffff !important;
+            font-size: 14px !important;
+            padding: 8px !important;
         }
-        
-        .handsontable td.header-columns {
+
+        /* ── Row 2: Date field — bold, centred, white bg ─────────────────────── */
+        .jexcel tbody tr:nth-child(3) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #ffffff !important;
+            font-size: 14px !important;
+            padding: 8px !important;
+        }
+
+        /* ── Row 3: Column headers — bold, centred, grey bg, double border ───── */
+        .jexcel tbody tr:nth-child(4) td {
+            font-weight: 700 !important;
+            text-align: center !important;
             background-color: #f3f4f6 !important;
-            font-weight: 700;
             border-bottom: 2px solid #374151 !important;
         }
-        
-        /* Total row styling */
-        .handsontable td.total-row {
-            background-color: #f3f4f6 !important;
-            font-weight: 700;
-        }
 
-        .handsontable td.total-cell-bold {
-            border-top: 3px solid #374151 !important;
-            border-bottom: 3px double #374151 !important;
-        }
-        
-        @media (max-width: 640px) {
-            .handsontable { font-size: 12px; }
-            .handsontable th, .handsontable td { padding: 4px; }
-        }
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .handsontable { font-size: 13px; }
-        }
+        /* ── Bold-cell class (toggled via context menu / Ctrl+B) ─────────────── */
+        .jexcel td.bold-cell { font-weight: 700 !important; }
+
+        /* ── Peso-amount columns: right-align data rows ──────────────────────── */
+        .jexcel tbody tr:nth-child(n+5) td:nth-child(n+2) { text-align: right; }
+
+        /* ── Scrollbar polish ────────────────────────────────────────────────── */
+        #spreadsheet ::-webkit-scrollbar        { width: 6px; height: 6px; }
+        #spreadsheet ::-webkit-scrollbar-track  { background: transparent; }
+        #spreadsheet ::-webkit-scrollbar-thumb  { background: #d1d5db; border-radius: 9999px; }
+
+        @media (max-width: 640px) { .jexcel td, .jexcel th { font-size: 12px; padding: 4px; } }
+        @media (min-width: 640px) and (max-width: 1024px) { .jexcel td, .jexcel th { font-size: 13px; } }
     </style>
 
     <div class="py-4 sm:py-6 lg:py-8">
-        {{-- Flash/Error/Success Messages --}}
+
         @if (session('error'))
             <div class="mb-6 animate-slideDown">
                 <div class="flex items-start gap-3 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg shadow-sm">
@@ -258,6 +203,7 @@
                 </div>
             </div>
         @endif
+
         @if (session('success'))
             <div class="mb-6 animate-slideDown">
                 <div class="flex items-start gap-3 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg shadow-sm">
@@ -288,15 +234,13 @@
                 </svg>
                 <span>Answer Key - Step 4 of 10</span>
             </div>
-            
-            <h1 class="header-title">
-                Answer Key: Trial Balance
-            </h1>
-            
+
+            <h1 class="header-title">Answer Key: Trial Balance</h1>
+
             <p class="header-description">
                 Create the correct answer key for Trial Balance. This will be used to automatically grade student submissions.
             </p>
-            
+
             <div class="task-info-badge">
                 <svg fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
@@ -322,419 +266,423 @@
                 </div>
             </div>
 
-            <form id="answerKeyForm" action="{{ route('instructors.performance-tasks.answer-sheets.update', ['task' => $task, 'step' => 4]) }}" method="POST">
+            <form id="answerKeyForm"
+                  action="{{ route('instructors.performance-tasks.answer-sheets.update', ['task' => $task, 'step' => 4]) }}"
+                  method="POST">
                 @csrf
                 @method('PUT')
+
                 <div class="p-3 sm:p-4 lg:p-6">
                     <div class="border rounded-lg shadow-inner bg-gray-50 overflow-hidden">
-                        <div class="overflow-x-auto overflow-y-auto" style="max-height: calc(100vh - 400px); min-height: 400px;">
+                        <div class="overflow-x-auto overflow-y-auto"
+                             style="max-height: calc(100vh - 400px); min-height: 400px;">
                             <div id="spreadsheet" class="bg-white min-w-full"></div>
                         </div>
                         <input type="hidden" name="correct_data" id="correctData" required>
                     </div>
                     <div class="mt-2 text-xs text-gray-500 sm:hidden text-center">
                         <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
                         </svg>
                         Swipe to scroll spreadsheet
                     </div>
                 </div>
-                    <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
-                            <div class="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
 
-                                <a href="{{ route('instructors.performance-tasks.answer-sheets.show', $task) }}"
-                                class="inline-flex items-center justify-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm sm:text-base">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                                    </svg>
-                                    Back to Answer Sheets
-                                </a>
+                <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
+                    <div class="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
 
-                                <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                                    <button type="button" onclick="openImportModal()"
-                                        class="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 transition-colors text-sm sm:text-base">
-                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                                        </svg>
-                                        Import File
-                                    </button>
-                                    <button type="submit"
-                                        class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 transition-colors text-sm sm:text-base">
-                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                        </svg>
-                                        Save Answer Key & Continue
-                                    </button>
-                                </div>
+                        <a href="{{ route('instructors.performance-tasks.answer-sheets.show', $task) }}"
+                           class="inline-flex items-center justify-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm sm:text-base">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                            </svg>
+                            Back to Answer Sheets
+                        </a>
 
-                            </div>
+                        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                            <button type="button" onclick="openImportModal()"
+                                    class="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 transition-colors text-sm sm:text-base">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                Import File
+                            </button>
+                            <button type="submit"
+                                    class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 transition-colors text-sm sm:text-base">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Save Answer Key &amp; Continue
+                            </button>
                         </div>
+
+                    </div>
+                </div>
             </form>
         </div>
     </div>
 
-<script>
-    let hot;
+    {{-- ═══════════════════ jSpreadsheet initialisation ═══════════════════ --}}
+    <script>
+    (function () {
 
-    document.addEventListener("DOMContentLoaded", function () {
-        const container = document.getElementById('spreadsheet');
+        const container  = document.getElementById('spreadsheet');
         const savedDataRaw = @json($sheet->correct_data ?? null);
-        
-        // Parse saved data if it exists
-        let initialData, savedMetadata = null;
-        
+
+        // ── Constants ────────────────────────────────────────────────────────
+        const HEADER_ROWS   = 4;   // rows 0-3 are company / title / date / col-headers
+        const COL_COUNT     = 3;
+        const MIN_DATA_ROWS = 12;
+
+        // ── Default header rows ───────────────────────────────────────────────
+        const defaultHeaders = [
+            ['Durano Enterprise', '', ''],
+            ['Trial Balance',     '', ''],
+            ['Date: ____________','', ''],
+            ['Account Title', 'Debit (₱)', 'Credit (₱)'],
+        ];
+
+        // ── Restore / build initial data ──────────────────────────────────────
+        let dataRows;
+
         if (savedDataRaw) {
-            const parsedSaved = typeof savedDataRaw === 'string' ? JSON.parse(savedDataRaw) : savedDataRaw;
-            if (parsedSaved && parsedSaved.data && parsedSaved.metadata) {
-                initialData = parsedSaved.data;
-                savedMetadata = parsedSaved.metadata;
-            } else if (parsedSaved) {
-                // Old format - just the data array
-                initialData = parsedSaved;
+            const parsed = typeof savedDataRaw === 'string'
+                ? JSON.parse(savedDataRaw)
+                : savedDataRaw;
+
+            // New format: { data: [...], metadata: [...] }
+            const rawData = (parsed && parsed.data) ? parsed.data : parsed;
+
+            if (rawData.length <= MIN_DATA_ROWS) {
+                // Old format — no headers stored
+                dataRows = rawData;
+            } else {
+                // New format — strip the 4 header rows
+                dataRows = rawData.slice(HEADER_ROWS);
+            }
+        } else {
+            dataRows = Array(MIN_DATA_ROWS).fill(null).map(() => Array(COL_COUNT).fill(''));
+        }
+
+        while (dataRows.length < MIN_DATA_ROWS) {
+            dataRows.push(Array(COL_COUNT).fill(''));
+        }
+
+        // ── Restore bold metadata (stored alongside data in HOT format) ───────
+        let boldCells = {};   // key: "row,col" → true
+        if (savedDataRaw) {
+            const parsed = typeof savedDataRaw === 'string'
+                ? JSON.parse(savedDataRaw)
+                : savedDataRaw;
+            if (parsed && parsed.metadata) {
+                parsed.metadata.forEach((rowMeta, rIdx) => {
+                    if (!rowMeta) return;
+                    rowMeta.forEach((cellMeta, cIdx) => {
+                        if (cellMeta && cellMeta.bold) {
+                            boldCells[`${rIdx},${cIdx}`] = true;
+                        }
+                    });
+                });
             }
         }
-        
-        if (!initialData) {
-            // Load default data with header rows (removed Total row)
-            initialData = [
-                ['Durano Enterprise', '', ''],  // Row 0: Company name
-                ['Trial Balance', '', ''],      // Row 1: Document title
-                ['Date: ____________', '', ''], // Row 2: Date field
-                ['Account Title', 'Debit (₱)', 'Credit (₱)'], // Row 3: Column headers
-                ['', '', ''],                   // Row 4: First data row
-                ['', '', ''],
-                ['', '', ''],
-                ['', '', ''],
-                ['', '', ''],
-                ['', '', ''],
-                ['', '', ''],
-                ['', '', ''],
-                ['', '', ''],
-                ['', '', ''],
-                ['', '', '']
-            ];
-        }
 
-        // Initialize HyperFormula for Excel-like formulas with whitespace support
-        const hyperformulaInstance = HyperFormula.buildEmpty({
-            licenseKey: 'internal-use-in-handsontable',
-            ignoreWhiteSpace: 'any', // Allows spaces in formulas
+        const fullData = [...defaultHeaders, ...dataRows];
+
+        // ── Merge cells — header rows span all 3 cols ─────────────────────────
+        const mergeCells = {
+            'A1': [3, 1],   // Company name   — row 1 (jSS is 1-based)
+            'A2': [3, 1],   // Document title — row 2
+            'A3': [3, 1],   // Date field     — row 3
+        };
+
+        // ── Cell styles ───────────────────────────────────────────────────────
+        const cellStyle = {};
+
+        // Rows 1-3 (company / title / date) — white, bold, centred
+        ['A1','B1','C1', 'A2','B2','C2', 'A3','B3','C3'].forEach(ref => {
+            cellStyle[ref] = 'font-weight:700;text-align:center;background:#ffffff;font-size:14px;padding:8px;';
         });
 
-        // Determine responsive dimensions
+        // Row 4 — column headers
+        ['A4','B4','C4'].forEach(ref => {
+            cellStyle[ref] = 'font-weight:700;text-align:center;background:#f3f4f6;border-bottom:2px solid #374151;';
+        });
+
+        // Apply saved bold metadata to data rows
+        Object.keys(boldCells).forEach(key => {
+            const [r, c] = key.split(',').map(Number);
+            const col = String.fromCharCode(65 + c);
+            const row = r + 1;   // convert to 1-based jSS reference
+            const ref = `${col}${row}`;
+            cellStyle[ref] = (cellStyle[ref] || '') + 'font-weight:700;';
+        });
+
+        // ── Responsive dimensions ─────────────────────────────────────────────
         const isMobile = window.innerWidth < 640;
         const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
 
-        // Custom renderer to add peso sign and handle large numbers
-        function pesoRenderer(instance, td, row, col, prop, value, cellProperties) {
-            Handsontable.renderers.NumericRenderer.apply(this, arguments);
-            
-            if (value !== null && value !== undefined && value !== '') {
-                const numValue = typeof value === 'number' ? value : parseFloat(String(value).replace(/[,₱\s]/g, ''));
-                if (!isNaN(numValue)) {
-                    td.innerHTML = '₱' + numValue.toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                    });
-                }
-            }
-            
-            return td;
-        }
+        // ── Column definitions ────────────────────────────────────────────────
+        const colWidth = isMobile ? 160 : (isTablet ? 200 : 260);
+        const numWidth = isMobile ? 120 : (isTablet ? 140 : 180);
 
-        // Initialize Handsontable
-        hot = new Handsontable(container, {
-            data: initialData,
+        // ── Init jSpreadsheet ─────────────────────────────────────────────────
+        const table = jspreadsheet(container, {
+            data             : fullData,
+            mergeCells       : mergeCells,
+            style            : cellStyle,
+            minDimensions    : [COL_COUNT, fullData.length],
+            defaultColWidth  : colWidth,
+            tableWidth       : '100%',
+            tableOverflow    : true,
+            tableHeight      : isMobile ? '350px' : (isTablet ? '450px' : '500px'),
+            allowFormulas    : true,
+            columnSorting    : false,
+            columnDrag       : false,
+            rowDrag          : false,
+            allowInsertRow   : true,
+            allowInsertColumn: false,
+            allowDeleteRow   : true,
+            allowDeleteColumn: false,
+            columnResize     : true,
+            rowResize        : true,
+            copyCompatibility: true,
+            minSpareRows     : 1,
+
             columns: [
-                { type: 'text' },
-                { type: 'numeric', renderer: pesoRenderer },
-                { type: 'numeric', renderer: pesoRenderer },
+                { title: 'Account Title', type: 'text',    width: colWidth },
+                { title: 'Debit (₱)',     type: 'numeric', width: numWidth, mask: '#,##0.00', decimal: '.' },
+                { title: 'Credit (₱)',    type: 'numeric', width: numWidth, mask: '#,##0.00', decimal: '.' },
             ],
-            rowHeaders: true,
-            width: '100%',
-            height: isMobile ? 350 : (isTablet ? 450 : 500),
-            licenseKey: 'non-commercial-and-evaluation',
-            stretchH: 'all',
-            className: 'htCenter htMiddle',
 
-            // Formula support with whitespace handling
-            formulas: { engine: hyperformulaInstance },
-
-            // Handle formula input with whitespace and numeric parsing
-            beforeChange: function(changes, source) {
-                if (changes) {
-                    changes.forEach(function(change) {
-                        const [row, col, oldValue, newValue] = change;
-                        
-                        // Handle formulas
-                        if (newValue && typeof newValue === 'string' && newValue.startsWith('=')) {
-                            change[3] = newValue.trim();
-                        }
-                        // Handle numeric values - remove commas and peso signs
-                        else if (newValue && typeof newValue === 'string') {
-                            // Only process numeric columns (columns 1 and 2)
-                            if (col === 1 || col === 2) {
-                                const cleanValue = newValue.replace(/[,₱\s]/g, '');
-                                if (!isNaN(cleanValue) && cleanValue !== '') {
-                                    change[3] = parseFloat(cleanValue);
-                                }
-                            }
-                        }
-                    });
-                }
-            },
-
-            // Context menu with bold toggle
-            contextMenu: {
-                items: {
-                    'row_above': {},
-                    'row_below': {},
-                    'col_left': {},
-                    'col_right': {},
-                    'remove_row': {},
-                    'remove_col': {},
-                    'undo': {},
-                    'redo': {},
-                    'make_read_only': {},
-                    'alignment': {},
-                    'separator1': '---------',
-                    'bold': {
-                        name: '✓ Toggle Bold',
-                        callback: function() {
-                            const selected = this.getSelected();
-                            if (selected) {
-                                selected.forEach(([startRow, startCol, endRow, endCol]) => {
-                                    for (let row = startRow; row <= endRow; row++) {
-                                        for (let col = startCol; col <= endCol; col++) {
-                                            const meta = this.getCellMeta(row, col);
-                                            
-                                            // Toggle bold state
-                                            if (!meta.className) {
-                                                this.setCellMeta(row, col, 'className', 'bold-cell');
-                                            } else if (meta.className.includes('bold-cell')) {
-                                                this.setCellMeta(row, col, 'className', 
-                                                    meta.className.replace('bold-cell', '').trim());
-                                            } else {
-                                                this.setCellMeta(row, col, 'className', 
-                                                    meta.className + ' bold-cell');
-                                            }
-                                        }
-                                    }
-                                });
-                                this.render();
-                            }
-                        }
-                    }
-                }
-            },
-            undo: true,
-            manualColumnResize: true,
-            manualRowResize: true,
-            manualColumnMove: true,
-            manualRowMove: true,
-            fillHandle: true,
-            autoColumnSize: false,
-            autoRowSize: false,
-            copyPaste: true,
-            minRows: 16,
-            minCols: 3,
-            stretchH: 'all',
-            enterMoves: { row: 1, col: 0 },
-            tabMoves: { row: 0, col: 1 },
-            outsideClickDeselects: false,
-            selectionMode: 'multiple',
-            mergeCells: true,
-            comments: true,
-            customBorders: true,
-            minSpareRows: 0,
-            
-            // Custom cell styling
-            cells: function(row, col) {
-                const cellProperties = {};
-                
-                // Row 0: Company name (only in Debit column)
-                if (row === 0) {
-                    cellProperties.className = 'header-company';
-                    if (col === 0 || col === 2) {
-                        cellProperties.renderer = function(instance, td) {
-                            td.innerHTML = '';
-                            td.style.background = 'white';
-                            td.style.border = 'none';
-                        };
-                    } else if (col === 1) {
-                        cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                            Handsontable.renderers.TextRenderer.apply(this, arguments);
-                            td.innerHTML = '<strong>' + (value || 'Durano Enterprise') + '</strong>';
-                            td.style.textAlign = 'center';
-                        };
-                    }
-                }
-                
-                // Row 1: Document title (only in Debit column)
-                else if (row === 1) {
-                    cellProperties.className = 'header-title';
-                    if (col === 0 || col === 2) {
-                        cellProperties.renderer = function(instance, td) {
-                            td.innerHTML = '';
-                            td.style.background = 'white';
-                            td.style.border = 'none';
-                        };
-                    } else if (col === 1) {
-                        cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                            Handsontable.renderers.TextRenderer.apply(this, arguments);
-                            td.innerHTML = '<strong>' + (value || 'Trial Balance') + '</strong>';
-                            td.style.textAlign = 'center';
-                        };
-                    }
-                }
-                
-                // Row 2: Date field (only in Debit column)
-                else if (row === 2) {
-                    cellProperties.className = 'header-date';
-                    if (col === 0 || col === 2) {
-                        cellProperties.renderer = function(instance, td) {
-                            td.innerHTML = '';
-                            td.style.background = 'white';
-                            td.style.border = 'none';
-                        };
-                    } else if (col === 1) {
-                        cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                            Handsontable.renderers.TextRenderer.apply(this, arguments);
-                            td.innerHTML = '<strong>' + (value || 'Date: ____________') + '</strong>';
-                            td.style.textAlign = 'center';
-                        };
-                    }
-                }
-                
-                // Row 3: Column headers (bold, centered, read-only)
-                else if (row === 3) {
-                    cellProperties.className = 'header-columns';
-                    cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                        Handsontable.renderers.TextRenderer.apply(this, arguments);
-                        td.innerHTML = '<strong>' + value + '</strong>';
-                        td.style.textAlign = 'center';
-                        td.style.backgroundColor = '#f3f4f6';
-                    };
-                }
-                
-                // All other cells - support bold formatting
-                else {
-                    cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-                        // Use appropriate base renderer
-                        if (col === 0) {
-                            Handsontable.renderers.TextRenderer.apply(this, arguments);
-                        } else {
-                            pesoRenderer.apply(this, arguments);
-                        }
-                        
-                        // Check if cell should be bold
-                        const meta = instance.getCellMeta(row, col);
-                        if (meta.className && meta.className.includes('bold-cell')) {
-                            td.style.fontWeight = 'bold';
-                        }
-                        
-                        // Formula cell styling
-                        if (value && typeof value === 'string' && value.startsWith('=')) {
-                            td.classList.add('formula-cell');
-                        }
-                    };
-                }
-                
-                return cellProperties;
-            }
-        });
-
-        // Restore bold formatting if metadata exists
-        if (savedMetadata) {
-            savedMetadata.forEach((row, rowIndex) => {
-                if (row) {
-                    row.forEach((cell, colIndex) => {
-                        if (cell && cell.bold) {
-                            hot.setCellMeta(rowIndex, colIndex, 'className', 'bold-cell');
-                        }
-                    });
-                }
-            });
-            hot.render();
-        }
-
-        // Keyboard shortcut for bold (Ctrl+B / Cmd+B)
-        hot.addHook('beforeKeyDown', function(event) {
-            // Check for Ctrl+B (Windows/Linux) or Cmd+B (Mac)
-            if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                
-                const selected = hot.getSelected();
-                if (selected) {
-                    selected.forEach(([startRow, startCol, endRow, endCol]) => {
-                        for (let row = startRow; row <= endRow; row++) {
-                            for (let col = startCol; col <= endCol; col++) {
-                                const meta = hot.getCellMeta(row, col);
-                                
-                                // Toggle bold
-                                if (!meta.className) {
-                                    hot.setCellMeta(row, col, 'className', 'bold-cell');
-                                } else if (meta.className.includes('bold-cell')) {
-                                    hot.setCellMeta(row, col, 'className', 
-                                        meta.className.replace('bold-cell', '').trim());
+            // ── Context menu — adds Bold toggle matching HOT Ctrl+B feature ──
+            contextMenu: function (obj, x, y, e) {
+                return [
+                    { title: 'Insert row above', onclick: () => obj.insertRow(1, parseInt(y), true) },
+                    { title: 'Insert row below', onclick: () => obj.insertRow(1, parseInt(y)) },
+                    { title: 'Delete row',       onclick: () => obj.deleteRow(parseInt(y)) },
+                    { type: 'line' },
+                    { title: '✓ Toggle Bold', onclick: () => {
+                        const sel = obj.getSelectedCoords();
+                        if (!sel) return;
+                        const [c1, r1, c2, r2] = sel;
+                        for (let r = r1; r <= r2; r++) {
+                            for (let c = c1; c <= c2; c++) {
+                                const col = String.fromCharCode(65 + c);
+                                const ref = `${col}${r + 1}`;
+                                const cur = obj.getStyle(ref) || '';
+                                if (cur.includes('font-weight:700')) {
+                                    obj.setStyle(ref, 'font-weight', '');
                                 } else {
-                                    hot.setCellMeta(row, col, 'className', 
-                                        meta.className + ' bold-cell');
+                                    obj.setStyle(ref, 'font-weight', '700');
                                 }
                             }
                         }
-                    });
-                    hot.render();
+                    }},
+                    { type: 'line' },
+                    { title: 'Copy',  onclick: () => obj.copy(true) },
+                    { title: 'Paste', onclick: () => {
+                        if (navigator.clipboard) {
+                            navigator.clipboard.readText().then(t => obj.paste(x, y, t));
+                        }
+                    }},
+                ];
+            },
+        });
+
+        // ── Ctrl+B / Cmd+B keyboard shortcut for bold (mirrors HOT hook) ─────
+        document.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                e.preventDefault();
+                const sel = table.getSelectedCoords();
+                if (!sel) return;
+                const [c1, r1, c2, r2] = sel;
+                for (let r = r1; r <= r2; r++) {
+                    for (let c = c1; c <= c2; c++) {
+                        const col = String.fromCharCode(65 + c);
+                        const ref = `${col}${r + 1}`;
+                        const cur = table.getStyle(ref) || '';
+                        if (cur.includes('font-weight:700')) {
+                            table.setStyle(ref, 'font-weight', '');
+                        } else {
+                            table.setStyle(ref, 'font-weight', '700');
+                        }
+                    }
                 }
             }
         });
 
-        // Responsive resize handler
+        // ── Expose for import modal ───────────────────────────────────────────
+        window.table = table;
+
+        // ── Responsive resize ─────────────────────────────────────────────────
         let resizeTimer;
-        window.addEventListener('resize', function() {
+        window.addEventListener('resize', () => {
             clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {
-                const newIsMobile = window.innerWidth < 640;
-                const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-                const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
-                
-                hot.updateSettings({
-                    height: newHeight
-                });
+            resizeTimer = setTimeout(() => {
+                const el = container.querySelector('.jexcel_content');
+                if (el) {
+                    const nm = window.innerWidth < 640;
+                    const nt = window.innerWidth >= 640 && window.innerWidth < 1024;
+                    el.style.maxHeight = nm ? '350px' : (nt ? '450px' : '500px');
+                }
             }, 250);
         });
 
-        // Handle form submission with bold metadata
-        const answerKeyForm = document.getElementById("answerKeyForm");
-        if (answerKeyForm) {
-            answerKeyForm.addEventListener("submit", function (e) {
-                e.preventDefault();
-                
-                const data = hot.getData();
-                const metadata = [];
-                
-                // Capture bold formatting
-                for (let row = 0; row < data.length; row++) {
-                    metadata[row] = [];
-                    for (let col = 0; col < data[row].length; col++) {
-                        const meta = hot.getCellMeta(row, col);
-                        if (meta.className && meta.className.includes('bold-cell')) {
-                            metadata[row][col] = { bold: true };
-                        }
+        // ── Form submit — persist data + bold metadata ────────────────────────
+        document.getElementById('answerKeyForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const data     = table.getData();
+            const metadata = [];
+
+            // Capture bold state per-cell by inspecting inline style
+            data.forEach((row, rIdx) => {
+                metadata[rIdx] = [];
+                row.forEach((_, cIdx) => {
+                    const col = String.fromCharCode(65 + cIdx);
+                    const ref = `${col}${rIdx + 1}`;
+                    const sty = table.getStyle(ref) || '';
+                    if (sty.includes('font-weight:700') || sty.includes('font-weight: 700')) {
+                        metadata[rIdx][cIdx] = { bold: true };
                     }
-                }
-                
-                // Save data with metadata
-                document.getElementById("correctData").value = JSON.stringify({
-                    data: data,
-                    metadata: metadata
                 });
-                
-                this.submit();
             });
+
+            document.getElementById('correctData').value = JSON.stringify({
+                data     : data,
+                metadata : metadata,
+            });
+
+            this.submit();
+        });
+
+    })();
+    </script>
+
+    {{-- ═══════════════════════ Import modal ════════════════════════════════ --}}
+    @include('instructors.performance-tasks.answer-sheets._import-modal', ['step' => 4])
+
+    {{-- ── Import modal bridge ────────────────────────────────────────────── --}}
+    <script>
+    (function () {
+
+        const HEADER_ROWS   = 4;
+        const COL_COUNT     = 3;
+        const MIN_DATA_ROWS = 12;
+
+        const HEADER_KEYWORDS = [
+            'date', 'debit', 'credit', 'account', 'description', 'title',
+            'amount', 'month', 'day', 'revenue', 'expense', 'balance',
+            'assets', 'liabilities', 'equity', 'transaction', 'explanation',
+            'trial', 'enterprise', 'durano',
+        ];
+
+        // Intercept XLSX parsing
+        if (typeof XLSX !== 'undefined') {
+            const _orig = XLSX.utils.sheet_to_json;
+            XLSX.utils.sheet_to_json = function (ws, opts) {
+                const result = _orig.call(this, ws, opts);
+                if (opts && opts.header === 1) {
+                    window.__importParsedData = result.filter((row, i) =>
+                        i < 3 || row.some(c => c !== '' && c != null)
+                    );
+                }
+                return result;
+            };
         }
-    });
-</script>
-@include('instructors.performance-tasks.answer-sheets._import-modal', ['step' => 4])
+
+        window.applyImport = function () {
+            const rawImport = window.__importParsedData;
+
+            if (!rawImport || !rawImport.length) {
+                document.getElementById('importErrorText').textContent = 'No data to import.';
+                document.getElementById('importError').style.display   = 'flex';
+                return;
+            }
+            if (typeof table === 'undefined' || !table) {
+                document.getElementById('importErrorText').textContent = 'Spreadsheet not ready.';
+                document.getElementById('importError').style.display   = 'flex';
+                return;
+            }
+
+            let dataRows = [...rawImport];
+
+            // Strategy 1 — sentinel marker
+            const markerIdx = dataRows.findIndex(row =>
+                String(row[0] ?? '').trim() === '##DATA_START##'
+            );
+            if (markerIdx !== -1) {
+                dataRows = dataRows.slice(markerIdx + 1);
+            } else {
+                // Strategy 2 — strip header-looking rows
+                function rowIsHeader(row) {
+                    const cells = row.map(c => String(c ?? '').trim());
+                    if (!cells.some(c => c !== '')) return false;
+                    if (cells.some(c => c !== '' && !isNaN(parseFloat(c)))) return false;
+                    return cells.some(cell =>
+                        HEADER_KEYWORDS.some(kw => cell.toLowerCase().includes(kw))
+                    );
+                }
+                let stripped = 0;
+                while (dataRows.length > 0 && stripped < 10 && rowIsHeader(dataRows[0])) {
+                    dataRows.shift(); stripped++;
+                }
+                if (dataRows.length > 0 && dataRows[0].every(c => String(c ?? '').trim() === '')) {
+                    dataRows.shift();
+                }
+            }
+
+            // Strip trailing blank rows
+            while (dataRows.length > 0 &&
+                   dataRows[dataRows.length - 1].every(c => String(c ?? '').trim() === '')) {
+                dataRows.pop();
+            }
+
+            if (dataRows.length === 0) {
+                document.getElementById('importErrorText').textContent =
+                    'No data rows found. Make sure the template data cells are filled in.';
+                document.getElementById('importError').style.display = 'flex';
+                return;
+            }
+
+            // Normalise to 3 columns
+            const norm = row => {
+                const r = row.map(c => (c === null || c === undefined) ? '' : String(c));
+                while (r.length < COL_COUNT) r.push('');
+                return r.slice(0, COL_COUNT);
+            };
+
+            // Preserve header rows, replace data rows
+            const currentFull = table.getData();
+            const headers     = currentFull.slice(0, HEADER_ROWS);
+
+            let newFull = [...headers, ...dataRows.map(norm)];
+            while (newFull.length < HEADER_ROWS + MIN_DATA_ROWS) {
+                newFull.push(Array(COL_COUNT).fill(''));
+            }
+
+            table.setData(newFull);
+            closeImportModal();
+
+            // Toast
+            const t = document.getElementById('importToast');
+            const m = document.getElementById('importToastMsg');
+            if (t && m) {
+                m.textContent     = `Imported ${dataRows.length} data rows successfully. Review then save.`;
+                t.style.display   = 'flex';
+                t.style.opacity   = '1';
+                t.style.transform = 'translateY(0)';
+                setTimeout(() => {
+                    t.style.opacity   = '0';
+                    t.style.transform = 'translateY(8px)';
+                    setTimeout(() => { t.style.display = 'none'; }, 300);
+                }, 3500);
+            }
+        };
+
+    })();
+    </script>
+
 </x-app-layout>

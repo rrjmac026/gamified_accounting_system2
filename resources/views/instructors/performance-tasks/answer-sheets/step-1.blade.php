@@ -1,43 +1,37 @@
 <x-app-layout>
-    <!-- Handsontable -->
-    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.1.0/dist/handsontable.full.min.css" />
-    <!-- Formula Parser (HyperFormula) -->
-    <script src="https://cdn.jsdelivr.net/npm/hyperformula@2.6.2/dist/hyperformula.full.min.js"></script>
-    
+    {{-- ═══════════════════════════ jSpreadsheet CDN ═══════════════════════════ --}}
+    <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/index.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.13.4/dist/jspreadsheet.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.js"></script>
+    <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.css" />
+
     <style>
-        /* Enhanced Header Section Styles */
+        /* ── Page Header ──────────────────────────────────────────────── */
         .answer-key-header {
             background: linear-gradient(135deg, #f9fafb 0%, #f3e8ff 50%, #faf5ff 100%);
             border-radius: 1rem;
             padding: 2rem;
             margin-bottom: 2rem;
             border: 1px solid #e9d5ff;
-            box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.1), 0 2px 4px -1px rgba(139, 92, 246, 0.06);
+            box-shadow: 0 4px 6px -1px rgba(139,92,246,.1), 0 2px 4px -1px rgba(139,92,246,.06);
             position: relative;
             overflow: hidden;
         }
-
         .answer-key-header::before {
             content: '';
             position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(167, 139, 250, 0.15) 0%, transparent 70%);
+            top: -50%; right: -10%;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(167,139,250,.15) 0%, transparent 70%);
             border-radius: 50%;
             pointer-events: none;
         }
-
         .answer-key-header::after {
             content: '';
             position: absolute;
-            bottom: -30%;
-            left: -5%;
-            width: 200px;
-            height: 200px;
-            background: radial-gradient(circle, rgba(196, 181, 253, 0.15) 0%, transparent 70%);
+            bottom: -30%; left: -5%;
+            width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(196,181,253,.15) 0%, transparent 70%);
             border-radius: 50%;
             pointer-events: none;
         }
@@ -45,175 +39,141 @@
         .step-badge {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
+            gap: .5rem;
+            padding: .5rem 1rem;
             background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-            color: white;
+            color: #fff;
             border-radius: 9999px;
-            font-size: 0.875rem;
+            font-size: .875rem;
             font-weight: 600;
-            box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.3), 0 2px 4px -1px rgba(139, 92, 246, 0.2);
+            box-shadow: 0 4px 6px -1px rgba(139,92,246,.3), 0 2px 4px -1px rgba(139,92,246,.2);
             margin-bottom: 1rem;
-            position: relative;
-            z-index: 1;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative; z-index: 1;
+            transition: transform .2s, box-shadow .2s;
         }
-
         .step-badge:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 8px -1px rgba(139, 92, 246, 0.4), 0 3px 5px -1px rgba(139, 92, 246, 0.3);
+            box-shadow: 0 6px 8px -1px rgba(139,92,246,.4), 0 3px 5px -1px rgba(139,92,246,.3);
         }
+        .step-badge svg { width:1rem; height:1rem; animation: pulse 2s cubic-bezier(.4,0,.6,1) infinite; }
 
-        .step-badge svg {
-            width: 1rem;
-            height: 1rem;
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.7} }
 
         .header-title {
             font-size: 2.25rem;
             font-weight: 800;
-            background: linear-gradient(135deg, #581c87 0%, #7c3aed 50%, #a78bfa 100%);
+            background: linear-gradient(135deg,#581c87 0%,#7c3aed 50%,#a78bfa 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             line-height: 1.2;
             margin-bottom: 1rem;
-            position: relative;
-            z-index: 1;
+            position: relative; z-index: 1;
         }
-
         .header-description {
             color: #6b7280;
             font-size: 1rem;
             line-height: 1.625;
             max-width: 48rem;
-            margin-bottom: 0.75rem;
-            position: relative;
-            z-index: 1;
+            margin-bottom: .75rem;
+            position: relative; z-index: 1;
         }
-
         .task-info-badge {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.375rem 0.875rem;
-            background: white;
+            gap: .5rem;
+            padding: .375rem .875rem;
+            background: #fff;
             color: #7c3aed;
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
+            border-radius: .5rem;
+            font-size: .875rem;
             font-weight: 600;
             border: 1px solid #e9d5ff;
-            box-shadow: 0 1px 3px 0 rgba(139, 92, 246, 0.1);
-            position: relative;
-            z-index: 1;
-            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px 0 rgba(139,92,246,.1);
+            position: relative; z-index: 1;
+            transition: all .2s;
         }
-
         .task-info-badge:hover {
             background: #faf5ff;
             border-color: #d8b4fe;
             transform: translateX(4px);
         }
+        .task-info-badge svg { width:1rem; height:1rem; }
 
-        .task-info-badge svg {
-            width: 1rem;
-            height: 1rem;
-        }
-
-        /* Instructions Box Enhancement */
+        /* ── Instructions box ─────────────────────────────────────────── */
         .instructions-box {
-            background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+            background: linear-gradient(135deg,#faf5ff 0%,#f3e8ff 100%);
             border: 1px solid #e9d5ff;
             border-left: 4px solid #8b5cf6;
-            border-radius: 0.75rem;
+            border-radius: .75rem;
             padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(139, 92, 246, 0.08);
+            box-shadow: 0 2px 4px rgba(139,92,246,.08);
         }
-
         .instructions-box h3 {
             color: #581c87;
-            font-size: 0.9375rem;
+            font-size: .9375rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            margin-bottom: .5rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: .5rem;
         }
+        .instructions-box p { color:#6b21a8; font-size:.875rem; line-height:1.5; }
+        .instructions-icon { width:1.25rem; height:1.25rem; color:#8b5cf6; flex-shrink:0; }
 
-        .instructions-box p {
-            color: #6b21a8;
-            font-size: 0.875rem;
-            line-height: 1.5;
+        /* ── Responsive typography ────────────────────────────────────── */
+        @media (max-width:640px) {
+            .answer-key-header { padding:1.5rem; }
+            .header-title { font-size:1.75rem; }
+            .header-description { font-size:.875rem; }
+            .step-badge { font-size:.75rem; padding:.375rem .75rem; }
         }
+        @media (min-width:640px) and (max-width:1024px) { .header-title { font-size:2rem; } }
+        @media (min-width:1024px) { .header-title { font-size:2.5rem; } }
 
-        .instructions-icon {
-            width: 1.25rem;
-            height: 1.25rem;
-            color: #8b5cf6;
-            flex-shrink: 0;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 640px) {
-            .answer-key-header {
-                padding: 1.5rem;
-            }
-
-            .header-title {
-                font-size: 1.75rem;
-            }
-
-            .header-description {
-                font-size: 0.875rem;
-            }
-
-            .step-badge {
-                font-size: 0.75rem;
-                padding: 0.375rem 0.75rem;
-            }
-        }
-
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .header-title {
-                font-size: 2rem;
-            }
-        }
-
-        @media (min-width: 1024px) {
-            .header-title {
-                font-size: 2.5rem;
-            }
-        }
-
+        /* ── jSpreadsheet overrides ───────────────────────────────────── */
         body { overflow-x: hidden; }
-        .handsontable .font-bold { font-weight: bold; }
-        .handsontable .bg-gray-100 { background-color: #f3f4f6 !important; }
-        .handsontable .bg-blue-50 { background-color: #eff6ff !important; }
-        .handsontable td { border-color: #d1d5db; }
-        .handsontable .area { background-color: rgba(147, 51, 234, 0.1); }
-        .handsontable { position: relative; z-index: 1; }
-        #spreadsheet { isolation: isolate; }
-        .overflow-x-auto { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
 
-        @media (max-width: 640px) {
-            .handsontable { font-size: 12px; }
-            .handsontable th, .handsontable td { padding: 4px; }
+        /* Wrapper sizing */
+        #spreadsheet { width: 100%; }
+        #spreadsheet .jexcel_content { overflow: auto; }
+
+        /* Zebra + border styling to match previous HOT look */
+        .jexcel tbody tr:nth-child(odd)  td { background-color: #fafafa; }
+        .jexcel tbody tr:nth-child(even) td { background-color: #ffffff; }
+        .jexcel td { border-color: #d1d5db !important; }
+
+        /* Header row styles (rows 1–2 in jss = index 0–1) */
+        .jexcel tbody tr:nth-child(1) td,
+        .jexcel tbody tr:nth-child(2) td {
+            font-weight: 700 !important;
+            text-align: center !important;
+            background-color: #f0fdf4 !important;
+            white-space: normal !important;
+            word-break: break-word !important;
         }
 
-        @media (min-width: 640px) and (max-width: 1024px) {
-            .handsontable { font-size: 13px; }
+        /* Selection highlight purple tint */
+        .jexcel td.highlight { background-color: rgba(147,51,234,.1) !important; }
+
+        /* Scrollbar */
+        #spreadsheet ::-webkit-scrollbar { width:6px; height:6px; }
+        #spreadsheet ::-webkit-scrollbar-track { background: transparent; }
+        #spreadsheet ::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:9999px; }
+
+        @media (max-width:640px) {
+            .jexcel td, .jexcel th { font-size:12px; padding:4px; }
+        }
+        @media (min-width:640px) and (max-width:1024px) {
+            .jexcel td, .jexcel th { font-size:13px; }
         }
     </style>
 
     <div class="py-4 sm:py-6 lg:py-8">
+
+        {{-- ── Flash messages ───────────────────────────────────────────── --}}
         @if (session('error'))
-            <div class="mb-6 animate-slideDown">
+            <div class="mb-6">
                 <div class="flex items-start gap-3 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg shadow-sm">
                     <div class="flex-shrink-0">
                         <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
@@ -234,7 +194,7 @@
         @endif
 
         @if (session('success'))
-            <div class="mb-6 animate-slideDown">
+            <div class="mb-6">
                 <div class="flex items-start gap-3 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg shadow-sm">
                     <div class="flex-shrink-0">
                         <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
@@ -254,24 +214,22 @@
             </div>
         @endif
 
-        <!-- Enhanced Header Section -->
+        {{-- ── Page header ──────────────────────────────────────────────── --}}
         <div class="answer-key-header">
             <div class="step-badge">
                 <svg fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
                     <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
                 </svg>
-                <span>Answer Key - Step 1 of 10</span>
+                <span>Answer Key – Step 1 of 10</span>
             </div>
-            
-            <h1 class="header-title">
-                Answer Key: Journal Entries
-            </h1>
-            
+
+            <h1 class="header-title">Answer Key: Journal Entries</h1>
+
             <p class="header-description">
                 Create the correct answer key for Journal Entries. This will be used to automatically grade student submissions.
             </p>
-            
+
             <div class="task-info-badge">
                 <svg fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
@@ -280,9 +238,10 @@
             </div>
         </div>
 
-        <!-- Main Content Card -->
+        {{-- ── Main card ────────────────────────────────────────────────── --}}
         <div class="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <!-- Instructions Section -->
+
+            {{-- Instructions --}}
             <div class="p-4 sm:p-6">
                 <div class="instructions-box">
                     <h3>
@@ -297,375 +256,351 @@
                 </div>
             </div>
 
-            <form id="answerKeyForm" action="{{ route('instructors.performance-tasks.answer-sheets.update', ['task' => $task, 'step' => 1]) }}" method="POST">
+            {{-- Form --}}
+            <form id="answerKeyForm"
+                  action="{{ route('instructors.performance-tasks.answer-sheets.update', ['task' => $task, 'step' => 1]) }}"
+                  method="POST">
                 @csrf
                 @method('PUT')
-                
-                <!-- Spreadsheet Section -->
+
+                {{-- Spreadsheet --}}
                 <div class="p-3 sm:p-4 lg:p-6">
                     <div class="border rounded-lg shadow-inner bg-gray-50 overflow-hidden">
-                        <div class="overflow-x-auto overflow-y-auto" style="max-height: calc(100vh - 400px); min-height: 400px;">
-                            <div id="spreadsheet" class="bg-white min-w-full"></div>
+                        <div class="overflow-x-auto overflow-y-auto"
+                             style="max-height: calc(100vh - 400px); min-height: 400px;">
+                            <div id="spreadsheet"></div>
                         </div>
                         <input type="hidden" name="correct_data" id="correctData" required>
                     </div>
 
-                    <!-- Mobile Scroll Hint -->
+                    {{-- Mobile hint --}}
                     <div class="mt-2 text-xs text-gray-500 sm:hidden text-center">
                         <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
                         </svg>
                         Swipe to scroll spreadsheet
                     </div>
                 </div>
 
-                <!-- Action Buttons -->
+                {{-- Action buttons --}}
                 <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
-                    <div class="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
-                        <a href="{{ route('instructors.performance-tasks.answer-sheets.show', $task) }}" 
-                        class="inline-flex items-center justify-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm sm:text-base">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
+
+                        <a href="{{ route('instructors.performance-tasks.answer-sheets.show', $task) }}"
+                           class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                            <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                             </svg>
                             Back to Answer Sheets
                         </a>
 
-                        <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
-                            <div class="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
+                        <div class="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
+                            <button type="button" onclick="openImportModal()"
+                                    class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">
+                                <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                Import File
+                            </button>
 
-                                <a href="{{ route('instructors.performance-tasks.answer-sheets.show', $task) }}"
-                                class="inline-flex items-center justify-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm sm:text-base">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                                    </svg>
-                                    Back to Answer Sheets
-                                </a>
-
-                                <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                                    <button type="button" onclick="openImportModal()"
-                                        class="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 transition-colors text-sm sm:text-base">
-                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                                        </svg>
-                                        Import File
-                                    </button>
-                                    <button type="submit"
-                                        class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 transition-colors text-sm sm:text-base">
-                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                        </svg>
-                                        Save Answer Key & Continue
-                                    </button>
-                                </div>
-
-                            </div>
+                            <button type="submit"
+                                    class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
+                                <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Save Answer Key &amp; Continue
+                            </button>
                         </div>
+
                     </div>
                 </div>
-
             </form>
-        </div>
+        </div>{{-- /card --}}
     </div>
 
-<script>
-    let hot;
+    {{-- ═══════════════════ jSpreadsheet initialisation ═════════════════════ --}}
+    <script>
+    (function () {
 
-    document.addEventListener("DOMContentLoaded", function () {
-        const container = document.getElementById('spreadsheet');
-        
-        // Get saved answer key data if it exists
+
+        const COL_COUNT = 15;
+        const MIN_ROWS  = 17;   // visible data rows (excl. the 2 header rows)
+
+        // ── Saved data from Laravel ───────────────────────────────────────────
         const savedData = @json($sheet->correct_data ?? null);
 
-        // Header rows as editable data
-        const headerRow1 = ['', 'ASSETS', '', '', '', '', '', 'LIABILITIES', '', "OWNER'S EQUITY", '', '', 'EXPENSES', '', ''];
-        const headerRow2 = ['', 'Cash', 'Accounts Receivable', 'Supplies', 'Furniture & Fixtures', 'Land', 'Equipment', 'Accounts Payable', 'Notes Payable', 'Capital', 'Withdrawal', 'Service Revenue', 'Rent Expense', 'Utilities Expense', 'Salaries Expense', 'Misc. Expense'];
-        const blankRows = Array(15).fill(null).map(() => Array(15).fill(''));
+        // ── Header rows ───────────────────────────────────────────────────────
+        const headerRow1 = [
+            '',
+            'ASSETS',      '', '', '', '', '',        // B–G  (6 cols, merged below)
+            'LIABILITIES', '',                         // H–I  (2 cols, merged)
+            "OWNER'S EQUITY", '', '',                  // J–L  (3 cols, merged)
+            'EXPENSES',    '', '', ''                   // M–P  (4 cols, merged)
+        ];
+        const headerRow2 = [
+            '',
+            'Cash', 'Accounts Receivable', 'Supplies',
+            'Furniture & Fixtures', 'Land', 'Equipment',
+            'Accounts Payable', 'Notes Payable',
+            'Capital', 'Withdrawal', 'Service Revenue',
+            'Rent Expense', 'Utilities Expense', 'Salaries Expense'
+        ];
+        const blankRow  = () => Array(COL_COUNT).fill('');
 
-        let initialData;
-            if (savedData) {
-                const parsed = JSON.parse(savedData);
-                // If old data has no headers (15 rows), prepend them
-                // If new data already has headers (17+ rows), use as-is
-                if (parsed.length <= 15) {
-                    initialData = [headerRow1, headerRow2, ...parsed];
-                } else {
-                    // Already has headers saved, but always force row 0 and 1 to be correct
-                    initialData = [headerRow1, headerRow2, ...parsed.slice(2)];
-                }
-            } else {
-                initialData = [headerRow1, headerRow2, ...blankRows];
-            }
+        // ── Build initial data ────────────────────────────────────────────────
+        let dataRows;
+        if (savedData) {
+            const parsed = JSON.parse(savedData);
+            // Old saves had no headers (≤15 rows); new saves have 2 header rows + data
+            dataRows = parsed.length <= MIN_ROWS
+                ? parsed
+                : parsed.slice(2);          // strip saved headers — we re-inject them
+        } else {
+            dataRows = Array(MIN_ROWS).fill(null).map(blankRow);
+        }
 
-        // Determine responsive dimensions
+        // Pad short saves to MIN_ROWS
+        while (dataRows.length < MIN_ROWS) dataRows.push(blankRow());
+
+        // Full dataset passed to jSpreadsheet (headers first, then data)
+        const fullData = [headerRow1, headerRow2, ...dataRows];
+
         const isMobile = window.innerWidth < 640;
-        const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-        
-        hot = new Handsontable(container, {
-            data: initialData,
-            colHeaders: false,
-            rowHeaders: true,
-            width: '100%',
-            height: isMobile ? 350 : (isTablet ? 450 : 500),
-            licenseKey: 'non-commercial-and-evaluation',
+        const colW     = isMobile ? 90 : 110;
 
-            // Merge cells to replicate the colspan behavior of nestedHeaders
-            mergeCells: [
-                { row: 0, col: 1, rowspan: 1, colspan: 6 },  // ASSETS
-                { row: 0, col: 7, rowspan: 1, colspan: 2 },  // LIABILITIES
-                { row: 0, col: 9, rowspan: 1, colspan: 3 },  // OWNER'S EQUITY
-                { row: 0, col: 12, rowspan: 1, colspan: 4 }, // EXPENSES
-            ],
+        const columns = Array(COL_COUNT).fill(null).map(() => ({
+            type  : 'text',
+            width : colW,
+            align : 'center',
+            wordWrap: true,
+        }));
 
-            columns: Array(15).fill({ type: 'text' }),
-            colWidths: isMobile ? 100 : (isTablet ? 110 : 120),
+        const mergeCells = {
+            'B1': [6, 1],   // ASSETS       → B1..G1
+            'H1': [2, 1],   // LIABILITIES  → H1..I1
+            'J1': [3, 1],   // OWNER'S EQ.  → J1..L1
+            'M1': [3, 1],   // EXPENSES     → M1..O1
+        };
 
-            contextMenu: true,
-            undo: true,
-            manualColumnResize: true,
-            manualRowResize: true,
-            manualColumnMove: true,
-            manualRowMove: true,
-            fillHandle: true,
-            autoColumnSize: false,
-            autoRowSize: false,
-            copyPaste: true,
-            minRows: 17,
-            minCols: 15,
-            maxRows: 52,
-            maxCols: 20,
-            stretchH: 'none',
-            enterMoves: { row: 1, col: 0 },
-            tabMoves: { row: 0, col: 1 },
-            outsideClickDeselects: false,
-            selectionMode: 'multiple',
-            comments: true,
-            customBorders: true,
-
-            // Cell renderer for header styling + formula support
-            cells: function(row, col) {
-                const cellProperties = {};
-
-                cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
-
-                    // Style row 0 — plain bold centered (group headers)
-                    if (row === 0 || row === 1) {
-                        Handsontable.renderers.TextRenderer.call(
-                            this, instance, td, row, col, prop, value, cellProperties
-                        );
-                        td.style.fontWeight = 'bold';
-                        td.style.textAlign = 'center';
-                        td.style.verticalAlign = 'middle';
-                        td.style.whiteSpace = 'normal';
-                        td.style.wordBreak = 'break-word';
-                        return;
-                    }
-
-                    // Handle basic formulas that start with =
-                    if (value && typeof value === 'string' && value.startsWith('=')) {
-                        try {
-                            const result = evaluateSimpleFormula(value, instance, row, col);
-                            if (result !== null) {
-                                Handsontable.renderers.TextRenderer.call(
-                                    this, instance, td, row, col, prop, result, cellProperties
-                                );
-                                td.style.color = '#1a73e8';
-                                td.style.fontWeight = '500';
-                                td.title = `Formula: ${value}`;
-                                td.classList.add('formula-cell');
-                                return;
-                            } else {
-                                Handsontable.renderers.TextRenderer.call(
-                                    this, instance, td, row, col, prop, value, cellProperties
-                                );
-                                td.style.color = '#666';
-                                td.title = 'Formula (unsupported)';
-                                return;
-                            }
-                        } catch (error) {
-                            Handsontable.renderers.TextRenderer.call(
-                                this, instance, td, row, col, prop, value, cellProperties
-                            );
-                            td.style.color = '#ff4444';
-                            td.style.fontStyle = 'italic';
-                            td.title = 'Formula error';
-                            return;
-                        }
-                    }
-
-                    // Default rendering for non-formula cells
-                    Handsontable.renderers.TextRenderer.call(
-                        this, instance, td, row, col, prop, value, cellProperties
-                    );
-                };
-
-                return cellProperties;
-            },
-
-            // Clean up formula input
-            beforeChange: function(changes, source) {
-                if (source === 'edit' && changes) {
-                    changes.forEach(function(change) {
-                        const newValue = change[3];
-                        if (newValue && typeof newValue === 'string' && newValue.startsWith('=')) {
-                            change[3] = newValue.trim();
-                        }
-                    });
-                }
-                return true;
-            }
+        const letters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O'];
+        const headerStyle = {};
+        letters.forEach(l => {
+            headerStyle[`${l}1`] = 'font-weight:700;text-align:center;background:#dcfce7;';
+            headerStyle[`${l}2`] = 'font-weight:700;text-align:center;background:#f0fdf4;';
         });
 
-        // Simple formula evaluation function
-        function evaluateSimpleFormula(formula, instance, currentRow, currentCol) {
-            if (!formula.startsWith('=')) return null;
-            
-            const expression = formula.substring(1).trim();
-            
-            try {
-                // 1. Handle basic arithmetic with numbers only
-                if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(expression)) {
-                    const result = Function(`"use strict"; return (${expression})`)();
-                    return typeof result === 'number' ? result : null;
-                }
-                
-                // 2. Handle simple cell references (A1, B2 format)
-                const cellRefMatch = expression.match(/^([A-Z]+)(\d+)$/);
-                if (cellRefMatch) {
-                    const [, colLetters, rowNum] = cellRefMatch;
-                    const colIndex = columnLetterToIndex(colLetters);
-                    const rowIndex = parseInt(rowNum) - 1;
-                    
-                    if (rowIndex >= 0 && colIndex >= 0 && rowIndex < instance.countRows() && colIndex < instance.countCols()) {
-                        const cellValue = instance.getDataAtCell(rowIndex, colIndex);
-                        const numValue = parseFloat(cellValue);
-                        return isNaN(numValue) ? 0 : numValue;
+        // ── Init jSpreadsheet ─────────────────────────────────────────────────
+        const container = document.getElementById('spreadsheet');
+
+        const table = jspreadsheet(container, {
+            data             : fullData,
+            columns          : columns,
+            mergeCells       : mergeCells,
+            style            : headerStyle,
+            defaultColWidth  : colW,
+            minDimensions    : [COL_COUNT, fullData.length],
+            tableWidth       : '100%',
+            tableOverflow    : true,
+            tableHeight      : isMobile ? '350px' : (window.innerWidth < 1024 ? '450px' : '500px'),
+            allowFormulas    : true,
+            columnSorting    : false,
+            columnDrag       : false,
+            rowDrag          : false,
+            allowInsertRow   : true,
+            allowInsertColumn: false,   // column structure is fixed
+            allowDeleteRow   : true,
+            allowDeleteColumn: false,
+            columnResize     : true,
+            rowResize        : true,
+            copyCompatibility: true,    // Ctrl+C / Ctrl+V
+            parseFormulas    : true,
+
+            // ── Context menu ─────────────────────────────────────────────────
+            contextMenu: function(obj, x, y, e) {
+                const items = [];
+                items.push({ title: 'Insert row above', onclick: () => obj.insertRow(1, parseInt(y), true) });
+                items.push({ title: 'Insert row below', onclick: () => obj.insertRow(1, parseInt(y)) });
+                items.push({ title: 'Delete row',       onclick: () => obj.deleteRow(parseInt(y)) });
+                items.push({ type: 'line' });
+                items.push({ title: 'Copy',  onclick: () => obj.copy(true) });
+                items.push({ title: 'Paste', onclick: () => {
+                    if (navigator.clipboard) {
+                        navigator.clipboard.readText().then(t => obj.paste(x, y, t));
                     }
-                    return 0;
-                }
-                
-                // 3. Handle simple arithmetic with cell references (A1+B1)
-                const arithmeticMatch = expression.match(/^([A-Z]+\d+)\s*([\+\-\*\/])\s*([A-Z]+\d+)$/);
-                if (arithmeticMatch) {
-                    const [, ref1, operator, ref2] = arithmeticMatch;
-                    
-                    const val1 = getCellValueByReference(ref1, instance);
-                    const val2 = getCellValueByReference(ref2, instance);
-                    
-                    switch (operator) {
-                        case '+': return val1 + val2;
-                        case '-': return val1 - val2;
-                        case '*': return val1 * val2;
-                        case '/': return val2 !== 0 ? val1 / val2 : '#DIV/0!';
-                    }
-                }
-                
-                // 4. Handle simple SUM function
-                const sumMatch = expression.match(/^SUM\(([A-Z]+\d+):([A-Z]+\d+)\)$/i);
-                if (sumMatch) {
-                    const [, startRef, endRef] = sumMatch;
-                    return sumRange(startRef, endRef, instance);
-                }
-                
-                return null;
-                
-            } catch (error) {
-                console.warn('Formula evaluation error:', error, 'Formula:', formula);
-                return '#ERROR!';
-            }
-        }
+                }});
+                return items;
+            },
+        });
 
-        // Helper function to get cell value by reference (A1, B2, etc.)
-        function getCellValueByReference(cellRef, instance) {
-            const match = cellRef.match(/^([A-Z]+)(\d+)$/);
-            if (!match) return 0;
-            
-            const [, colLetters, rowNum] = match;
-            const colIndex = columnLetterToIndex(colLetters);
-            const rowIndex = parseInt(rowNum) - 1;
-            
-            if (rowIndex >= 0 && colIndex >= 0 && rowIndex < instance.countRows() && colIndex < instance.countCols()) {
-                const cellValue = instance.getDataAtCell(rowIndex, colIndex);
-                return parseFloat(cellValue) || 0;
-            }
-            return 0;
-        }
+        // ── Expose globally so the import modal can call table.setData() ──────
+        window.hot   = null;   // nullify in case old code checks for `hot`
+        window.table = table;
 
-        // Helper function to sum a range
-        function sumRange(startRef, endRef, instance) {
-            const startMatch = startRef.match(/^([A-Z]+)(\d+)$/);
-            const endMatch = endRef.match(/^([A-Z]+)(\d+)$/);
-            
-            if (!startMatch || !endMatch) return 0;
-            
-            const [, startColLetters, startRowNum] = startMatch;
-            const [, endColLetters, endRowNum] = endMatch;
-            
-            const startCol = columnLetterToIndex(startColLetters);
-            const startRow = parseInt(startRowNum) - 1;
-            const endCol = columnLetterToIndex(endColLetters);
-            const endRow = parseInt(endRowNum) - 1;
-            
-            let sum = 0;
-            for (let row = startRow; row <= endRow; row++) {
-                for (let col = startCol; col <= endCol; col++) {
-                    if (row >= 0 && col >= 0 && row < instance.countRows() && col < instance.countCols()) {
-                        const cellValue = instance.getDataAtCell(row, col);
-                        sum += parseFloat(cellValue) || 0;
-                    }
-                }
-            }
-            return sum;
-        }
-
-        // Convert column letters to index (A=0, B=1, ..., Z=25, AA=26, etc.)
-        function columnLetterToIndex(letters) {
-            let result = 0;
-            for (let i = 0; i < letters.length; i++) {
-                result *= 26;
-                result += letters.charCodeAt(i) - 'A'.charCodeAt(0);
-            }
-            return result;
-        }
-
-        // Responsive resize handler
+        // ── Responsive height on window resize ───────────────────────────────
         let resizeTimer;
-        window.addEventListener('resize', function() {
+        window.addEventListener('resize', () => {
             clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {
-                const newIsMobile = window.innerWidth < 640;
-                const newIsTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
-                const newHeight = newIsMobile ? 350 : (newIsTablet ? 450 : 500);
-                
-                hot.updateSettings({
-                    height: newHeight,
-                    colWidths: newIsMobile ? 100 : (newIsTablet ? 110 : 120)
-                });
+            resizeTimer = setTimeout(() => {
+                const h = window.innerWidth < 640 ? '350px'
+                        : window.innerWidth < 1024 ? '450px'
+                        : '500px';
+                container.querySelector('.jexcel_content').style.maxHeight = h;
             }, 250);
         });
 
-        // Capture spreadsheet data on submit
-        const answerKeyForm = document.getElementById("answerKeyForm");
-        if (answerKeyForm) {
-            answerKeyForm.addEventListener("submit", function (e) {
-                e.preventDefault();
-                const data = hot.getData();
-                document.getElementById("correctData").value = JSON.stringify(data);
-                this.submit();
-            });
+        // ── Form submit: serialise full grid (headers + data) ─────────────────
+        document.getElementById('answerKeyForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const raw = table.getData();   // 2-D array; includes header rows
+
+            // We persist the FULL grid (incl. header rows) so reloading works.
+            document.getElementById('correctData').value = JSON.stringify(raw);
+            this.submit();
+        });
+
+    })();
+    </script>
+
+    {{-- ═══════════════════════ Import modal ════════════════════════════════ --}}
+    {{--
+        The import modal calls window.applyImport() which is defined inside
+        _import-modal.blade.php. That function references `hot` (Handsontable).
+        We patch it below so it works with jSpreadsheet instead.
+    --}}
+    @include('instructors.performance-tasks.answer-sheets._import-modal', ['step' => 1])
+
+    {{-- Patch applyImport to work with jSpreadsheet ──────────────────────── --}}
+    <script>
+    (function () {
+        // Wait until _import-modal.blade.php has defined applyImport, then override it.
+        const STEP_CONFIG_LOCAL = {
+            1: { headerRows: 2 },
+        };
+        const HEADER_KEYWORDS_LOCAL = [
+            'date','debit','credit','account','description','title',
+            'amount','month','day','revenue','expense','balance',
+            'assets','liabilities','equity','transaction','explanation',
+        ];
+
+        window.applyImport = function () {
+            // importParsedData is declared inside the IIFE in _import-modal.blade.php;
+            // expose it by re-reading from the modal's closure via a small bridge below.
+            const rawImport = window.__importParsedData;
+            if (!rawImport || !rawImport.length) {
+                document.getElementById('importErrorText').textContent = 'No data to import.';
+                document.getElementById('importError').style.display  = 'flex';
+                return;
+            }
+            if (typeof table === 'undefined' || !table) {
+                document.getElementById('importErrorText').textContent = 'Spreadsheet not ready.';
+                document.getElementById('importError').style.display  = 'flex';
+                return;
+            }
+
+            const { headerRows = 0 } = STEP_CONFIG_LOCAL[1] || {};
+            let dataRows = [...rawImport];
+
+            // Strategy 1: sentinel marker
+            const markerIdx = dataRows.findIndex(row =>
+                String(row[0] ?? '').trim() === '##DATA_START##'
+            );
+            if (markerIdx !== -1) {
+                dataRows = dataRows.slice(markerIdx + 1);
+            } else {
+                // Strategy 2: keyword-based header stripping
+                function rowIsHeader(row) {
+                    const cells = row.map(c => String(c ?? '').trim());
+                    if (!cells.some(c => c !== '')) return false;
+                    if (cells.some(c => c !== '' && !isNaN(parseFloat(c)))) return false;
+                    return cells.some(cell =>
+                        HEADER_KEYWORDS_LOCAL.some(kw => cell.toLowerCase().includes(kw))
+                    );
+                }
+                let stripped = 0;
+                while (dataRows.length > 0 && stripped < 10 && rowIsHeader(dataRows[0])) {
+                    dataRows.shift(); stripped++;
+                }
+                if (dataRows.length > 0 && dataRows[0].every(c => String(c ?? '').trim() === '')) {
+                    dataRows.shift();
+                }
+            }
+
+            // Strip trailing blank rows
+            while (dataRows.length > 0 &&
+                   dataRows[dataRows.length - 1].every(c => String(c ?? '').trim() === '')) {
+                dataRows.pop();
+            }
+
+            if (dataRows.length === 0) {
+                document.getElementById('importErrorText').textContent =
+                    'No data rows found. Make sure you filled in the yellow cells in the template.';
+                document.getElementById('importError').style.display = 'flex';
+                return;
+            }
+
+            const COL_COUNT = 15;
+            const MIN_ROWS  = 17;
+
+            const norm = row => {
+                const r = row.map(c => (c === null || c === undefined) ? '' : String(c));
+                while (r.length < COL_COUNT) r.push('');
+                return r.slice(0, COL_COUNT);
+            };
+
+            // Preserve the two header rows, replace data rows below
+            const currentFull = table.getData();
+            const preserved   = currentFull.slice(0, headerRows);   // e.g. rows 0-1
+
+            let newFull = [...preserved, ...dataRows.map(norm)];
+            while (newFull.length < headerRows + MIN_ROWS) {
+                newFull.push(Array(COL_COUNT).fill(''));
+            }
+
+            table.setData(newFull);
+
+
+            closeImportModal();
+
+            if (typeof window.showToast === 'function') {
+                window.showToast(`Imported ${dataRows.length} data rows successfully. Review then save.`);
+            }
+        };
+    })();
+    </script>
+
+    {{-- Bridge: expose importParsedData from modal's IIFE so our patch can read it --}}
+    <script>
+
+    (function () {
+
+        const origConfirm = document.getElementById('importConfirmBtn');
+        if (origConfirm) {
+            // Watch for the button becoming enabled — at that point importParsedData is set
+            new MutationObserver(() => {
+                if (!origConfirm.disabled) {
+
+                }
+            }).observe(origConfirm, { attributes: true, attributeFilter: ['disabled'] });
         }
 
-        // Add CSS for formula cells
-        const style = document.createElement('style');
-        style.textContent = `
-            .formula-cell {
-                background-color: #f8f9fa !important;
-            }
-        `;
-        document.head.appendChild(style);
-
-        console.log('Spreadsheet initialized without HyperFormula - basic formulas supported');
-    });
-</script>
-    @include('instructors.performance-tasks.answer-sheets._import-modal', ['step' => 1])
+        if (typeof XLSX !== 'undefined') {
+            const _origToJson = XLSX.utils.sheet_to_json;
+            XLSX.utils.sheet_to_json = function (ws, opts) {
+                const result = _origToJson.call(this, ws, opts);
+                // When called with { header:1 } (which the modal uses) the result
+                // is a 2-D array — exactly what we need.
+                if (opts && opts.header === 1) {
+                    window.__importParsedData = result.filter((row, i) =>
+                        i < 3 || row.some(c => c !== '' && c != null)
+                    );
+                }
+                return result;
+            };
+        }
+    })();
+    </script>
 
 </x-app-layout>
