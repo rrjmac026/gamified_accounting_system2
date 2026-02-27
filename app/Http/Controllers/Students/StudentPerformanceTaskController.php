@@ -421,6 +421,7 @@ class StudentPerformanceTaskController extends Controller
 			]);
 
             // Sync to pivot table
+            $this->recordHistory($user->student->id, $task, $step, $submission, $deadlineStatus['isLate'], $errorCount);
             $this->syncSubmissionToPivot($user->student->id, $task->id, $step, $submission);
 
             // Final step handling
@@ -1209,4 +1210,123 @@ class StudentPerformanceTaskController extends Controller
         ));
     }
 
+    private function recordHistory(
+        int $studentId,
+        \App\Models\PerformanceTask $task,
+        int $step,
+        \App\Models\PerformanceTaskSubmission $submission,
+        bool $isLate,
+        int $errorCount
+    ): void {
+        try {
+            \App\Models\PerformanceTaskSubmissionHistory::create([
+                'submission_id'  => $submission->id,
+                'task_id'        => $task->id,
+                'student_id'     => $studentId,
+                'step'           => $step,
+                'attempt_number' => $submission->attempts,  // already incremented
+                'submission_data'=> $submission->submission_data
+                                        ? (is_string($submission->submission_data)
+                                            ? $submission->submission_data
+                                            : json_encode($submission->submission_data))
+                                        : null,
+                'status'         => $submission->status,
+                'score'          => $submission->score,
+                'remarks'        => $submission->remarks,
+                'error_count'    => min($errorCount, 32767),
+                'is_late'        => $isLate,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to record submission history: ' . $e->getMessage());
+        }
+    }
+
+    // ── NEW: show attempt history list for a step ─────────────────────────────
+    public function stepHistory(int $id, int $step)
+    {
+        // dd('stepHistory reached', $id, $step);
+        $user = auth()->user();
+
+        abort_if($step < 1 || $step > 10, 404);
+
+        $task = \App\Models\PerformanceTask::where('id', $id)
+            ->whereHas('section.students', function ($q) use ($user) {
+                $q->where('student_id', $user->student->id);
+            })
+            ->firstOrFail();
+
+        $histories = \App\Models\PerformanceTaskSubmissionHistory::where([
+                'task_id'    => $task->id,
+                'student_id' => $user->student->id,
+                'step'       => $step,
+            ])
+            ->orderBy('attempt_number')
+            ->get();
+
+        $stepTitles = [
+            1  => 'Analyze Transactions',
+            2  => 'Journalize Transactions',
+            3  => 'Post to Ledger Accounts',
+            4  => 'Prepare Trial Balance',
+            5  => 'Journalize & Post Adjusting Entries',
+            6  => 'Prepare Adjusted Trial Balance',
+            7  => 'Prepare Financial Statements',
+            8  => 'Journalize & Post Closing Entries',
+            9  => 'Prepare Post-Closing Trial Balance',
+            10 => 'Reverse (Optional Step)',
+        ];
+
+        return view('students.performance-tasks.step-history', [
+            'performanceTask' => $task,
+            'histories'       => $histories,
+            'step'            => $step,
+            'stepTitles'      => $stepTitles,
+        ]);
+    }
+
+    // ── NEW: show the spreadsheet data of a specific history attempt ──────────
+    public function historyDetail(int $id, int $step, int $attempt)
+    {
+        $user = auth()->user();
+
+        abort_if($step < 1 || $step > 10, 404);
+
+        $task = \App\Models\PerformanceTask::where('id', $id)
+            ->whereHas('section.students', function ($q) use ($user) {
+                $q->where('student_id', $user->student->id);
+            })
+            ->firstOrFail();
+
+        $history = \App\Models\PerformanceTaskSubmissionHistory::where([
+                'task_id'        => $task->id,
+                'student_id'     => $user->student->id,
+                'step'           => $step,
+                'attempt_number' => $attempt,
+            ])
+            ->firstOrFail();
+
+        $answerSheet = \App\Models\PerformanceTaskAnswerSheet::where([
+            'performance_task_id' => $task->id,
+            'step'                => $step,
+        ])->first();
+
+        $stepTitles = [
+            1  => 'Analyze Transactions',
+            2  => 'Journalize Transactions',
+            3  => 'Post to Ledger Accounts',
+            4  => 'Prepare Trial Balance',
+            5  => 'Journalize & Post Adjusting Entries',
+            6  => 'Prepare Adjusted Trial Balance',
+            7  => 'Prepare Financial Statements',
+            8  => 'Journalize & Post Closing Entries',
+            9  => 'Prepare Post-Closing Trial Balance',
+            10 => 'Reverse (Optional Step)',
+        ];
+
+        
+
+        return view('students.performance-tasks.history-detail', compact(
+            'task', 'history', 'answerSheet', 'step', 'attempt', 'stepTitles'
+        ));
+    }
 }

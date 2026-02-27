@@ -415,6 +415,12 @@ Route::middleware(['auth', 'role:student'])->prefix('students')->name('students.
         
     Route::get('performance-tasks/{id}/step/{step}/answers', [StudentPerformanceTaskController::class, 'showAnswers'])
         ->name('performance-tasks.show-answers');
+
+    Route::get('/performance-tasks/{id}/step/{step}/history',[StudentPerformanceTaskController::class, 'stepHistory'])
+        ->name('performance-tasks.step-history');
+
+    Route::get('/performance-tasks/{id}/step/{step}/history/{attempt}',[StudentPerformanceTaskController::class, 'historyDetail'])
+        ->name('performance-tasks.history-detail');
     
     // Feedback Management
     Route::prefix('feedback')->name('feedback.')->group(function () {
