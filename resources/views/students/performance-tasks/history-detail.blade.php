@@ -1,5 +1,9 @@
 <x-app-layout>
 
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.3.0/dist/handsontable.full.min.css">
+@endpush
+
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
@@ -62,7 +66,7 @@
                     </a>
                 </div>
 
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-gray-100">
+                <div class="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
                     <div class="text-center p-3 bg-gray-50 rounded-lg">
                         <p class="text-xl font-bold text-gray-900">{{ number_format($history->score, 2) }}</p>
                         <p class="text-xs text-gray-500 mt-0.5">Score</p>
@@ -70,10 +74,6 @@
                     <div class="text-center p-3 bg-gray-50 rounded-lg">
                         <p class="text-xl font-bold text-gray-900">{{ $pct }}%</p>
                         <p class="text-xs text-gray-500 mt-0.5">Percentage</p>
-                    </div>
-                    <div class="text-center p-3 bg-gray-50 rounded-lg">
-                        <p class="text-xl font-bold {{ $history->error_count > 0 ? 'text-red-600' : 'text-green-600' }}">{{ $history->error_count }}</p>
-                        <p class="text-xs text-gray-500 mt-0.5">Errors</p>
                     </div>
                     <div class="text-center p-3 bg-gray-50 rounded-lg">
                         <p class="text-sm font-semibold text-gray-800 leading-snug">{{ $statusLabel }}</p>
@@ -149,6 +149,8 @@
     </div>
     </div>
 
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/handsontable@14.3.0/dist/handsontable.full.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const container   = document.getElementById('history-spreadsheet');
@@ -303,6 +305,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+@endpush
 
     <style>
         #history-spreadsheet .htCore td { border-color: #d1d5db; }
