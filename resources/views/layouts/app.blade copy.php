@@ -105,7 +105,11 @@
                 @include('layouts.sidebar')
 
                 <!-- Main Content -->
-                <div class="flex-1 pt-16 w-full">yy
+                <div class="flex-1 pt-16 transition-all duration-300 ease-in-out w-full"
+                     :class="{ 
+                         'lg:pl-72': $store.sidebar.isOpen,
+                         'pl-0': !$store.sidebar.isOpen
+                     }">
                     <!-- Page Heading -->
                     @isset($header)
                         <header class="bg-white dark:bg-gray-800 shadow">

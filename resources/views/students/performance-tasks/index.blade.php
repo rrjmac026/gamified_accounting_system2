@@ -25,12 +25,20 @@
             {{-- Performance Task List --}}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="taskList">
                 @forelse ($performanceTasks as $task)
+                    @php
+                        // A task is "completed" if all 10 steps have been submitted (any status)
+                        // OR if the pivot status is graded/completed
+                        $isFullyAnswered = ($task->progress ?? 0) >= 10;
+                        $isGradedOrCompleted = in_array($task->status, ['graded', 'completed']);
+                        $showAsCompleted = $isGradedOrCompleted || $isFullyAnswered;
+                    @endphp
+
                     {{-- ✅ Card is now a div, not an <a>, to allow nested buttons --}}
                     <div class="task-card group bg-white rounded-xl shadow-sm hover:shadow-xl border border-gray-100 overflow-hidden transition-all duration-300 hover:-translate-y-1">
 
                         {{-- Colored Top Border Based on Status --}}
                         <div class="h-1 bg-gradient-to-r 
-                            {{ $task->status === 'completed' || $task->status === 'graded' ? 'from-green-400 to-emerald-500' : 'from-[#FF92C2] to-[#FFC8FB]' }}">
+                            {{ $showAsCompleted ? 'from-green-400 to-emerald-500' : 'from-[#FF92C2] to-[#FFC8FB]' }}">
                         </div>
 
                         {{-- Clickable body area --}}
@@ -53,11 +61,11 @@
                             {{-- Status Badge --}}
                             <div class="mb-4">
                                 <span class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full
-                                    {{ $task->status === 'completed' || $task->status === 'graded' 
+                                    {{ $showAsCompleted
                                         ? 'bg-green-50 text-green-700 border border-green-200' 
                                         : 'bg-amber-50 text-amber-700 border border-amber-200' }}">
-                                    <i class="fas {{ $task->status === 'completed' || $task->status === 'graded' ? 'fa-check-circle' : 'fa-clock' }}"></i>
-                                    {{ ucfirst($task->status) ?? 'Pending' }}
+                                    <i class="fas {{ $showAsCompleted ? 'fa-check-circle' : 'fa-clock' }}"></i>
+                                    {{ $showAsCompleted ? 'Completed' : (ucfirst($task->status) ?? 'Pending') }}
                                 </span>
                             </div>
 
@@ -99,22 +107,25 @@
                             {{-- Divider --}}
                             <div class="border-t border-gray-100 my-4"></div>
 
-                            {{-- Progress Bar --}}
-                            @if($task->status !== 'graded' && $task->status !== 'completed')
+                            {{-- Progress Bar (show for non-graded tasks, including fully answered) --}}
+                            @if(!$isGradedOrCompleted)
                                 <div class="mb-4">
                                     <div class="flex justify-between items-center mb-2">
                                         <span class="text-xs font-semibold text-gray-700">Progress</span>
                                         <span class="text-xs text-gray-500">{{ $task->progress ?? 0 }}/{{ $task->totalSteps ?? 10 }} steps</span>
                                     </div>
                                     <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                                        <div class="bg-gradient-to-r from-[#FF92C2] to-[#FFC8FB] h-2 rounded-full transition-all duration-500 shadow-sm" 
+                                        <div class="bg-gradient-to-r {{ $isFullyAnswered ? 'from-green-400 to-emerald-500' : 'from-[#FF92C2] to-[#FFC8FB]' }} h-2 rounded-full transition-all duration-500 shadow-sm" 
                                              style="width: {{ $task->progressPercentage ?? 0 }}%"></div>
                                     </div>
+                                    @if($isFullyAnswered)
+                                        <p class="text-xs text-green-600 font-medium mt-1">✓ All steps answered — awaiting final grade</p>
+                                    @endif
                                 </div>
                             @endif
 
                             {{-- Final Grade Display --}}
-                            @if($task->status === 'graded' || $task->status === 'completed')
+                            @if($isGradedOrCompleted)
                                 <div class="mb-4 p-4 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg">
                                     <div class="flex items-center justify-between mb-3">
                                         <div class="flex items-center gap-2">
@@ -132,6 +143,15 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    {{-- Date Submitted (graded tasks) --}}
+                                    @if(!empty($task->submitted_at))
+                                        <div class="flex items-center gap-1.5 text-xs text-gray-500 mb-3">
+                                            <i class="fas fa-calendar-check text-green-500"></i>
+                                            <span>Submitted: {{ \Carbon\Carbon::parse($task->submitted_at)->format('M d, Y h:i A') }}</span>
+                                        </div>
+                                    @endif
+
                                     <div class="flex items-center justify-between pt-3 border-t border-green-200">
                                         <span class="text-xs font-medium text-gray-600">XP Earned</span>
                                         <div class="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full border border-green-200">
@@ -140,6 +160,14 @@
                                             <span class="text-xs text-gray-500">XP</span>
                                         </div>
                                     </div>
+                                </div>
+                            @endif
+
+                            {{-- Date Submitted for non-graded but answered tasks --}}
+                            @if(!$isGradedOrCompleted && !empty($task->submitted_at))
+                                <div class="mb-3 flex items-center gap-1.5 text-xs text-gray-500">
+                                    <i class="fas fa-calendar-check text-gray-400"></i>
+                                    <span>Last submitted: {{ \Carbon\Carbon::parse($task->submitted_at)->format('M d, Y h:i A') }}</span>
                                 </div>
                             @endif
 

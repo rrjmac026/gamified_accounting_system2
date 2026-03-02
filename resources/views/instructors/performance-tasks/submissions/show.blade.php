@@ -34,7 +34,7 @@
         </div>
 
         <!-- Task Statistics Overview -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center justify-between">
                     <div>
@@ -63,15 +63,33 @@
                 </div>
             </div>
 
+            {{-- ✅ FIX: Steps Answered (all submitted, any status) --}}
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-600">Completed Steps</p>
-                        <p class="text-2xl font-bold text-green-600">{{ $taskStats['completed_steps'] }}</p>
+                        <p class="text-sm text-gray-600">Steps Answered</p>
+                        <p class="text-2xl font-bold text-green-600">{{ $taskStats['answered_steps'] }}</p>
+                        <p class="text-xs text-gray-400 mt-0.5">
+                            {{ $taskStats['correct_steps'] }} correct · {{ $taskStats['passed_steps'] }} passed
+                        </p>
                     </div>
                     <div class="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
                         <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Wrong Steps</p>
+                        <p class="text-2xl font-bold text-red-600">{{ $taskStats['wrong_steps'] }}</p>
+                    </div>
+                    <div class="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </div>
                 </div>
@@ -90,22 +108,26 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Student Name
+                                Student
                             </th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Progress
                             </th>
+                            {{-- ✅ Renamed: Answered (all submitted steps) --}}
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Completed
+                                Answered
+                            </th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Correct
+                            </th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Passed
                             </th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Wrong
                             </th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                In Progress
-                            </th>
-                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Total Score
+                                Score
                             </th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Attempts
@@ -117,7 +139,14 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @forelse($studentStats as $studentId => $stats)
+                            @php
+                                $answered = $stats['answered_steps'] ?? $stats['total_submissions'];
+                                $correct  = $stats['correct_steps']  ?? 0;
+                                $passed   = $stats['passed_steps']   ?? 0;
+                                $wrong    = $stats['wrong_steps']    ?? 0;
+                            @endphp
                             <tr class="hover:bg-gray-50 transition-colors">
+                                <!-- Student Name -->
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
@@ -126,49 +155,69 @@
                                             </span>
                                         </div>
                                         <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900">
-                                                {{ $stats['user']->name }}
-                                            </div>
-                                            <div class="text-sm text-gray-500">
-                                                {{ $stats['user']->email }}
-                                            </div>
+                                            <div class="text-sm font-medium text-gray-900">{{ $stats['user']->name }}</div>
+                                            <div class="text-xs text-gray-500">{{ $stats['user']->email }}</div>
                                         </div>
                                     </div>
                                 </td>
+
+                                <!-- Progress Bar -->
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center justify-center">
-                                        <div class="w-24">
+                                        <div class="w-28">
                                             <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
                                                 <span>{{ number_format($stats['progress_percent'], 0) }}%</span>
+                                                <span class="text-gray-400">{{ $answered }}/10</span>
                                             </div>
-                                            <div class="w-full bg-gray-200 rounded-full h-2">
-                                                <div class="bg-green-500 h-2 rounded-full transition-all" 
-                                                     style="width: {{ $stats['progress_percent'] }}%"></div>
+                                            {{-- Stacked bar: green=correct, blue=passed, red=wrong --}}
+                                            <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden flex">
+                                                <div class="bg-green-500 h-full" style="width: {{ ($correct / 10) * 100 }}%"></div>
+                                                <div class="bg-blue-500 h-full"  style="width: {{ ($passed  / 10) * 100 }}%"></div>
+                                                <div class="bg-red-400 h-full"   style="width: {{ ($wrong   / 10) * 100 }}%"></div>
                                             </div>
                                         </div>
                                     </div>
                                 </td>
+
+                                <!-- Answered (all submitted steps) -->
+                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        {{ $answered }}/10
+                                    </span>
+                                </td>
+
+                                <!-- Correct -->
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        {{ $stats['completed_steps'] }}/10
+                                        {{ $correct }}
                                     </span>
                                 </td>
+
+                                <!-- Passed -->
+                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {{ $passed }}
+                                    </span>
+                                </td>
+
+                                <!-- Wrong -->
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                        {{ $stats['wrong_steps'] }}
+                                        {{ $wrong }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                        {{ $stats['in_progress_steps'] }}
-                                    </span>
-                                </td>
+
+                                <!-- Score -->
                                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-semibold text-gray-900">
                                     {{ $stats['total_score'] }}
                                 </td>
+
+                                <!-- Attempts -->
                                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-600">
                                     {{ $stats['total_attempts'] }}
                                 </td>
+
+                                <!-- Actions -->
                                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
                                     <a href="{{ route('instructors.performance-tasks.submissions.show-student', [$task->id, $stats['user']->id]) }}" 
                                        class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors">
@@ -182,7 +231,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-6 py-12 text-center">
+                                <td colspan="9" class="px-6 py-12 text-center">
                                     <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
                                         <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>

@@ -31,13 +31,17 @@ class StudentPerformanceTaskController extends Controller
             ->get();
 
         $performanceTasks->each(function ($task) use ($student) {
-            // ✅ 1. Calculate progress
-            $completedSteps = PerformanceTaskSubmission::where('task_id', $task->id)
+            // ✅ 1. Calculate progress — count DISTINCT steps that have ANY submission (any status)
+            //       Previously this only captured steps, which is correct, but the blade
+            //       was checking pivot status === graded/completed for "Completed" badge.
+            //       Now we expose the raw answered count so the blade can show it properly.
+            $submittedSteps = PerformanceTaskSubmission::where('task_id', $task->id)
                 ->where('student_id', $student->id)
-                ->distinct()
+                ->distinct('step')
                 ->pluck('step')
-                ->unique()
-                ->count();
+                ->unique();
+
+            $completedSteps = $submittedSteps->count();
 
             $task->progress = $completedSteps;
             $task->totalSteps = 10;
@@ -45,21 +49,22 @@ class StudentPerformanceTaskController extends Controller
                 ? round(($completedSteps / 10) * 100, 2)
                 : 0;
 
-            // ✅ 2. Fetch final grade from pivot table (if stored there)
+            // ✅ 2. Fetch final grade + submitted_at from pivot table
             $pivotData = DB::table('performance_task_student')
                 ->where('performance_task_id', $task->id)
                 ->where('student_id', $student->id)
                 ->first();
 
             if ($pivotData) {
-                $task->score = $pivotData->score ?? 0;
-                $task->xp_earned = $pivotData->xp_earned ?? 0;
-                $task->status = $pivotData->status ?? 'in-progress';
+                $task->score       = $pivotData->score ?? 0;
+                $task->xp_earned   = $pivotData->xp_earned ?? 0;
+                $task->status      = $pivotData->status ?? 'in-progress';
+                $task->submitted_at = $pivotData->submitted_at ?? null; // ✅ NEW
             } else {
-                // fallback if no pivot data yet
-                $task->score = 0;
-                $task->xp_earned = 0;
-                $task->status = 'in-progress';
+                $task->score       = 0;
+                $task->xp_earned   = 0;
+                $task->status      = 'in-progress';
+                $task->submitted_at = null; // ✅ NEW
             }
 
             // ✅ 3. Add other computed attributes
@@ -1133,28 +1138,38 @@ class StudentPerformanceTaskController extends Controller
 
         // Prepare submission details with feedback
         $submissionDetails = [];
-        foreach ($submissions as $submission) {
-            $submissionDetails[$submission->step] = [
-                'step_title' => $stepTitles[$submission->step] ?? "Step {$submission->step}",
-                'status' => $submission->status,
-                'score' => $submission->score,
-                'attempts' => $submission->attempts,
-                'remarks' => $submission->remarks,
-                'instructor_feedback' => $submission->instructor_feedback,
-                'feedback_given_at' => $submission->feedback_given_at,
-                'submitted_at' => $submission->created_at,
-                'updated_at' => $submission->updated_at,
-            ];
-        }
+            foreach ($submissions as $submission) {
+                $submissionDetails[$submission->step] = [
+                    'step_title'          => $stepTitles[$submission->step] ?? "Step {$submission->step}",
+                    'status'              => $submission->status,
+                    'score'               => $submission->score,
+                    'attempts'            => $submission->attempts,
+                    'remarks'             => $submission->remarks,
+                    'instructor_feedback' => $submission->instructor_feedback,
+                    'feedback_given_at'   => $submission->feedback_given_at,
+                    'submitted_at'        => $submission->created_at,
+                    'updated_at'          => $submission->updated_at, // ✅ NEW — last submission date
+                ];
+            }
 
         // Calculate statistics
         $statistics = [
-            'total_score' => $submissions->sum('score'),
-            'total_attempts' => $submissions->sum('attempts'),
-            'completed_steps' => $submissions->where('status', 'correct')->count(),
-            'wrong_steps' => $submissions->where('status', 'wrong')->count(),
-            'in_progress_steps' => 10 - $submissions->whereIn('status', ['correct', 'wrong'])->count(),
-            'feedback_count' => $submissions->whereNotNull('instructor_feedback')->count(),
+            'total_score'     => $submissions->sum('score'),
+            'total_attempts'  => $submissions->sum('attempts'),
+
+            // ✅ FIX: answered_steps = ALL submitted steps regardless of status
+            'answered_steps'  => $submissions->count(),
+
+            // ✅ Granular breakdown
+            'correct_steps'   => $submissions->where('status', 'correct')->count(),
+            'passed_steps'    => $submissions->where('status', 'passed')->count(),
+            'wrong_steps'     => $submissions->where('status', 'wrong')->count(),
+
+            // ✅ Keep completed_steps as correct+passed for any legacy references
+            'completed_steps' => $submissions->whereIn('status', ['correct', 'passed'])->count(),
+
+            'in_progress_steps' => 10 - $submissions->count(),
+            'feedback_count'    => $submissions->whereNotNull('instructor_feedback')->count(),
         ];
 
         return view('students.performance-tasks.my-progress', compact(
