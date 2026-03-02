@@ -40,6 +40,7 @@ use App\Http\Controllers\Instructors\PerformanceTaskAnswerSheetController;
 use App\Http\Controllers\Instructors\PerformanceTaskSubmissionController;
 use App\Http\Controllers\Instructors\PerformanceTaskSubmissionExportController;
 use App\Http\Controllers\Instructors\InstructorFeedbackRecordController;
+use App\Http\Controllers\Instructors\PerformanceTaskCommentController;
 
 
 // ============================================================================
@@ -51,6 +52,7 @@ use App\Http\Controllers\Students\StudentSubjectController;
 use App\Http\Controllers\Students\StudentProgressController;
 use App\Http\Controllers\Students\FeedbackController;
 use App\Http\Controllers\Students\StudentPerformanceTaskController;
+use App\Http\Controllers\Students\StudentPerformanceTaskCommentController;
 
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
@@ -354,6 +356,25 @@ Route::middleware(['auth', 'role:instructor'])
         ->names('feedback-records')
         ->only(['index', 'show']);
 
+        // Performance Task Comment Routes (Instructor)
+        Route::prefix('performance-tasks')->name('performance-tasks.')->group(function () {
+            // Inbox: list all tasks with unread badge counts
+            Route::get('comments', [PerformanceTaskCommentController::class, 'index'])
+                ->name('comments.index');
+
+            // Full conversation for one task  (?step=N optional)
+            Route::get('{task}/comments', [PerformanceTaskCommentController::class, 'show'])
+                ->name('comments.show');
+
+            // Post a comment / reply
+            Route::post('{task}/comments', [PerformanceTaskCommentController::class, 'store'])
+                ->name('comments.store');
+
+            // Soft-delete own comment
+            Route::delete('{task}/comments/{comment}', [PerformanceTaskCommentController::class, 'destroy'])
+                ->name('comments.destroy');
+        });
+
 });
 
 // Student Progress Routes (Instructor Side)
@@ -421,6 +442,21 @@ Route::middleware(['auth', 'role:student'])->prefix('students')->name('students.
 
     Route::get('/performance-tasks/{id}/step/{step}/history/{attempt}',[StudentPerformanceTaskController::class, 'historyDetail'])
         ->name('performance-tasks.history-detail');
+
+    // Performance Task Comment Routes (Student)
+    Route::prefix('performance-tasks')->name('performance-tasks.')->group(function () {
+        // Full conversation for one task  (?step=N optional)
+        Route::get('{task}/comments', [StudentPerformanceTaskCommentController::class, 'show'])
+            ->name('comments.show');
+
+        // Post a comment / reply
+        Route::post('{task}/comments', [StudentPerformanceTaskCommentController::class, 'store'])
+            ->name('comments.store');
+
+        // Soft-delete own comment
+        Route::delete('{task}/comments/{comment}', [StudentPerformanceTaskCommentController::class, 'destroy'])
+            ->name('comments.destroy');
+    });
     
     // Feedback Management
     Route::prefix('feedback')->name('feedback.')->group(function () {

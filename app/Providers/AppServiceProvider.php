@@ -10,6 +10,7 @@ use App\Observers\TaskSubmissionObserver;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;
 use App\Models\SystemNotification;
+use Illuminate\Support\Facades\Blade;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -49,5 +50,7 @@ class AppServiceProvider extends ServiceProvider
                 $view->with(compact('notifications', 'unreadCount'));
             }
         });
+
+        Blade::component('task-comment-thread', \App\View\Components\TaskCommentThread::class);
     }
 }
