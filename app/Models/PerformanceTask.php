@@ -80,4 +80,19 @@ class PerformanceTask extends Model
         {
             return $this->hasMany(FeedbackRecord::class, 'performance_task_id');
         }
+    
+    public function exercises()
+    {
+        return $this->hasMany(PerformanceTaskExercise::class, 'performance_task_id');
+    }
+
+    public function exercisesForStep(int $step)
+    {
+        return $this->exercises()->where('step', $step)->orderBy('order')->get();
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(\App\Models\PerformanceTaskComment::class, 'performance_task_id');
+    }
 }

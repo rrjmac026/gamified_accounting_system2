@@ -5,8 +5,13 @@
             <i class="fas fa-arrow-left mr-2"></i>Back to Performance Tasks
         </a>
         <div class="flex gap-4">
+            <a href="{{ route('instructors.performance-tasks.exercises.show', $task->id) }}" 
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-500 hover:bg-purple-600 rounded-lg shadow-sm hover:shadow">
+                <i class="fas fa-tasks mr-2"></i>Manage Exercises
+            </a>
+
             <a href="{{ route('instructors.performance-tasks.edit', $task->id) }}" 
-               class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-[#D5006D] hover:bg-[#FF6F91] rounded-lg shadow-sm hover:shadow">
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-[#D5006D] hover:bg-[#FF6F91] rounded-lg shadow-sm hover:shadow">
                 <i class="fas fa-edit mr-2"></i>Edit Task
             </a>
         </div>

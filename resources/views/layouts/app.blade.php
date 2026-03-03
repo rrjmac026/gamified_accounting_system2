@@ -105,7 +105,7 @@
                 @include('layouts.sidebar')
 
                 <!-- Main Content -->
-                <div class="flex-1 pt-16 w-full">yy
+                <div class="flex-1 pt-16 w-full">
                     <!-- Page Heading -->
                     @isset($header)
                         <header class="bg-white dark:bg-gray-800 shadow">

@@ -111,39 +111,49 @@
                                             <div class="text-xs text-[#FF6F91]">Max: {{ $task->max_score }}</div>
                                         </td>
                                         <td class="px-4 py-4">
-                                            <div class="flex items-center justify-center gap-3">
-                                                {{-- View submissions --}}
-                                                <a href="{{ route('instructors.performance-tasks.submissions.show', $task->id) }}"
-                                                   class="text-[#D5006D] hover:text-[#FF6F91] transition-colors" title="View Submissions">
-                                                    <i class="fas fa-eye"></i>
+                                            <div class="flex gap-2 pt-3 border-t border-gray-100">
+                                                {{-- Show --}}
+                                                <a href="{{ route('instructors.performance-tasks.show', $task->id) }}"
+                                                class="inline-flex items-center justify-center w-9 h-9 text-blue-500 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors" title="View">
+                                                    <i class="fas fa-eye text-sm"></i>
                                                 </a>
 
-                                                {{-- Discussion / comments --}}
+                                                {{-- Exercises --}}
+                                                <a href="{{ route('instructors.performance-tasks.exercises.show', $task->id) }}"
+                                                class="inline-flex items-center justify-center w-9 h-9 text-purple-500 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors" title="Exercises">
+                                                    <i class="fas fa-tasks text-sm"></i>
+                                                </a>
+
+                                                <a href="{{ route('instructors.performance-tasks.submissions.show', $task->id) }}"
+                                                class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-[#D5006D] bg-[#FFF0F5] rounded-lg hover:bg-[#FFD6E8] transition-colors">
+                                                    <i class="fas fa-clipboard-list"></i> Submissions
+                                                </a>
+
                                                 <a href="{{ route('instructors.performance-tasks.comments.show', $task->id) }}"
-                                                   class="relative text-[#D5006D] hover:text-[#FF6F91] transition-colors" title="Discussion">
-                                                    <i class="fas fa-comments"></i>
+                                                class="relative inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors
+                                                        {{ $taskUnread > 0 ? 'bg-[#D5006D] text-white hover:bg-[#FF6F91]' : 'text-[#D5006D] bg-[#FFF0F5] hover:bg-[#FFD6E8]' }}">
+                                                    <i class="fas fa-comments text-sm"></i>
                                                     @if($taskUnread > 0)
-                                                        <span class="absolute -top-2 -right-2 inline-flex items-center justify-center min-w-[14px] h-3.5 px-1
-                                                                     bg-[#D5006D] text-white text-[9px] font-bold rounded-full">
+                                                        <span class="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1
+                                                                    bg-white text-[#D5006D] text-[9px] font-bold rounded-full border border-[#D5006D]">
                                                             {{ $taskUnread > 9 ? '9+' : $taskUnread }}
                                                         </span>
                                                     @endif
                                                 </a>
 
-                                                {{-- Edit --}}
                                                 <a href="{{ route('instructors.performance-tasks.edit', $task->id) }}"
-                                                   class="text-[#D5006D] hover:text-[#FF6F91] transition-colors" title="Edit Task">
-                                                    <i class="fas fa-edit"></i>
+                                                class="inline-flex items-center justify-center w-9 h-9 text-[#D5006D] bg-[#FFF0F5] rounded-lg hover:bg-[#FFD6E8] transition-colors" title="Edit">
+                                                    <i class="fas fa-edit text-sm"></i>
                                                 </a>
 
-                                                {{-- Delete --}}
                                                 <form action="{{ route('instructors.performance-tasks.destroy', $task->id) }}"
-                                                      method="POST" class="inline"
-                                                      onsubmit="return confirm('Delete this performance task? This cannot be undone.')">
+                                                    method="POST" class="inline"
+                                                    onsubmit="return confirm('Delete this task? This cannot be undone.')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="text-red-400 hover:text-red-600 transition-colors" title="Delete Task">
-                                                        <i class="fas fa-trash"></i>
+                                                    <button type="submit"
+                                                            class="inline-flex items-center justify-center w-9 h-9 text-red-400 bg-red-50 rounded-lg hover:bg-red-100 transition-colors" title="Delete">
+                                                        <i class="fas fa-trash text-sm"></i>
                                                     </button>
                                                 </form>
                                             </div>

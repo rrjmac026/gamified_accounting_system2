@@ -41,6 +41,7 @@ use App\Http\Controllers\Instructors\PerformanceTaskSubmissionController;
 use App\Http\Controllers\Instructors\PerformanceTaskSubmissionExportController;
 use App\Http\Controllers\Instructors\InstructorFeedbackRecordController;
 use App\Http\Controllers\Instructors\PerformanceTaskCommentController;
+use App\Http\Controllers\Instructors\PerformanceTaskExerciseController;
 
 
 // ============================================================================
@@ -300,6 +301,24 @@ Route::middleware(['auth', 'role:instructor'])
         Route::get('subjects', [InstructorSubjectController::class, 'index'])->name('subjects.index');
         Route::get('subjects/{subject}', [InstructorSubjectController::class, 'show'])->name('subjects.show');
 
+        Route::prefix('performance-tasks')->name('performance-tasks.')->group(function () {
+            // Inbox: list all tasks with unread badge counts
+            Route::get('comments', [PerformanceTaskCommentController::class, 'index'])
+                ->name('comments.index');
+
+            // Full conversation for one task  (?step=N optional)
+            Route::get('{task}/comments', [PerformanceTaskCommentController::class, 'show'])
+                ->name('comments.show');
+
+            // Post a comment / reply
+            Route::post('{task}/comments', [PerformanceTaskCommentController::class, 'store'])
+                ->name('comments.store');
+
+            // Soft-delete own comment
+            Route::delete('{task}/comments/{comment}', [PerformanceTaskCommentController::class, 'destroy'])
+                ->name('comments.destroy');
+        });
+
         // Performance Task Management
         Route::get('performance-tasks', [PerformanceTaskController::class, 'index'])->name('performance-tasks.index');
         Route::get('performance-tasks/create', [PerformanceTaskController::class, 'create'])->name('performance-tasks.create');
@@ -357,23 +376,16 @@ Route::middleware(['auth', 'role:instructor'])
         ->only(['index', 'show']);
 
         // Performance Task Comment Routes (Instructor)
-        Route::prefix('performance-tasks')->name('performance-tasks.')->group(function () {
-            // Inbox: list all tasks with unread badge counts
-            Route::get('comments', [PerformanceTaskCommentController::class, 'index'])
-                ->name('comments.index');
-
-            // Full conversation for one task  (?step=N optional)
-            Route::get('{task}/comments', [PerformanceTaskCommentController::class, 'show'])
-                ->name('comments.show');
-
-            // Post a comment / reply
-            Route::post('{task}/comments', [PerformanceTaskCommentController::class, 'store'])
-                ->name('comments.store');
-
-            // Soft-delete own comment
-            Route::delete('{task}/comments/{comment}', [PerformanceTaskCommentController::class, 'destroy'])
-                ->name('comments.destroy');
-        });
+        
+    Route::prefix('performance-tasks/{task}/exercises')->name('performance-tasks.exercises.')->group(function () {
+        Route::get('/',                     [PerformanceTaskExerciseController::class, 'show'])    ->name('show');
+        Route::get('/step/{step}/create',   [PerformanceTaskExerciseController::class, 'create'])  ->name('create');
+        Route::post('/step/{step}',         [PerformanceTaskExerciseController::class, 'store'])   ->name('store');
+        Route::get('/{exercise}/edit',      [PerformanceTaskExerciseController::class, 'edit'])    ->name('edit');
+        Route::put('/{exercise}',           [PerformanceTaskExerciseController::class, 'update'])  ->name('update');
+        Route::delete('/{exercise}',        [PerformanceTaskExerciseController::class, 'destroy']) ->name('destroy');
+        Route::post('/step/{step}/reorder', [PerformanceTaskExerciseController::class, 'reorder']) ->name('reorder');
+    });
 
 });
 
