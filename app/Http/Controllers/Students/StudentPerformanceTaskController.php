@@ -159,11 +159,19 @@ class StudentPerformanceTaskController extends Controller
             'step' => $step,
         ])->first();
 
-        // Get the answer sheet template for this step
-        $answerSheet = PerformanceTaskAnswerSheet::where([
+        // Get exercises for this step (new system)
+        $exercises = \App\Models\PerformanceTaskExercise::where([
             'performance_task_id' => $performanceTask->id,
             'step' => $step,
-        ])->first();
+        ])->orderBy('order')->get();
+
+        // Backward compatibility — if no exercises exist, fall back to old answer sheet
+        $answerSheet = $exercises->isEmpty()
+            ? PerformanceTaskAnswerSheet::where([
+                'performance_task_id' => $performanceTask->id,
+                'step' => $step,
+            ])->first()
+            : null;
 
         // Get all completed steps by the student
         $completedSteps = PerformanceTaskSubmission::where([
@@ -186,6 +194,7 @@ class StudentPerformanceTaskController extends Controller
             'completedSteps' => $completedSteps,
             'deadlineStatus' => $deadlineStatus,
             'step' => $step,
+            
         ]);
     }
 
