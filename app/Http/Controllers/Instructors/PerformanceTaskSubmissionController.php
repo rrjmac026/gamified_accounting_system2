@@ -192,9 +192,9 @@ class PerformanceTaskSubmissionController extends Controller
         }
     }
 
-    /**
-     * View answer sheet for a specific step
-     */
+    // In PerformanceTaskSubmissionController.php
+    // Replace the viewAnswerSheet() method with this:
+
     public function viewAnswerSheet(PerformanceTask $task, User $student, $step)
     {
         try {
@@ -208,27 +208,36 @@ class PerformanceTaskSubmissionController extends Controller
                 throw new Exception('Invalid step number');
             }
 
-            $answerSheet = PerformanceTaskAnswerSheet::where([
-                'performance_task_id' => $task->id,
-                'step'                => $step,
-            ])->first();
-
-            if (!$answerSheet) {
-                return back()->with('error', "No answer sheet found for Step {$step}.");
-            }
-
-            if (!$answerSheet->correct_data) {
-                return back()->with('error', "Answer sheet for Step {$step} has no data.");
-            }
-
             $stepTitle     = $this->stepTitles()[$step] ?? "Step {$step}";
             $studentRecord = $student->student;
 
+            // ── Get the student's submission for this step ──────────────────────
             $submission = PerformanceTaskSubmission::where([
                 'task_id'    => $task->id,
                 'student_id' => $studentRecord->id,
                 'step'       => $step,
             ])->first();
+
+            // ── Resolve the correct answer source ───────────────────────────────
+            // Priority 1: submission has an exercise_id → use that exercise
+            // Priority 2: fall back to legacy PerformanceTaskAnswerSheet
+            $exercise    = null;
+            $answerSheet = null;
+
+            if ($submission && $submission->exercise_id) {
+                $exercise = \App\Models\PerformanceTaskExercise::find($submission->exercise_id);
+            }
+
+            if (!$exercise) {
+                // No exercise linked — try legacy answer sheet
+                $answerSheet = \App\Models\PerformanceTaskAnswerSheet::where([
+                    'performance_task_id' => $task->id,
+                    'step'                => $step,
+                ])->first();
+            }
+
+            // If neither exists, show a friendly message in the view
+            $hasAnswerKey = $exercise || $answerSheet;
 
             $this->logActivity('viewed answer sheet comparison', [
                 'instructor_id'  => $instructor->id,
@@ -236,19 +245,16 @@ class PerformanceTaskSubmissionController extends Controller
                 'student_id'     => $studentRecord->id,
                 'step'           => $step,
                 'has_submission' => (bool) $submission,
+                'source'         => $exercise ? 'exercise' : ($answerSheet ? 'answer_sheet' : 'none'),
             ]);
 
             return view('instructors.performance-tasks.submissions.answer-sheets.view', compact(
-                'task', 'student', 'answerSheet', 'submission', 'step', 'stepTitle'
+                'task', 'student', 'submission', 'step', 'stepTitle',
+                'exercise', 'answerSheet', 'hasAnswerKey'
             ));
 
         } catch (Exception $e) {
-            Log::error('Error viewing answer sheet: ' . $e->getMessage(), [
-                'task_id'    => $task->id ?? null,
-                'student_id' => $student->id ?? null,
-                'step'       => $step ?? null,
-                'trace'      => $e->getTraceAsString(),
-            ]);
+            Log::error('Error viewing answer sheet: ' . $e->getMessage());
             return back()->with('error', 'Unable to load answer sheet. Please try again.');
         }
     }
@@ -298,6 +304,9 @@ class PerformanceTaskSubmissionController extends Controller
                 ];
             }
 
+            $exercisesByStep = \App\Models\PerformanceTaskExercise::where('performance_task_id', $task->id)
+                ->get()->keyBy('id');
+
             // Fill not-started steps
             for ($step = 1; $step <= 10; $step++) {
                 if (!isset($submissionDetails[$step])) {
@@ -332,7 +341,7 @@ class PerformanceTaskSubmissionController extends Controller
             ];
 
             return view('instructors.performance-tasks.submissions.show-student', compact(
-                'task', 'student', 'submissionDetails', 'stepTitles', 'statistics', 'submissionsByStep'
+                'task', 'student', 'submissionDetails', 'stepTitles', 'statistics', 'submissionsByStep', 'exercisesByStep'
             ));
 
         } catch (Exception $e) {

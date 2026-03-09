@@ -1,67 +1,116 @@
-{{-- resources/views/instructors/performance-tasks/exercises/show.blade.php --}}
 <x-app-layout>
-    <div class="max-w-4xl mx-auto py-8">
-        <div class="flex items-center justify-between mb-6">
-            <div>
-                <h1 class="text-2xl font-bold">{{ $task->title }}</h1>
-                <p class="text-gray-500">Manage exercises per step — add to any step independently</p>
+    <div class="py-6 sm:py-10">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+            {{-- Back + Header --}}
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+                <div>
+                    <a href="{{ route('instructors.performance-tasks.show', $task->id) }}"
+                       class="inline-flex items-center text-[#D5006D] hover:text-[#FF6F91] font-medium text-sm mb-2">
+                        <i class="fas fa-arrow-left mr-2"></i> Back to Task
+                    </a>
+                    <h1 class="text-2xl font-bold text-gray-800">Manage Exercises</h1>
+                    <p class="text-sm text-gray-500 mt-1">
+                        Task: <span class="font-semibold text-gray-700">{{ $task->title }}</span>
+                    </p>
+                </div>
+                <div class="flex items-center gap-2 px-4 py-2 bg-pink-50 border border-pink-200 rounded-xl text-sm text-pink-700">
+                    <i class="fas fa-info-circle"></i>
+                    Add exercises to any step — no order required.
+                </div>
             </div>
-            <a href="{{ route('instructors.performance-tasks.index') }}" class="btn btn-ghost">← Back</a>
-        </div>
 
-        @if(session('success'))
-            <div class="alert alert-success mb-4">{{ session('success') }}</div>
-        @endif
+            {{-- Flash messages --}}
+            @if(session('success'))
+                <div class="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
+                    <i class="fas fa-check-circle mr-2"></i>{{ session('success') }}
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                    <i class="fas fa-exclamation-circle mr-2"></i>{{ session('error') }}
+                </div>
+            @endif
 
-        <div class="grid gap-4">
-            @foreach($stepTitles as $stepNum => $stepTitle)
-                @php $exercises = $exercisesByStep->get($stepNum, collect()); @endphp
+            {{-- Steps List --}}
+            <div class="space-y-4">
+                @foreach($stepTitles as $stepNumber => $stepTitle)
+                    @php
+                        $exercises = $exercisesByStep->get($stepNumber, collect());
+                        $count     = $exercises->count();
+                    @endphp
 
-                <div class="card bg-base-100 shadow border">
-                    <div class="card-body">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h2 class="card-title text-lg">
-                                    <span class="badge badge-primary">Step {{ $stepNum }}</span>
-                                    {{ $stepTitle }}
-                                </h2>
-                                <p class="text-sm text-gray-500">
-                                    {{ $exercises->count() }} exercise(s) added
-                                </p>
+                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        {{-- Step header --}}
+                        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                            <div class="flex items-center gap-3">
+                                <span class="w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold
+                                    {{ $count > 0 ? 'bg-[#D5006D] text-white' : 'bg-gray-100 text-gray-500' }}">
+                                    {{ $stepNumber }}
+                                </span>
+                                <div>
+                                    <p class="font-semibold text-gray-800 text-sm">{{ $stepTitle }}</p>
+                                    <p class="text-xs text-gray-400">
+                                        {{ $count > 0 ? $count . ' exercise' . ($count > 1 ? 's' : '') : 'No exercises yet' }}
+                                    </p>
+                                </div>
                             </div>
-                            <a href="{{ route('instructors.performance-tasks.exercises.create', [$task, $stepNum]) }}"
-                               class="btn btn-sm btn-primary">
-                                + Add Exercise
+                            <a href="{{ route('instructors.performance-tasks.exercises.create', [$task->id, $stepNumber]) }}"
+                               class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white
+                                      bg-gradient-to-r from-[#D5006D] to-[#FF6F91] rounded-lg hover:opacity-90 transition-all shadow-sm">
+                                <i class="fas fa-plus"></i> Add Exercise
                             </a>
                         </div>
 
-                        @if($exercises->isNotEmpty())
-                            <div class="mt-3 space-y-2">
+                        {{-- Exercise rows (only shown when exercises exist) --}}
+                        @if($count > 0)
+                            <ul class="divide-y divide-gray-50">
                                 @foreach($exercises as $exercise)
-                                    <div class="flex items-center justify-between bg-base-200 rounded px-3 py-2">
-                                        <div>
-                                            <span class="font-medium">{{ $exercise->title }}</span>
-                                            @if($exercise->description)
-                                                <p class="text-xs text-gray-400">{{ $exercise->description }}</p>
-                                            @endif
+                                    <li class="flex items-center justify-between px-5 py-3 hover:bg-pink-50/40 transition-colors">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <span class="w-6 h-6 flex-shrink-0 flex items-center justify-center
+                                                         bg-pink-100 text-[#D5006D] text-xs font-bold rounded-full">
+                                                {{ $exercise->order }}
+                                            </span>
+                                            <div class="min-w-0">
+                                                <p class="text-sm font-medium text-gray-800 truncate">
+                                                    {{ $exercise->title }}
+                                                </p>
+                                                @if($exercise->description)
+                                                    <p class="text-xs text-gray-400 truncate">{{ $exercise->description }}</p>
+                                                @endif
+                                            </div>
                                         </div>
-                                        <div class="flex gap-2">
+
+                                        <div class="flex items-center gap-2 flex-shrink-0 ml-4">
+                                            {{-- Edit --}}
                                             <a href="{{ route('instructors.performance-tasks.exercises.edit', [$task, $exercise]) }}"
-                                               class="btn btn-xs btn-ghost">Edit</a>
+                                               class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium
+                                                      text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                                                <i class="fas fa-pencil-alt"></i> Edit
+                                            </a>
+
+                                            {{-- Delete --}}
                                             <form method="POST"
                                                   action="{{ route('instructors.performance-tasks.exercises.destroy', [$task, $exercise]) }}"
-                                                  onsubmit="return confirm('Delete this exercise?')">
-                                                @csrf @method('DELETE')
-                                                <button class="btn btn-xs btn-error btn-ghost">Delete</button>
+                                                  onsubmit="return confirm('Delete this exercise? This cannot be undone.')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit"
+                                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium
+                                                               text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
                                             </form>
                                         </div>
-                                    </div>
+                                    </li>
                                 @endforeach
-                            </div>
+                            </ul>
                         @endif
                     </div>
-                </div>
-            @endforeach
+                @endforeach
+            </div>
+
         </div>
     </div>
 </x-app-layout>

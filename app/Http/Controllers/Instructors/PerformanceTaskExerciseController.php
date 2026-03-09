@@ -56,7 +56,6 @@ class PerformanceTaskExerciseController extends Controller
 
         $stepTitle = $this->stepTitles[$step];
 
-        // How many exercises already exist for this step (for auto-numbering)
         $existingCount = PerformanceTaskExercise::where([
             'performance_task_id' => $task->id,
             'step'                => $step,
@@ -64,7 +63,8 @@ class PerformanceTaskExerciseController extends Controller
 
         $nextNumber = $existingCount + 1;
 
-        return view("instructors.performance-tasks.exercises.steps.step-{$step}", compact(
+        // ✅ ONE shared view for all steps
+        return view('instructors.performance-tasks.exercises.form', compact(
             'task', 'step', 'stepTitle', 'nextNumber'
         ));
     }
@@ -122,8 +122,12 @@ class PerformanceTaskExerciseController extends Controller
         $step      = $exercise->step;
         $stepTitle = $this->stepTitles[$step];
 
-        return view("instructors.performance-tasks.exercises.steps.step-{$step}", compact(
-            'task', 'exercise', 'step', 'stepTitle'
+        // nextNumber not needed for edit but pass it to avoid undefined variable
+        $nextNumber = $exercise->order;
+
+        // ✅ ONE shared view for all steps
+        return view('instructors.performance-tasks.exercises.form', compact(
+            'task', 'exercise', 'step', 'stepTitle', 'nextNumber'
         ));
     }
 

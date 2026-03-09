@@ -34,7 +34,6 @@
                             <div class="text-xs text-gray-600">Total Score</div>
                         </div>
                         <div>
-                            {{-- ✅ FIX: answered_steps = all submitted, not just correct --}}
                             <div class="text-2xl font-bold text-green-600">{{ $statistics['answered_steps'] }}/10</div>
                             <div class="text-xs text-gray-600">Steps Answered</div>
                         </div>
@@ -45,8 +44,6 @@
 
         <!-- Statistics Overview -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-
-            {{-- ✅ FIX: Answered = all submitted steps --}}
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center justify-between">
                     <div>
@@ -78,7 +75,6 @@
                 </div>
             </div>
 
-            {{-- ✅ FIX: Not Started = steps with no submission yet (was "In Progress") --}}
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center justify-between">
                     <div>
@@ -98,7 +94,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600">Total Attempts</p>
-                        <p class="text-2xl font-bold text-blue-600">{{ $statistics['total_attempts'] }}</p>
+                        <p class="text-2xl font-bold text="blue-600">{{ $statistics['total_attempts'] }}</p>
                     </div>
                     <div class="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
                         <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,7 +111,6 @@
                 <h3 class="text-sm font-semibold text-gray-700">Overall Progress</h3>
                 <span class="text-sm font-bold text-gray-900">{{ round($statistics['progress_percent']) }}%</span>
             </div>
-            {{-- Stacked bar: green=correct, blue=passed, red=wrong --}}
             <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden flex">
                 <div class="bg-green-500 h-full transition-all" style="width: {{ ($statistics['correct_steps'] / 10) * 100 }}%"></div>
                 <div class="bg-blue-500 h-full transition-all"  style="width: {{ ($statistics['passed_steps']  / 10) * 100 }}%"></div>
@@ -156,15 +151,19 @@
 
                                 $status = $details['status'] ?? 'not-started';
 
-                                // Circle + badge colors
+                                // ── Resolve exercise used by the student for this step ──
+                                $usedExercise = ($submission && $submission->exercise_id && isset($exercisesByStep[$submission->exercise_id]))
+                                    ? $exercisesByStep[$submission->exercise_id]
+                                    : null;
+
                                 if ($status === 'correct') {
-                                    $circleBg   = 'bg-green-100'; $circleText = 'text-green-600';
+                                    $circleBg = 'bg-green-100'; $circleText = 'text-green-600';
                                 } elseif ($status === 'passed') {
-                                    $circleBg   = 'bg-blue-100';  $circleText = 'text-blue-600';
+                                    $circleBg = 'bg-blue-100';  $circleText = 'text-blue-600';
                                 } elseif ($status === 'wrong') {
-                                    $circleBg   = 'bg-red-100';   $circleText = 'text-red-600';
+                                    $circleBg = 'bg-red-100';   $circleText = 'text-red-600';
                                 } else {
-                                    $circleBg   = 'bg-gray-200';  $circleText = 'text-gray-400';
+                                    $circleBg = 'bg-gray-200';  $circleText = 'text-gray-400';
                                 }
 
                                 $isSubmitted = $submission !== null;
@@ -178,9 +177,24 @@
                                             <span class="text-sm font-bold {{ $circleText }}">{{ $stepNumber }}</span>
                                         </div>
                                     </td>
+
+                                    {{-- Title + exercise badge ──────────────────────────── --}}
                                     <td class="px-6 py-4">
                                         <div class="text-sm font-medium text-gray-900">{{ $details['step_title'] }}</div>
+
+                                        @if($usedExercise)
+                                            <div class="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-[#D5006D] border border-pink-200">
+                                                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                </svg>
+                                                {{ $usedExercise->title }}
+                                            </div>
+                                        @elseif($submission && $submission->exercise_id)
+                                            <div class="mt-1 text-xs text-gray-400 italic">Exercise #{{ $submission->exercise_id }} (deleted)</div>
+                                        @endif
                                     </td>
+                                    {{-- ─────────────────────────────────────────────────── --}}
+
                                     <td class="px-6 py-4 whitespace-nowrap text-center">
                                         @if($status === 'correct')
                                             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
