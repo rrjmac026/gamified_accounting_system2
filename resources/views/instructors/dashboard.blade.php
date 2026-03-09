@@ -76,9 +76,9 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Recent Submissions -->
                 <div class="lg:col-span-2">
-                    <div class="bg-[#FFF0FA] rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-                        <div class="border-b border-[#FFC8FB] p-6">
-                            <h2 class="text-xl font-semibold text-[#FF92C2] flex items-center">
+                    <div class="bg-card rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 dark:shadow-md">
+                        <div class="border-b border-border-card p-6">
+                            <h2 class="text-xl font-semibold text-brand flex items-center">
                                 <i class="fas fa-check-circle mr-2"></i>
                                 Recently Completed Steps
                             </h2>
@@ -110,43 +110,43 @@
                                     $stepTitle = $stepTitles[$submission->step] ?? "Step {$submission->step}";
                                 @endphp
                                 
-                                <div class="mb-4 p-4 bg-white rounded-lg border border-[#FFC8FB]/30 hover:bg-[#FFF6FD] transition-colors duration-200">
+                                <div class="mb-4 p-4 bg-bg-card-inner rounded-lg border border-border-card hover:bg-bg-hover transition-colors duration-200 dark:border-border-card">
                                     <div class="flex justify-between items-start">
                                         <div class="flex-1">
                                             <!-- Student Name & Status Badge -->
                                             <div class="flex items-center gap-2 mb-1">
-                                                <h3 class="font-medium text-gray-900">{{ $submission->student->user->name }}</h3>
-                                                <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                                                <h3 class="font-medium text-text-primary">{{ $submission->student->user->name }}</h3>
+                                                <span class="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full font-medium">
                                                     <i class="fas fa-check-circle"></i> Completed
                                                 </span>
                                             </div>
                                             
                                             <!-- Task & Step Info -->
-                                            <p class="text-sm text-gray-600">{{ $submission->task->title }}</p>
-                                            <p class="text-xs text-[#FF92C2] font-medium mt-0.5">
+                                            <p class="text-sm text-text-secondary">{{ $submission->task->title }}</p>
+                                            <p class="text-xs text-brand font-medium mt-0.5">
                                                 <i class="fas fa-tasks mr-1"></i>{{ $stepTitle }}
                                             </p>
                                             
                                             <!-- Progress Bar -->
                                             <div class="mt-3">
-                                                <div class="flex justify-between text-xs text-gray-600 mb-1">
+                                                <div class="flex justify-between text-xs text-text-secondary mb-1">
                                                     <span class="font-medium">Overall Progress</span>
-                                                    <span class="font-semibold text-[#FF92C2]">{{ $completedSteps }}/10 steps</span>
+                                                    <span class="font-semibold text-brand">{{ $completedSteps }}/10 steps</span>
                                                 </div>
-                                                <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                                                    <div class="bg-gradient-to-r from-[#FF92C2] to-[#FFC8FB] h-2.5 rounded-full transition-all duration-300" 
+                                                <div class="w-full bg-progress-track rounded-full h-2.5 overflow-hidden">
+                                                    <div class="bg-gradient-to-r from-brand to-brand-light h-2.5 rounded-full transition-all duration-300" 
                                                          style="width: {{ $progressPercent }}%"></div>
                                                 </div>
                                             </div>
                                             
                                             <!-- Completion Time & Score -->
                                             <div class="flex items-center gap-4 mt-2">
-                                                <p class="text-xs text-gray-500">
+                                                <p class="text-xs text-text-muted">
                                                     <i class="fas fa-clock mr-1"></i>
                                                     Completed {{ $submission->updated_at->diffForHumans() }}
                                                 </p>
                                                 @if($submission->score)
-                                                    <p class="text-xs text-green-600 font-medium">
+                                                    <p class="text-xs text-green-600 dark:text-green-400 font-medium">
                                                         <i class="fas fa-star mr-1"></i>
                                                         Score: {{ $submission->score }}
                                                     </p>
@@ -156,7 +156,7 @@
 
                                         <!-- View Details Button -->
                                         <a href="{{ route('instructors.performance-tasks.submissions.show-student', ['task' => $submission->task_id, 'student' => $submission->student->user_id]) }}" 
-                                           class="ml-4 px-3 py-1.5 bg-[#FF92C2] text-white text-sm rounded-lg hover:bg-[#ff6fb5] transition-colors duration-200 whitespace-nowrap flex items-center gap-1">
+                                           class="ml-4 px-3 py-1.5 bg-brand text-white text-sm rounded-lg hover:bg-brand/90 transition-colors duration-200 whitespace-nowrap flex items-center gap-1">
                                             <i class="fas fa-eye text-xs"></i>
                                             <span>View</span>
                                         </a>
@@ -164,18 +164,18 @@
                                 </div>
                             @empty
                                 <div class="text-center py-8">
-                                    <i class="fas fa-clipboard-check text-4xl text-gray-300 mb-3"></i>
-                                    <p class="text-gray-500 font-medium">No completed steps yet</p>
-                                    <p class="text-sm text-gray-400 mt-1">Completed student work will appear here</p>
+                                    <i class="fas fa-clipboard-check text-4xl text-text-muted mb-3"></i>
+                                    <p class="text-text-secondary font-medium">No completed steps yet</p>
+                                    <p class="text-sm text-text-muted mt-1">Completed student work will appear here</p>
                                 </div>
                             @endforelse
                         </div>
                     </div>
 
                     <!-- Performance Overview -->
-                    <div class="bg-[#FFF0FA] rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 mt-6">
-                        <div class="border-b border-[#FFC8FB] p-6">
-                            <h2 class="text-xl font-semibold text-[#FF92C2] flex items-center">
+                    <div class="bg-card rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 mt-6 dark:shadow-md">
+                        <div class="border-b border-border-card p-6">
+                            <h2 class="text-xl font-semibold text-brand flex items-center">
                                 <i class="fas fa-chart-line mr-2"></i>
                                 Section Performance
                             </h2>
@@ -185,21 +185,21 @@
                                 <div class="mb-6 last:mb-0">
                                     <div class="flex justify-between items-center mb-2">
                                         <div>
-                                            <span class="text-gray-700 font-medium">{{ $data['section_name'] }}</span>
-                                            <span class="text-xs text-gray-500 ml-2">
+                                            <span class="text-text-primary font-medium">{{ $data['section_name'] }}</span>
+                                            <span class="text-xs text-text-muted ml-2">
                                                 {{ $data['active_students'] }}/{{ $data['total_students'] }} active
                                             </span>
                                         </div>
                                         <div class="text-right">
-                                            <span class="text-[#FF92C2] font-bold text-lg">{{ number_format($data['avg_score'], 1) }}%</span>
-                                            <span class="text-xs text-gray-500 block">Avg Score</span>
+                                            <span class="text-brand font-bold text-lg">{{ number_format($data['avg_score'], 1) }}%</span>
+                                            <span class="text-xs text-text-muted block">Avg Score</span>
                                         </div>
                                     </div>
                                     
                                     <!-- Progress Bar -->
                                     <div class="relative">
-                                        <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                                            <div class="bg-gradient-to-r from-[#FF92C2] to-[#FFC8FB] h-3 rounded-full transition-all duration-500 relative"
+                                        <div class="w-full bg-progress-track rounded-full h-3 overflow-hidden">
+                                            <div class="bg-gradient-to-r from-brand to-brand-light h-3 rounded-full transition-all duration-500 relative"
                                                  style="width: {{ $data['submission_rate'] }}%">
                                                 @if($data['submission_rate'] > 15)
                                                     <span class="absolute inset-0 flex items-center justify-center text-xs text-white font-medium">
@@ -209,31 +209,31 @@
                                             </div>
                                         </div>
                                         @if($data['submission_rate'] <= 15)
-                                            <span class="text-xs text-gray-600 mt-1 inline-block">
+                                            <span class="text-xs text-text-secondary mt-1 inline-block">
                                                 {{ number_format($data['submission_rate'], 1) }}% completion rate
                                             </span>
                                         @endif
                                     </div>
                                     
-                                    <div class="mt-1 text-xs text-gray-500 flex items-center justify-between">
+                                    <div class="mt-1 text-xs text-text-muted flex items-center justify-between">
                                         <span>
                                             <i class="fas fa-tasks mr-1"></i>
                                             Task Completion Rate
                                         </span>
                                         @if($data['submission_rate'] >= 80)
-                                            <span class="text-green-600 font-medium">
+                                            <span class="text-green-600 dark:text-green-400 font-medium">
                                                 <i class="fas fa-check-circle"></i> Excellent
                                             </span>
                                         @elseif($data['submission_rate'] >= 60)
-                                            <span class="text-blue-600 font-medium">
+                                            <span class="text-blue-600 dark:text-blue-400 font-medium">
                                                 <i class="fas fa-thumbs-up"></i> Good
                                             </span>
                                         @elseif($data['submission_rate'] >= 40)
-                                            <span class="text-yellow-600 font-medium">
+                                            <span class="text-yellow-600 dark:text-yellow-400 font-medium">
                                                 <i class="fas fa-exclamation-circle"></i> Fair
                                             </span>
                                         @else
-                                            <span class="text-red-600 font-medium">
+                                            <span class="text-red-600 dark:text-red-400 font-medium">
                                                 <i class="fas fa-arrow-up"></i> Needs Attention
                                             </span>
                                         @endif
@@ -241,9 +241,9 @@
                                 </div>
                             @empty
                                 <div class="text-center py-8">
-                                    <i class="fas fa-chart-bar text-4xl text-gray-300 mb-3"></i>
-                                    <p class="text-gray-500">No performance data available</p>
-                                    <p class="text-sm text-gray-400 mt-1">Data will appear once students start submitting</p>
+                                    <i class="fas fa-chart-bar text-4xl text-text-muted mb-3"></i>
+                                    <p class="text-text-secondary">No performance data available</p>
+                                    <p class="text-sm text-text-muted mt-1">Data will appear once students start submitting</p>
                                 </div>
                             @endforelse
                         </div>
@@ -253,26 +253,26 @@
                 <!-- Sidebar -->
                 <div class="space-y-6">
                     <!-- Quick Actions -->
-                    <div class="bg-[#FFF0FA] rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-                        <div class="border-b border-[#FFC8FB] p-6">
-                            <h2 class="text-xl font-semibold text-[#FF92C2] flex items-center">
+                    <div class="bg-card rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 dark:shadow-md">
+                        <div class="border-b border-border-card p-6">
+                            <h2 class="text-xl font-semibold text-brand flex items-center">
                                 <i class="fas fa-bolt mr-2"></i>
                                 Quick Actions
                             </h2>
                         </div>
                         <div class="p-6 space-y-3">
                             <a href="{{ route('instructors.performance-tasks.create') }}" 
-                               class="block w-full text-center bg-gradient-to-r from-[#FF92C2] to-[#FFC8FB] hover:from-[#ff6fb5] hover:to-[#ffb8f0] text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-md">
+                               class="block w-full text-center bg-gradient-to-r from-brand to-brand-light hover:from-brand hover:to-brand-light text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-md dark:shadow-sm">
                                 <i class="fas fa-plus-circle mr-2"></i>
                                 Create New Task
                             </a>
                             <a href="{{ route('instructors.sections.index') }}" 
-                               class="block w-full text-center bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-md">
+                               class="block w-full text-center bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-md dark:shadow-sm">
                                 <i class="fas fa-users mr-2"></i>
                                 View Sections
                             </a>
                             <a href="{{ route('instructors.performance-tasks.submissions.index') }}" 
-                               class="block w-full text-center bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-md">
+                               class="block w-full text-center bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-md dark:shadow-sm">
                                 <i class="fas fa-clipboard-check mr-2"></i>
                                 Review Submissions
                             </a>
@@ -281,19 +281,19 @@
 
                     <!-- Upcoming Tasks -->
                     @if($upcomingTasks->isNotEmpty())
-                    <div class="bg-[#FFF0FA] rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-                        <div class="border-b border-[#FFC8FB] p-6">
-                            <h2 class="text-xl font-semibold text-[#FF92C2] flex items-center">
+                    <div class="bg-card rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 dark:shadow-md">
+                        <div class="border-b border-border-card p-6">
+                            <h2 class="text-xl font-semibold text-brand flex items-center">
                                 <i class="fas fa-calendar-alt mr-2"></i>
                                 Upcoming Deadlines
                             </h2>
                         </div>
                         <div class="p-6 space-y-3">
                             @foreach($upcomingTasks as $task)
-                                <div class="p-3 bg-white rounded-lg border border-[#FFC8FB]/30 hover:shadow-sm transition-shadow">
-                                    <h4 class="font-medium text-sm text-gray-900">{{ $task->title }}</h4>
-                                    <p class="text-xs text-gray-600 mt-1">{{ $task->subject->subject_name }}</p>
-                                    <p class="text-xs text-[#FF92C2] mt-2">
+                                <div class="p-3 bg-bg-card-inner rounded-lg border border-border-card hover:shadow-sm transition-shadow dark:border-border-card">
+                                    <h4 class="font-medium text-sm text-text-primary">{{ $task->title }}</h4>
+                                    <p class="text-xs text-text-secondary mt-1">{{ $task->subject->subject_name }}</p>
+                                    <p class="text-xs text-brand mt-2">
                                         <i class="fas fa-clock mr-1"></i>
                                         Due {{ $task->due_date->diffForHumans() }}
                                     </p>

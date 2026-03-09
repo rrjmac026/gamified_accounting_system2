@@ -1,3 +1,47 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+:root {
+  /* Background tokens */
+  --color-bg-base:        #ffffff;
+  --color-bg-card:        #FFF0FA;
+  --color-bg-card-inner:  #FFF6FD;
+  --color-bg-hover:       rgba(255, 217, 255, 0.3);
+
+  /* Border tokens */
+  --color-border:         rgba(255, 200, 251, 0.3);
+  --color-border-card:    #FFC8FB;
+
+  /* Text tokens */
+  --color-text-primary:   #1f2937;   /* gray-800 */
+  --color-text-secondary: #4b5563;   /* gray-600 */
+  --color-text-muted:     #6b7280;   /* gray-500 */
+
+  /* Brand tokens */
+  --color-brand:          #FF92C2;
+  --color-brand-light:    #FFC8FB;
+
+  /* Progress track */
+  --color-progress-track: rgba(255, 200, 251, 0.3);
+}
+
+.dark {
+  --color-bg-base:        #0f0f14;
+  --color-bg-card:        #1a1625;
+  --color-bg-card-inner:  #221d30;
+  --color-bg-hover:       rgba(255, 146, 194, 0.08);
+
+  --color-border:         rgba(255, 200, 251, 0.1);
+  --color-border-card:    rgba(255, 200, 251, 0.15);
+
+  --color-text-primary:   #f3f4f6;
+  --color-text-secondary: #d1d5db;
+  --color-text-muted:     #9ca3af;
+
+  --color-brand:          #FF92C2;
+  --color-brand-light:    #FFC8FB;
+
+  --color-progress-track: rgba(255, 200, 251, 0.1);
+}
