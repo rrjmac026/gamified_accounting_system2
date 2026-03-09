@@ -66,7 +66,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <div class="text-sm font-medium text-amber-100">Average Score</div>
-                            <div class="text-3xl font-bold">{{ $stats['average_score'] }}%</div>
+                            <div class="text-3xl font-bold">{{ $stats['average_score'] }}</div>
                             <div class="text-sm text-amber-100 mt-1">Overall Performance</div>
                         </div>
                         <div class="bg-white/20 rounded-full p-3">

@@ -382,8 +382,8 @@ class StudentManagementController extends Controller
         $student->load([
             'user', 
             'course',
-            'sections',
-            'subjects.instructors.user',  // Add this - nested eager loading
+            'section',  // just load section, no nested subject
+            'subjects.instructors.user',
             'badges', 
             'tasks',
             'xpTransactions'

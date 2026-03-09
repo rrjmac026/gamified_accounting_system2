@@ -38,11 +38,14 @@ class PerformanceTaskAnswerSheetController extends Controller
             }
 
             $tasks = PerformanceTask::where('instructor_id', $instructor->id)
+                ->with(['section', 'subject'])
                 ->withCount('answerSheets')
                 ->latest()
                 ->get();
 
-            return view('instructors.performance-tasks.answer-sheets.index', compact('tasks'));
+            $tasksBySection = $tasks->groupBy(fn($task) => $task->section->name ?? 'No Section');
+
+            return view('instructors.performance-tasks.answer-sheets.index', compact('tasks', 'tasksBySection'));
 
         } catch (Exception $e) {
             Log::error('Error in PerformanceTaskAnswerSheetController@index: ' . $e->getMessage());

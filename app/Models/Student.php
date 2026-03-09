@@ -106,10 +106,10 @@ class Student extends Model
         return $this->belongsTo(Section::class);
     }
 
+    // In Student model — does this relationship exist?
     public function sections()
     {
-        return $this->belongsToMany(Section::class, 'section_student')
-                    ->withTimestamps();
+        return $this->belongsToMany(Section::class, 'section_student', 'student_id', 'section_id');
     }
 
     public function getLeaderboardRank()
