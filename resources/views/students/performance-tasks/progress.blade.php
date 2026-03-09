@@ -48,14 +48,15 @@
                 {{-- Progress Bar --}}
                 @php
                     $completedSteps = $completedSteps ?? [];
-                    $progress = count($completedSteps) / 10 * 100;
+                    $totalSteps = count($performanceTask->enabled_steps_list);
+                    $progress = $totalSteps > 0 ? count($completedSteps) / $totalSteps * 100 : 0;
                 @endphp
 
                 <div class="w-full bg-gray-200 rounded-full h-3 mb-8 overflow-hidden">
                     <div class="bg-pink-500 h-3 transition-all duration-500" style="width: {{ $progress }}%;"></div>
                 </div>
                 <p class="text-sm text-gray-600 mb-6">
-                    Progress: {{ count($completedSteps) }} / 10 steps completed ({{ round($progress) }}%)
+                    Progress: {{ count($completedSteps) }} / {{ $totalSteps }} steps completed ({{ round($progress) }}%)
                 </p>
 
                 {{-- Feedback Alert Banner --}}
@@ -81,7 +82,7 @@
 
                 {{-- Step List --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @for ($i = 1; $i <= 10; $i++)
+                    @foreach ($performanceTask->enabled_steps_list as $i)
                         @php
                             $isCompleted = in_array($i, $completedSteps);
                             $isNext = $i === (count($completedSteps) + 1);
@@ -96,7 +97,7 @@
                             $stepHasFeedback = $stepSubmission && $stepSubmission->instructor_feedback;
                             
                             // Calculate max score per step
-                            $maxScorePerStep = $performanceTask->max_score / 10;
+                            $maxScorePerStep = $performanceTask->max_score / count($performanceTask->enabled_steps_list);
                         @endphp
 
                         <div class="relative group border border-gray-200 hover:border-pink-300 rounded-xl p-5 bg-gradient-to-b from-white to-pink-50 shadow-sm hover:shadow-md transition-all">
@@ -217,7 +218,7 @@
                                 @endif
                             </div>
                         </div>
-                    @endfor
+                    @endforeach
                 </div>
 
                 {{-- Bottom Action Bar --}}

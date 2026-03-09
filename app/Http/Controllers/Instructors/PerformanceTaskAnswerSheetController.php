@@ -61,12 +61,13 @@ class PerformanceTaskAnswerSheetController extends Controller
                 throw new Exception('Unauthorized access to task');
             }
 
-            $answerSheets = PerformanceTaskAnswerSheet::where('performance_task_id', $task->id)
+            // ✅ Check exercises instead of answer sheets
+            $answerSheets = \App\Models\PerformanceTaskExercise::where('performance_task_id', $task->id)
+                ->where('order', 1)
                 ->orderBy('step')
                 ->get()
                 ->keyBy('step');
 
-            // ✅ Only show enabled steps — disabled steps are hidden from the list
             $stepTitles = collect($this->allStepTitles)
                 ->only($task->enabled_steps_list)
                 ->toArray();
@@ -91,7 +92,6 @@ class PerformanceTaskAnswerSheetController extends Controller
             abort(403, 'Unauthorized access');
         }
 
-        // ✅ Check both range AND enabled
         if ($step < 1 || $step > 10) {
             return redirect()->route('instructors.performance-tasks.answer-sheets.show', $task)
                 ->with('error', 'Invalid step number. Must be between 1 and 10.');
@@ -102,10 +102,16 @@ class PerformanceTaskAnswerSheetController extends Controller
                 ->with('error', "Step {$step} is not enabled for this task.");
         }
 
-        $sheet = PerformanceTaskAnswerSheet::firstOrNew([
+        // ✅ Load from PerformanceTaskExercise instead of PerformanceTaskAnswerSheet
+        $exercise = \App\Models\PerformanceTaskExercise::where([
             'performance_task_id' => $task->id,
             'step'                => $step,
-        ]);
+            'order'               => 1,
+        ])->first();
+
+        // ✅ Map to $sheet so all 10 step blades work without any blade changes
+        // The blades all reference $sheet->correct_data — we just point it at the exercise
+        $sheet = $exercise;
 
         return view("instructors.performance-tasks.answer-sheets.step-$step", compact('task', 'sheet'));
     }
@@ -127,7 +133,6 @@ class PerformanceTaskAnswerSheetController extends Controller
                 throw new Exception('Invalid step number. Must be between 1 and 10.');
             }
 
-            // ✅ Block saving to a disabled step
             if (!$task->isStepEnabled((int) $step)) {
                 throw new Exception("Step {$step} is not enabled for this task.");
             }
@@ -141,9 +146,18 @@ class PerformanceTaskAnswerSheetController extends Controller
                 throw new Exception('Invalid JSON data provided');
             }
 
-            PerformanceTaskAnswerSheet::updateOrCreate(
-                ['performance_task_id' => $task->id, 'step' => $step],
-                ['correct_data'        => $request->input('correct_data')]
+            // ✅ Save into PerformanceTaskExercise instead of PerformanceTaskAnswerSheet
+            // One exercise per step — updateOrCreate so re-saving just overwrites
+            \App\Models\PerformanceTaskExercise::updateOrCreate(
+                [
+                    'performance_task_id' => $task->id,
+                    'step'                => $step,
+                    'order'               => 1,
+                ],
+                [
+                    'title'        => $this->allStepTitles[$step],
+                    'correct_data' => $request->input('correct_data'),
+                ]
             );
 
             DB::commit();

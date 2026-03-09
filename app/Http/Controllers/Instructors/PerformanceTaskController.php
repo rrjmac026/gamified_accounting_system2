@@ -111,7 +111,7 @@ class PerformanceTaskController extends Controller
             ]);
         }
 
-        return redirect()->route('instructors.performance-tasks.exercises.show', $task)
+        return redirect()->route('instructors.performance-tasks.answer-sheets.index', $task)
             ->with('success', 'Performance task created! Now add exercises to your steps.');
     }
 

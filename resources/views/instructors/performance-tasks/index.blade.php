@@ -119,7 +119,7 @@
                                                 </a>
 
                                                 {{-- Exercises --}}
-                                                <a href="{{ route('instructors.performance-tasks.exercises.show', $task->id) }}"
+                                                <a href="{{ route('instructors.performance-tasks.answer-sheets.index', $task->id) }}"
                                                 class="inline-flex items-center justify-center w-9 h-9 text-purple-500 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors" title="Exercises">
                                                     <i class="fas fa-tasks text-sm"></i>
                                                 </a>

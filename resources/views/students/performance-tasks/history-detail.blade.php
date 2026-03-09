@@ -121,8 +121,8 @@
 
             <div class="p-4 sm:p-6">
                 <div class="border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50">
-                    <div class="overflow-x-auto overflow-y-auto" style="max-height: 65vh; min-height: 300px;">
-                        <div id="history-spreadsheet" class="bg-white min-w-full"></div>
+                    <div class="overflow-x-auto overflow-y-auto" style="max-height: 65vh; min-height: 300px; width: 100%;">
+                        <div id="history-spreadsheet" class="bg-white"></div>
                     </div>
                 </div>
                 @if(!$history->submission_data)
@@ -152,158 +152,140 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/handsontable@14.3.0/dist/handsontable.full.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const container   = document.getElementById('history-spreadsheet');
-    const historyData = @json($history->submission_data);
-    const correctRaw  = @json($answerSheet->correct_data ?? null);
-    const step        = {{ (int) $step }};
+    document.addEventListener('DOMContentLoaded', function () {
+        const container   = document.getElementById('history-spreadsheet');
+        const historyData = @json($history->submission_data);
+        const correctRaw  = @json($exercise->correct_data ?? $answerSheet->correct_data ?? null);
+        const step        = {{ (int) $step }};
 
-    if (!historyData) {
-        container.innerHTML = '<div class="p-8 text-center text-gray-400">No data saved for this attempt.</div>';
-        return;
-    }
-
-    // Parse submission data (handles double-encoding + {data,metadata} wrapper)
-    let displayData, metadata = null;
-    try {
-        let parsed = historyData;
-        while (typeof parsed === 'string') { parsed = JSON.parse(parsed); }
-        if (parsed && !Array.isArray(parsed) && parsed.data) {
-            displayData = parsed.data;
-            metadata    = parsed.metadata || null;
-        } else {
-            displayData = parsed;
+        if (!historyData) {
+            container.innerHTML = '<div class="p-8 text-center text-gray-400">No data saved for this attempt.</div>';
+            return;
         }
-    } catch (e) {
-        container.innerHTML = '<div class="p-8 text-center text-gray-400">Could not parse submission data.</div>';
-        return;
-    }
 
-    if (!Array.isArray(displayData)) {
-        container.innerHTML = '<div class="p-8 text-center text-gray-400">Invalid data format.</div>';
-        return;
-    }
-
-    // Parse correct data
-    let correctData = null;
-    if (correctRaw) {
-        try {
-            let pc = correctRaw;
-            while (typeof pc === 'string') { pc = JSON.parse(pc); }
-            correctData = (pc && pc.data) ? pc.data : pc;
-        } catch (e) { /* ignore */ }
-    }
-
-    // Normalise helper — mirrors PHP normalizeValue()
-    const normalizeVal = (val) => {
-        if (val === null || val === undefined || val === '') return '';
-        const s = String(val).trim().replace(/[₱,\s]/g, '').toLowerCase();
-        const n = parseFloat(s);
-        return isNaN(n) ? s : n.toFixed(2);
-    };
-
-    // Build per-cell correct/wrong lookup
-    const cellStatus = [];
-    if (correctData) {
-        displayData.forEach((row, rIdx) => {
-            cellStatus[rIdx] = [];
-            row.forEach((cell, cIdx) => {
-                const hasValue = cell !== null && cell !== undefined && String(cell).trim() !== '';
-                if (!hasValue) { cellStatus[rIdx][cIdx] = null; return; }
-                const correctVal = correctData[rIdx]?.[cIdx];
-                cellStatus[rIdx][cIdx] = normalizeVal(cell) === normalizeVal(correctVal) ? 'correct' : 'wrong';
-            });
-        });
-    }
-
-    // Peso renderer
-    function pesoRenderer(instance, td, row, col, prop, value, cellProperties) {
-        Handsontable.renderers.NumericRenderer.apply(this, arguments);
-        if (value !== null && value !== undefined && value !== '') {
-            const num = typeof value === 'number' ? value : parseFloat(String(value).replace(/[,₱\s]/g, ''));
-            if (!isNaN(num)) {
-                td.innerHTML = '&#8369;' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        function parseSpreadsheetData(raw) {
+            try {
+                let parsed = raw;
+                while (typeof parsed === 'string') { parsed = JSON.parse(parsed); }
+                if (parsed && !Array.isArray(parsed) && parsed.data) {
+                    return { data: parsed.data, metadata: parsed.metadata || null };
+                }
+                return { data: Array.isArray(parsed) ? parsed : null, metadata: null };
+            } catch (e) {
+                return { data: null, metadata: null };
             }
         }
-        return td;
-    }
 
-    // cells() callback
-    function cellsCallback(row, col) {
-        const props = {};
+        const { data: displayData, metadata } = parseSpreadsheetData(historyData);
+        if (!displayData) {
+            container.innerHTML = '<div class="p-8 text-center text-gray-400">Could not parse submission data.</div>';
+            return;
+        }
 
-        // Step 4 Trial Balance header rows (0-3)
-        if (step === 4) {
-            if (row <= 2) {
-                if (col === 0 || col === 2) {
-                    props.renderer = function(inst, td) {
-                        td.innerHTML = '';
-                        td.style.background = 'white';
-                        td.style.border = 'none';
+        const { data: correctData } = correctRaw ? parseSpreadsheetData(correctRaw) : { data: null };
+
+        // Normalize — mirrors PHP normalizeValue()
+        const normalizeVal = (val) => {
+            if (val === null || val === undefined || val === '') return '';
+            const s = String(val).trim().replace(/[₱,\s]/g, '').toLowerCase();
+            const n = parseFloat(s);
+            return isNaN(n) ? s : n.toFixed(2);
+        };
+
+        // Build per-cell correct/wrong lookup
+        const cellStatus = [];
+        if (correctData) {
+            displayData.forEach((row, rIdx) => {
+                cellStatus[rIdx] = [];
+                (Array.isArray(row) ? row : []).forEach((cell, cIdx) => {
+                    const hasValue = cell !== null && cell !== undefined && String(cell).trim() !== '';
+                    if (!hasValue) { cellStatus[rIdx][cIdx] = null; return; }
+                    const correctVal = correctData[rIdx]?.[cIdx];
+                    cellStatus[rIdx][cIdx] = normalizeVal(cell) === normalizeVal(correctVal) ? 'correct' : 'wrong';
+                });
+            });
+        }
+
+        function pesoRenderer(instance, td, row, col, prop, value) {
+            Handsontable.renderers.NumericRenderer.apply(this, arguments);
+            if (value !== null && value !== undefined && value !== '') {
+                const num = typeof value === 'number' ? value : parseFloat(String(value).replace(/[,₱\s]/g, ''));
+                if (!isNaN(num)) {
+                    td.innerHTML = '&#8369;' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+            }
+            return td;
+        }
+
+        function cellsCallback(row, col) {
+            const props = {};
+
+            if (step === 4) {
+                if (row <= 2) {
+                    if (col !== 1) {
+                        props.renderer = function(inst, td) { td.innerHTML = ''; td.style.background = 'white'; td.style.border = 'none'; };
+                        return props;
+                    }
+                    props.renderer = function(inst, td, r, c, p, value) {
+                        Handsontable.renderers.TextRenderer.apply(this, arguments);
+                        td.innerHTML = '<strong>' + (value || '') + '</strong>';
+                        td.style.textAlign = 'center';
+                        if (row === 0) td.style.fontSize = '16px';
                     };
                     return props;
                 }
-                props.renderer = function(inst, td, r, c, p, value) {
-                    Handsontable.renderers.TextRenderer.apply(this, arguments);
-                    td.innerHTML = '<strong>' + (value || '') + '</strong>';
-                    td.style.textAlign = 'center';
-                    if (row === 0) td.style.fontSize = '16px';
-                };
-                return props;
+                if (row === 3) {
+                    props.renderer = function(inst, td, r, c, p, value) {
+                        Handsontable.renderers.TextRenderer.apply(this, arguments);
+                        td.innerHTML = '<strong>' + (value || '') + '</strong>';
+                        td.style.textAlign = 'center';
+                        td.style.backgroundColor = '#f3f4f6';
+                    };
+                    return props;
+                }
             }
-            if (row === 3) {
-                props.renderer = function(inst, td, r, c, p, value) {
+
+            props.renderer = function(inst, td, r, c, p, value, cellProps) {
+                if (step === 4 && c > 0) {
+                    pesoRenderer.apply(this, arguments);
+                } else {
                     Handsontable.renderers.TextRenderer.apply(this, arguments);
-                    td.innerHTML = '<strong>' + (value || '') + '</strong>';
-                    td.style.textAlign = 'center';
-                    td.style.backgroundColor = '#f3f4f6';
-                };
-                return props;
-            }
+                }
+                if (metadata && metadata[r]?.[c]?.bold) td.style.fontWeight = 'bold';
+
+                const status = cellStatus[r]?.[c];
+                if (status === 'correct') {
+                    td.style.backgroundColor = '#dcfce7';
+                    td.style.color = '#166534';
+                } else if (status === 'wrong') {
+                    td.style.backgroundColor = '#fee2e2';
+                    td.style.color = '#991b1b';
+                }
+            };
+
+            return props;
         }
 
-        // All other rows — with highlighting + bold metadata
-        props.renderer = function(inst, td, r, c, p, value, cellProps) {
-            if (step === 4 && c > 0) {
-                pesoRenderer.apply(this, arguments);
-            } else {
-                Handsontable.renderers.TextRenderer.apply(this, arguments);
-            }
+        // Calculate column count from data
+        const maxCols = Math.max(...displayData.map(r => Array.isArray(r) ? r.length : 0), 5);
 
-            // Bold from metadata
-            if (metadata && metadata[r] && metadata[r][c] && metadata[r][c].bold) {
-                td.style.fontWeight = 'bold';
-            }
-
-            // Correct / wrong highlight
-            const status = cellStatus[r]?.[c];
-            if (status === 'correct') {
-                td.style.backgroundColor = '#dcfce7';
-                td.style.color = '#166534';
-            } else if (status === 'wrong') {
-                td.style.backgroundColor = '#fee2e2';
-                td.style.color = '#991b1b';
-            }
-        };
-
-        return props;
-    }
-
-    // Init Handsontable
-    new Handsontable(container, {
-        data              : displayData,
-        readOnly          : true,
-        rowHeaders        : true,
-        colHeaders        : true,
-        height            : window.innerWidth < 640 ? 350 : 500,
-        stretchH          : 'all',
-        licenseKey        : 'non-commercial-and-evaluation',
-        cells             : cellsCallback,
-        columnSorting     : false,
-        manualColumnResize: true,
-        contextMenu       : false,
+        new Handsontable(container, {
+            data              : displayData,
+            readOnly          : true,
+            rowHeaders        : true,
+            colHeaders        : true,
+            width             : '100%',
+            height            : window.innerWidth < 640 ? 350 : 500,
+            stretchH          : 'none',       // ✅ don't stretch — let columns be natural width
+            colWidths         : 120,          // ✅ fixed width per column so they don't collapse
+            licenseKey        : 'non-commercial-and-evaluation',
+            cells             : cellsCallback,
+            columnSorting     : false,
+            manualColumnResize: true,
+            contextMenu       : false,
+            renderAllRows     : false,
+        });
     });
-});
 </script>
 @endpush
 

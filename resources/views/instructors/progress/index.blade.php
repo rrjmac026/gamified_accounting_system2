@@ -120,7 +120,7 @@
                                         <div class="flex items-center text-sm">
                                             <div class="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
                                             <span class="font-medium text-gray-600 min-w-0 flex-shrink-0">Course:</span>
-                                            <span class="ml-2 text-gray-900 truncate">{{ $student->course->name ?? 'N/A' }}</span>
+                                            <span class="ml-2 text-gray-900 truncate">{{ $student->course->course_name ?? 'N/A' }}</span>
                                         </div>
                                         <div class="flex items-center text-sm">
                                             <div class="w-2 h-2 bg-green-500 rounded-full mr-3"></div>

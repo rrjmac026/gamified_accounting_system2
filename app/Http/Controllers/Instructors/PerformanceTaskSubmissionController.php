@@ -7,7 +7,6 @@ use App\Models\PerformanceTask;
 use App\Models\PerformanceTaskSubmission;
 use App\Models\User;
 use App\Models\SystemNotification;
-use App\Models\PerformanceTaskAnswerSheet;
 use App\Traits\Loggable;
 use Illuminate\Http\Request;
 use Exception;
@@ -363,13 +362,15 @@ class PerformanceTaskSubmissionController extends Controller
                 'step'       => $step,
             ])->firstOrFail();
 
-            $answerSheet = PerformanceTaskAnswerSheet::where([
+            // ✅ Load exercise instead of PerformanceTaskAnswerSheet
+            $exercise = \App\Models\PerformanceTaskExercise::where([
                 'performance_task_id' => $task->id,
                 'step'                => $step,
+                'order'               => 1,
             ])->first();
 
             return view('instructors.performance-tasks.submissions.feedback-form', compact(
-                'task', 'student', 'submission', 'answerSheet', 'step'
+                'task', 'student', 'submission', 'exercise', 'step'
             ));
 
         } catch (Exception $e) {

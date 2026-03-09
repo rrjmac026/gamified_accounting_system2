@@ -244,7 +244,6 @@ class StudentPerformanceTaskController extends Controller
         }
 
         try {
-            // ✅ Require exercise_id when exercises exist for this step
             $hasExercises = PerformanceTaskExercise::where([
                 'performance_task_id' => $id,
                 'step'                => $step,
@@ -252,9 +251,10 @@ class StudentPerformanceTaskController extends Controller
 
             $validated = $request->validate([
                 'submission_data' => 'required|string',
-                'exercise_id'     => $hasExercises ? 'required|integer' : 'nullable|integer',
+                'exercise_id'     => 'nullable|integer',
             ]);
 
+            // ── Fetch existing submission first ──────────────────────────────────
             $submission = PerformanceTaskSubmission::where([
                 'task_id'    => $task->id,
                 'student_id' => $user->student->id,
@@ -277,13 +277,26 @@ class StudentPerformanceTaskController extends Controller
                 ]);
             }
 
+            // ── Resolve exercise_id ──────────────────────────────────────────────
             $exerciseId = $validated['exercise_id'] ?? null;
+
+            if (!$exerciseId && $hasExercises) {
+                // Auto-assign: reuse the one already on the submission, or pick order=1
+                $exerciseId = $submission->exercise_id
+                    ?? PerformanceTaskExercise::where([
+                        'performance_task_id' => $id,
+                        'step'                => $step,
+                        'order'               => 1,
+                    ])->value('id');
+            }
+
             if ($exerciseId) {
                 $submission->exercise_id = $exerciseId;
             }
 
-            $studentData      = $validated['submission_data'];
-            $decodedData      = json_decode($studentData, true);
+            // ── Decode student data ──────────────────────────────────────────────
+            $studentData  = $validated['submission_data'];
+            $decodedData  = json_decode($studentData, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 return back()->with('error', 'Invalid submission data format.');
@@ -297,7 +310,7 @@ class StudentPerformanceTaskController extends Controller
             $submission->attempts        = $submission->attempts + 1;
             $currentAttempt              = $submission->attempts;
 
-            // ✅ Resolve answer key — exercise first, legacy sheet ONLY if no exercises exist
+            // ── Resolve answer key ───────────────────────────────────────────────
             $correctDataRaw = null;
 
             if ($exerciseId) {
@@ -310,28 +323,21 @@ class StudentPerformanceTaskController extends Controller
                 }
             }
 
-            if (!$correctDataRaw) {
-                if (!$hasExercises) {
-                    // ✅ Only fall back to legacy AnswerSheet if no exercises exist for this step
-                    $answerSheet = PerformanceTaskAnswerSheet::where([
-                        'performance_task_id' => $task->id,
-                        'step'                => $step,
-                    ])->first();
+            if (!$correctDataRaw && !$hasExercises) {
+                $answerSheet = PerformanceTaskAnswerSheet::where([
+                    'performance_task_id' => $task->id,
+                    'step'                => $step,
+                ])->first();
 
-                    if ($answerSheet && $answerSheet->correct_data) {
-                        $correctDataRaw = is_string($answerSheet->correct_data)
-                            ? json_decode($answerSheet->correct_data, true)
-                            : $answerSheet->correct_data;
-                        \Log::info("Step {$step} - Legacy fallback: no exercises exist for this step");
-                    }
-                } else {
-                    \Log::warning("Step {$step} - exercise_id missing despite exercises existing", [
-                        'student_id' => $user->student->id,
-                        'task_id'    => $task->id,
-                    ]);
+                if ($answerSheet && $answerSheet->correct_data) {
+                    $correctDataRaw = is_string($answerSheet->correct_data)
+                        ? json_decode($answerSheet->correct_data, true)
+                        : $answerSheet->correct_data;
+                    \Log::info("Step {$step} - Legacy fallback: no exercises exist for this step");
                 }
             }
 
+            // ── Grade ────────────────────────────────────────────────────────────
             $awardXp         = false;
             $errorCount      = 0;
             $totalCells      = 0;
@@ -453,6 +459,7 @@ class StudentPerformanceTaskController extends Controller
 
             $this->logPerformance($user->student, $task, $step, $submission, $deadlineStatus['isLate'], $errorCount);
 
+            $totalEnabledSteps = count($task->enabled_steps_list);
             $remainingAttempts = $task->max_attempts - $currentAttempt;
             $message = "Step {$step} submitted! (Attempt {$currentAttempt}/{$task->max_attempts}) - Score: {$submission->score}/{$maxScorePerStep}";
 
@@ -463,8 +470,8 @@ class StudentPerformanceTaskController extends Controller
             if ($deadlineStatus['isLate'])                                            $message .= " ⚠️ Late submission";
 
             if ($awardXp && $submission->score > 0) {
-                $this->awardXpForStep($user->student, $task, $step, $deadlineStatus['isLate'], $submission->score);
-                $xpEarned = $this->calculateStepXp($step, $deadlineStatus['isLate'], $submission->score, $maxScorePerStep, $task->xp_reward ?? 100);
+                $this->awardXpForStep($user->student, $task, $step, $deadlineStatus['isLate'], $submission->score, $maxScorePerStep, $totalEnabledSteps);
+                $xpEarned = $this->calculateStepXp($step, $deadlineStatus['isLate'], $submission->score, $maxScorePerStep, $task->xp_reward ?? 100, $totalEnabledSteps);
                 $message .= " 🎉 You earned {$xpEarned} XP!";
             }
 
@@ -901,25 +908,40 @@ class StudentPerformanceTaskController extends Controller
         }
     }
 
-    private function awardXpForStep($student, $task, $step, $isLate = false, $score = 0)
+    private function awardXpForStep($student, $task, $step, $isLate = false, $score = 0, $maxScorePerStep = null, $totalEnabledSteps = null)
     {
-        $xpAmount = $this->calculateStepXp($step, $isLate, $score, $task->max_score, $task->xp_reward ?? 100);
+        $maxScorePerStep   = $maxScorePerStep   ?? ($task->max_score / count($task->enabled_steps_list));
+        $totalEnabledSteps = $totalEnabledSteps ?? count($task->enabled_steps_list);
+
+        // ✅ Guard: never award XP for the same task+step twice
+        $alreadyAwarded = $student->xpTransactions()
+            ->where('source', 'performance_task')
+            ->where('source_id', $task->id)
+            ->where('description', 'like', "Step {$step}:%")
+            ->exists();
+
+        if ($alreadyAwarded) {
+            \Log::info("XP already awarded for Step {$step}, task {$task->id}, student {$student->id} — skipping");
+            return;
+        }
+
+        $xpAmount = $this->calculateStepXp($step, $isLate, $score, $maxScorePerStep, $task->xp_reward ?? 100, $totalEnabledSteps);
         if ($xpAmount > 0) {
             $student->xpTransactions()->create([
                 'amount'       => $xpAmount,
                 'type'         => 'earned',
                 'source'       => 'performance_task',
                 'source_id'    => $task->id,
-                'description'  => "Step {$step}: {$score}/{$task->max_score} points - {$task->title}",
+                'description'  => "Step {$step}: {$score}/{$maxScorePerStep} points - {$task->title}",
                 'processed_at' => now(),
             ]);
         }
     }
 
-    private function calculateStepXp($step, $isLate, $score, $maxScore, $taskXpReward = 100)
+    private function calculateStepXp($step, $isLate, $score, $maxScorePerStep, $taskXpReward = 100, $totalEnabledSteps = 10)
     {
-        $xpPerStep  = ($taskXpReward * 0.9) / 10;
-        $percentage = $maxScore > 0 ? ($score / $maxScore) : 0;
+        $xpPerStep  = ($taskXpReward * 0.9) / max($totalEnabledSteps, 1);
+        $percentage = $maxScorePerStep > 0 ? ($score / $maxScorePerStep) : 0;
         $xp         = round($xpPerStep * $percentage, 2);
         if ($isLate) $xp = round($xp * 0.5, 2);
         return max(0, $xp);
@@ -927,6 +949,18 @@ class StudentPerformanceTaskController extends Controller
 
     private function awardCompletionBonus($student, $task)
     {
+        // ✅ Guard: never award completion bonus twice
+        $alreadyAwarded = $student->xpTransactions()
+            ->where('source', 'performance_task')
+            ->where('source_id', $task->id)
+            ->where('description', 'like', 'Completion Bonus:%')
+            ->exists();
+
+        if ($alreadyAwarded) {
+            \Log::info("Completion bonus already awarded for task {$task->id}, student {$student->id} — skipping");
+            return;
+        }
+
         $bonusXp = round(($task->xp_reward ?? 100) * 0.1, 2);
         if ($bonusXp > 0) {
             $student->xpTransactions()->create([

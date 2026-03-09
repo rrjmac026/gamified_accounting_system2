@@ -187,56 +187,79 @@
     </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const isMobile = window.innerWidth < 640;
-    const colW     = isMobile ? 80 : 110;
+    document.addEventListener('DOMContentLoaded', function () {
+        const isMobile = window.innerWidth < 640;
+        const colW     = isMobile ? 80 : 110;
 
-    function buildColumns(data) {
-        const maxCols = Math.max(...(data.map ? data.map(r => Array.isArray(r) ? r.length : 0) : [10]), 10);
-        return Array(maxCols).fill(null).map((_, i) => ({
-            type    : 'text',
-            width   : colW,
-            align   : 'center',
-            title   : String.fromCharCode(65 + i),
-            readOnly: true,
-        }));
-    }
+        function parseData(raw) {
+            if (!raw) return null;
+            try {
+                // Handle double-encoding: if it's a string, parse it
+                let parsed = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+                // Handle {data, metadata} wrapper
+                if (parsed && typeof parsed === 'object' && parsed.data) {
+                    parsed = parsed.data;
+                }
+                return Array.isArray(parsed) ? parsed : null;
+            } catch (e) {
+                console.error('parseData error:', e, raw);
+                return null;
+            }
+        }
 
-    function makeSheet(containerId, data) {
-        const container = document.getElementById(containerId);
-        if (!container || !data || !data.length) return;
+        function buildColumns(data) {
+            const maxCols = Math.max(...data.map(r => Array.isArray(r) ? r.length : 0), 10);
+            return Array(maxCols).fill(null).map((_, i) => ({
+                type    : 'text',
+                width   : colW,
+                align   : 'center',
+                title   : String.fromCharCode(65 + i),
+                readOnly: true,
+            }));
+        }
 
-        jspreadsheet(container, {
-            data            : data,
-            columns         : buildColumns(data),
-            tableOverflow   : true,
-            tableHeight     : '400px',
-            tableWidth      : '100%',
-            columnSorting   : false,
-            columnDrag      : false,
-            rowDrag         : false,
-            allowInsertRow  : false,
-            allowDeleteRow  : false,
-            allowInsertColumn: false,
-            allowDeleteColumn: false,
-            columnResize    : true,
-            contextMenu     : false,
-            editable        : false,
-        });
-    }
+        function makeSheet(containerId, data) {
+            const container = document.getElementById(containerId);
+            if (!container || !data || !data.length) {
+                if (container) container.innerHTML = '<p class="p-4 text-sm text-gray-400 italic">No data to display.</p>';
+                return;
+            }
 
-    // Student sheet
-    @if($submission && $submission->submission_data)
-        const studentData = @json($submission->submission_data);
-        makeSheet('student-sheet', Array.isArray(studentData) ? studentData : (studentData.data ?? []));
-    @endif
+            jspreadsheet(container, {
+                data             : data,
+                columns          : buildColumns(data),
+                tableOverflow    : true,
+                tableHeight      : '400px',
+                tableWidth       : '100%',
+                columnSorting    : false,
+                columnDrag       : false,
+                rowDrag          : false,
+                allowInsertRow   : false,
+                allowDeleteRow   : false,
+                allowInsertColumn: false,
+                allowDeleteColumn: false,
+                columnResize     : true,
+                contextMenu      : false,
+                editable         : false,
+            });
+        }
 
-    // Correct answer sheet
-    @if($hasAnswerKey)
-        const correctData = @json($correctData ?? []);
-        makeSheet('correct-sheet', Array.isArray(correctData) ? correctData : (correctData.data ?? []));
-    @endif
-});
+        // ── Student sheet ──────────────────────────────────────────────────────
+        @if($submission && $submission->submission_data)
+            const studentRaw  = @json($submission->submission_data);
+            const studentData = parseData(studentRaw);
+            console.log('Student data:', studentData);
+            makeSheet('student-sheet', studentData);
+        @endif
+
+        // ── Correct answer sheet ───────────────────────────────────────────────
+        @if($hasAnswerKey)
+            const correctRaw  = @json($correctData ?? []);
+            const correctData = parseData(correctRaw);
+            console.log('Correct data:', correctData);
+            makeSheet('correct-sheet', correctData);
+        @endif
+    });
 </script>
 
 <style>
