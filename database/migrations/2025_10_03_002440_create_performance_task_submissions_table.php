@@ -11,26 +11,22 @@ return new class extends Migration
         Schema::create('performance_task_submissions', function (Blueprint $table) {
             $table->id();
 
-            // 🔹 Relationships
             $table->foreignId('task_id')->constrained('performance_tasks')->onDelete('cascade');
             $table->foreignId('student_id')->constrained('students')->onDelete('cascade');
 
-            // 🔹 Submission details
-            $table->integer('step')->default(1); // optional: default to first step
+            $table->integer('step')->default(1);
+            $table->unsignedBigInteger('exercise_id')->nullable(); // FK added separately below
             $table->json('submission_data')->nullable();
 
-            // 🔹 Evaluation data
-            $table->string('status')->default('in-progress'); // e.g. in-progress, submitted, graded
+            $table->string('status')->default('in-progress');
             $table->integer('errors_count')->default(0);
-            $table->integer('score')->default(0);
+            $table->decimal('score', 8, 2)->default(0); // fixed: was integer
             $table->text('remarks')->nullable();
 
-            // 🔹 Attempt tracking
             $table->integer('attempts')->default(0);
 
             $table->timestamps();
 
-            // 🔹 Prevent duplicate submissions for the same step per student per task
             $table->unique(['task_id', 'student_id', 'step']);
         });
     }

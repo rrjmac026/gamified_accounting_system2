@@ -96,10 +96,8 @@ class PerformanceTaskSubmissionController extends Controller
                 throw new Exception('Unauthorized access to task');
             }
 
-            // Load section with its enrolled students
             $task->load(['section.students.user', 'subject']);
 
-            // Only include students enrolled in THIS task's section
             $sectionStudentIds = $task->section
                 ? $task->section->students->pluck('id')->toArray()
                 : [];
@@ -112,8 +110,8 @@ class PerformanceTaskSubmissionController extends Controller
                 ->get();
 
             $studentSubmissions = $submissions->groupBy('student_id');
+            $enabledCount       = count($task->enabled_steps_list); // ✅
 
-            // Stats for students who have submitted
             $studentStats = [];
             foreach ($studentSubmissions as $studentId => $studentSubs) {
                 $student       = $studentSubs->first()->student;
@@ -130,12 +128,11 @@ class PerformanceTaskSubmissionController extends Controller
                     'completed_steps'   => $studentSubs->whereIn('status', ['correct', 'passed'])->count(),
                     'total_score'       => $studentSubs->sum('score'),
                     'total_attempts'    => $studentSubs->sum('attempts'),
-                    'progress_percent'  => ($answeredSteps / 10) * 100,
+                    'progress_percent'  => ($answeredSteps / $enabledCount) * 100, // ✅ was / 10
                     'has_submitted'     => true,
                 ];
             }
 
-            // Add enrolled students who have NOT submitted yet
             if ($task->section) {
                 foreach ($task->section->students as $enrolledStudent) {
                     if (!isset($studentStats[$enrolledStudent->id])) {
@@ -157,33 +154,31 @@ class PerformanceTaskSubmissionController extends Controller
                 }
             }
 
-            // Sort: submitted students first, then by progress desc
             uasort($studentStats, fn($a, $b) =>
                 $b['has_submitted'] <=> $a['has_submitted']
                 ?: $b['answered_steps'] <=> $a['answered_steps']
             );
 
-            // Overall task stats
             $taskStats = [
-                'total_submissions'  => $submissions->count(),
-                'enrolled_students'  => $task->section ? $task->section->students->count() : 0,
-                'submitted_students' => $studentSubmissions->count(),
-                'unique_students'    => count($studentStats),
-                'answered_steps'     => $submissions->count(),
-                'correct_steps'      => $submissions->where('status', 'correct')->count(),
-                'passed_steps'       => $submissions->where('status', 'passed')->count(),
-                'wrong_steps'        => $submissions->where('status', 'wrong')->count(),
-                'completed_steps'    => $submissions->whereIn('status', ['correct', 'passed'])->count(),
-                'average_progress'   => count($studentStats) > 0
+                'total_submissions'    => $submissions->count(),
+                'enrolled_students'    => $task->section ? $task->section->students->count() : 0,
+                'submitted_students'   => $studentSubmissions->count(),
+                'unique_students'      => count($studentStats),
+                'answered_steps'       => $submissions->count(),
+                'correct_steps'        => $submissions->where('status', 'correct')->count(),
+                'passed_steps'         => $submissions->where('status', 'passed')->count(),
+                'wrong_steps'          => $submissions->where('status', 'wrong')->count(),
+                'completed_steps'      => $submissions->whereIn('status', ['correct', 'passed'])->count(),
+                'average_progress'     => count($studentStats) > 0
                     ? collect($studentStats)->avg('progress_percent')
                     : 0,
-                'section_name'       => $task->section->name ?? 'No Section',
+                'section_name'         => $task->section->name ?? 'No Section',
+                'enabled_steps'        => $enabledCount, // ✅ new — useful in blade
+                'total_possible_steps' => count($studentStats) * $enabledCount, // ✅ was * 10
             ];
 
             return view('instructors.performance-tasks.submissions.show', compact(
-                'task',
-                'studentStats',
-                'taskStats'
+                'task', 'studentStats', 'taskStats'
             ));
 
         } catch (Exception $e) {
@@ -307,8 +302,8 @@ class PerformanceTaskSubmissionController extends Controller
             $exercisesByStep = \App\Models\PerformanceTaskExercise::where('performance_task_id', $task->id)
                 ->get()->keyBy('id');
 
-            // Fill not-started steps
-            for ($step = 1; $step <= 10; $step++) {
+            // ✅ Only fill not-started slots for ENABLED steps (was looping 1–10)
+            foreach ($task->enabled_steps_list as $step) {
                 if (!isset($submissionDetails[$step])) {
                     $submissionDetails[$step] = [
                         'step_title'     => $stepTitles[$step] ?? "Step {$step}",
@@ -326,6 +321,7 @@ class PerformanceTaskSubmissionController extends Controller
             ksort($submissionDetails);
 
             $answeredSteps = $submissions->count();
+            $enabledCount  = count($task->enabled_steps_list); // ✅
 
             $statistics = [
                 'total_score'       => $submissions->sum('score'),
@@ -335,8 +331,8 @@ class PerformanceTaskSubmissionController extends Controller
                 'passed_steps'      => $submissions->where('status', 'passed')->count(),
                 'wrong_steps'       => $submissions->where('status', 'wrong')->count(),
                 'completed_steps'   => $submissions->whereIn('status', ['correct', 'passed'])->count(),
-                'in_progress_steps' => 10 - $answeredSteps,
-                'progress_percent'  => ($answeredSteps / 10) * 100,
+                'in_progress_steps' => $enabledCount - $answeredSteps,   // ✅ was 10 - $answeredSteps
+                'progress_percent'  => ($answeredSteps / $enabledCount) * 100, // ✅ was / 10
                 'section_name'      => $task->section->name ?? 'No Section',
             ];
 

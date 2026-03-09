@@ -30,6 +30,7 @@ return new class extends Migration
             $table->integer('max_attempts')->default(2);
             $table->integer('max_score')->default(100);
             $table->integer('deduction_per_error')->default(0);
+            $table->json('enabled_steps')->nullable();
 
             // 🔹 Deadlines
             $table->timestamp('due_date')->nullable();

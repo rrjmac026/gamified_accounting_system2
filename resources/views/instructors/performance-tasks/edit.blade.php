@@ -27,7 +27,6 @@
                     <div class="space-y-4">
                         <h3 class="text-lg font-semibold text-[#FF92C2] border-b border-[#FFC8FB] pb-2">Task Information</h3>
                         
-                        {{-- Title --}}
                         <div>
                             <label for="title" class="block text-sm font-semibold text-[#FF92C2] mb-1">
                                 Task Title <span class="text-red-500">*</span>
@@ -42,7 +41,6 @@
                             @enderror
                         </div>
 
-                        {{-- Description --}}
                         <div>
                             <label for="description" class="block text-sm font-semibold text-[#FF92C2] mb-1">Description</label>
                             <div id="editor" style="height: 200px; background: white;" 
@@ -60,7 +58,6 @@
                         <h3 class="text-lg font-semibold text-[#FF92C2] border-b border-[#FFC8FB] pb-2">Assignment Details</h3>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {{-- Subject --}}
                             <div>
                                 <label for="subject_id" class="block text-sm font-semibold text-[#FF92C2] mb-1">
                                     Subject <span class="text-red-500">*</span>
@@ -83,7 +80,6 @@
                                 @enderror
                             </div>
 
-                            {{-- Section --}}
                             <div>
                                 <label for="section_id" class="block text-sm font-semibold text-[#FF92C2] mb-1">
                                     Section <span class="text-red-500">*</span>
@@ -108,12 +104,136 @@
                         </div>
                     </div>
 
+                    {{-- ══════════════════════════════════════════════════════════ --}}
+                    {{-- ENABLED STEPS SECTION                                     --}}
+                    {{-- ══════════════════════════════════════════════════════════ --}}
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between border-b border-[#FFC8FB] pb-2">
+                            <div>
+                                <h3 class="text-lg font-semibold text-[#FF92C2]">Accounting Steps</h3>
+                                <p class="text-xs text-gray-500 mt-0.5">Select which steps students are required to complete. Only enabled steps will be visible to students.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="selectAllSteps"
+                                    class="px-3 py-1.5 text-xs font-semibold text-[#FF92C2] border border-[#FFC8FB] rounded-lg hover:bg-[#FFC8FB]/20 transition-colors">
+                                    Select All
+                                </button>
+                                <button type="button" id="clearAllSteps"
+                                    class="px-3 py-1.5 text-xs font-semibold text-gray-500 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
+                                    Clear All
+                                </button>
+                            </div>
+                        </div>
+
+                        @php
+                            $stepList = [
+                                1  => ['title' => 'Analyze Transactions'],
+                                2  => ['title' => 'Journalize Transactions'],
+                                3  => ['title' => 'Post to Ledger Accounts'],
+                                4  => ['title' => 'Prepare Trial Balance'],
+                                5  => ['title' => 'Journalize & Post Adjusting Entries'],
+                                6  => ['title' => 'Prepare Adjusted Trial Balance'],
+                                7  => ['title' => 'Prepare Financial Statements'],
+                                8  => ['title' => 'Journalize & Post Closing Entries'],
+                                9  => ['title' => 'Prepare Post-Closing Trial Balance'],
+                                10 => ['title' => 'Reverse (Optional Step)'],
+                            ];
+
+                            // Priority: validation flash → saved task value (null = all 10 for legacy)
+                            $savedSteps = old('enabled_steps', $task->enabled_steps ?? array_keys($stepList));
+                            $savedSteps = array_map('intval', (array) $savedSteps);
+
+                            // Warn if removing a step that already has exercises
+                            $stepsWithExercises = $task->exercises()
+                                ->select('step')
+                                ->distinct()
+                                ->pluck('step')
+                                ->toArray();
+                        @endphp
+
+                        @if(count($stepsWithExercises) > 0)
+                            <div class="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                                <i class="fas fa-exclamation-triangle text-amber-500 mt-0.5 flex-shrink-0"></i>
+                                <span>
+                                    Steps <strong>{{ implode(', ', $stepsWithExercises) }}</strong> already have exercises.
+                                    Disabling a step hides it from students but does <strong>not</strong> delete its exercises.
+                                </span>
+                            </div>
+                        @endif
+
+                        @error('enabled_steps')
+                            <p class="text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="stepsGrid">
+                            @foreach ($stepList as $num => $step)
+                                @php
+                                    $isChecked      = in_array($num, $savedSteps);
+                                    $hasExercises   = in_array($num, $stepsWithExercises);
+                                @endphp
+                                <label for="step_{{ $num }}"
+                                    class="step-card flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer select-none transition-all duration-200
+                                           {{ $isChecked
+                                               ? 'bg-[#FFF0FA] border-[#FF92C2] shadow-sm'
+                                               : 'bg-white border-gray-200 hover:border-[#FFC8FB] hover:bg-[#FFF8FD]' }}">
+
+                                    <input type="checkbox"
+                                           id="step_{{ $num }}"
+                                           name="enabled_steps[]"
+                                           value="{{ $num }}"
+                                           class="step-checkbox sr-only"
+                                           {{ $isChecked ? 'checked' : '' }}>
+
+                                    {{-- Custom checkbox visual --}}
+                                    <div class="step-check-visual flex-shrink-0 mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200
+                                                {{ $isChecked ? 'bg-[#FF92C2] border-[#FF92C2]' : 'border-gray-300 bg-white' }}">
+                                        <svg class="w-3 h-3 text-white {{ $isChecked ? '' : 'hidden' }}" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                    </div>
+
+                                    {{-- Step number badge --}}
+                                    <div class="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200
+                                                {{ $isChecked ? 'bg-[#FF92C2] text-white' : 'bg-gray-100 text-gray-500' }}">
+                                        {{ $num }}
+                                    </div>
+
+                                    {{-- Step info --}}
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-semibold {{ $isChecked ? 'text-[#D5006D]' : 'text-gray-600' }} transition-colors duration-200 leading-tight">
+                                            {{ $step['title'] }}
+                                        </p>
+                                        <div class="flex items-center gap-2 mt-0.5">
+                                            @if ($hasExercises)
+                                                <span class="inline-flex items-center gap-1 text-xs text-[#D5006D] font-medium">
+                                                    <i class="fas fa-tasks text-[10px]"></i> Has exercises
+                                                </span>
+                                            @endif
+                                            @if ($num === 10)
+                                                <span class="text-xs text-gray-400">Students may skip this step</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </label>
+                            @endforeach
+                        </div>
+
+                        {{-- Live count --}}
+                        <div class="flex items-center gap-2 text-sm text-gray-600 bg-white border border-[#FFC8FB] rounded-lg px-4 py-2.5">
+                            <i class="fas fa-info-circle text-[#FF92C2]"></i>
+                            <span>
+                                <span id="stepCountLabel" class="font-bold text-[#D5006D]">0</span>
+                                steps selected — students will only see and submit these steps.
+                            </span>
+                        </div>
+                    </div>
+                    {{-- ══════════════════════════════════════════════════════════ --}}
+
                     {{-- Scoring Configuration Section --}}
                     <div class="space-y-4">
                         <h3 class="text-lg font-semibold text-[#FF92C2] border-b border-[#FFC8FB] pb-2">Scoring Configuration</h3>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {{-- Max Score --}}
                             <div>
                                 <label for="max_score" class="block text-sm font-semibold text-[#FF92C2] mb-1">
                                     Maximum Score <span class="text-red-500">*</span>
@@ -124,13 +244,11 @@
                                             border border-[#FFC8FB] focus:border-pink-400 focus:ring focus:ring-pink-200
                                             text-gray-800 px-4 py-2 transition-all duration-200
                                             @error('max_score') border-red-500 @enderror" required>
-                                <p class="text-xs text-gray-500 mt-1">Perfect score for this task</p>
                                 @error('max_score')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
 
-                            {{-- Deduction Per Error --}}
                             <div>
                                 <label for="deduction_per_error" class="block text-sm font-semibold text-[#FF92C2] mb-1">
                                     Deduction Per Error <span class="text-red-500">*</span>
@@ -141,7 +259,6 @@
                                             border border-[#FFC8FB] focus:border-pink-400 focus:ring focus:ring-pink-200
                                             text-gray-800 px-4 py-2 transition-all duration-200
                                             @error('deduction_per_error') border-red-500 @enderror" required>
-                                <p class="text-xs text-gray-500 mt-1">Points deducted for each error</p>
                                 @error('deduction_per_error')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
@@ -154,7 +271,6 @@
                         <h3 class="text-lg font-semibold text-[#FF92C2] border-b border-[#FFC8FB] pb-2">Due Dates</h3>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {{-- Due Date --}}
                             <div>
                                 <label for="due_date" class="block text-sm font-semibold text-[#FF92C2] mb-1">
                                     Due Date <span class="text-red-500">*</span>
@@ -165,13 +281,11 @@
                                             border border-[#FFC8FB] focus:border-pink-400 focus:ring focus:ring-pink-200
                                             text-gray-800 px-4 py-2 transition-all duration-200
                                             @error('due_date') border-red-500 @enderror" required>
-                                <p class="text-xs text-gray-500 mt-1">Primary deadline for submission</p>
                                 @error('due_date')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
 
-                            {{-- Late Until --}}
                             <div>
                                 <label for="late_until" class="block text-sm font-semibold text-[#FF92C2] mb-1">
                                     Accept Late Until (Optional)
@@ -182,7 +296,6 @@
                                             border border-[#FFC8FB] focus:border-pink-400 focus:ring focus:ring-pink-200
                                             text-gray-800 px-4 py-2 transition-all duration-200
                                             @error('late_until') border-red-500 @enderror">
-                                <p class="text-xs text-gray-500 mt-1">Final deadline for late submissions (with penalty)</p>
                                 @error('late_until')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
@@ -195,7 +308,6 @@
                         <h3 class="text-lg font-semibold text-[#FF92C2] border-b border-[#FFC8FB] pb-2">Task Settings</h3>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {{-- XP Reward --}}
                             <div>
                                 <label for="xp_reward" class="block text-sm font-semibold text-[#FF92C2] mb-1">
                                     XP Reward <span class="text-red-500">*</span>
@@ -206,13 +318,11 @@
                                             border border-[#FFC8FB] focus:border-pink-400 focus:ring focus:ring-pink-200
                                             text-gray-800 px-4 py-2 transition-all duration-200
                                             @error('xp_reward') border-red-500 @enderror" required>
-                                <p class="text-xs text-gray-500 mt-1">Experience points awarded upon completion</p>
                                 @error('xp_reward')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
 
-                            {{-- Max Attempts --}}
                             <div>
                                 <label for="max_attempts" class="block text-sm font-semibold text-[#FF92C2] mb-1">
                                     Maximum Attempts <span class="text-red-500">*</span>
@@ -223,7 +333,6 @@
                                             border border-[#FFC8FB] focus:border-pink-400 focus:ring focus:ring-pink-200
                                             text-gray-800 px-4 py-2 transition-all duration-200
                                             @error('max_attempts') border-red-500 @enderror" required>
-                                <p class="text-xs text-gray-500 mt-1">Number of times students can attempt this task</p>
                                 @error('max_attempts')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
@@ -237,7 +346,7 @@
                             <i class="fas fa-info-circle text-[#FF92C2] mt-0.5 mr-3"></i>
                             <div class="text-sm text-gray-700">
                                 <p class="font-semibold mb-1 text-[#FF92C2]">About Performance Tasks</p>
-                                <p>Performance tasks are designed to assess students' practical application of knowledge. Students will receive notifications when the task is updated.</p>
+                                <p>Performance tasks are designed to assess students' practical application of knowledge. Students will receive notifications when the task is updated. Only the steps you enable above will be visible and submittable by students.</p>
                             </div>
                         </div>
                     </div>
@@ -296,6 +405,7 @@
 
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script>
+        // ── Quill editor ─────────────────────────────────────────────────────
         var quill = new Quill('#editor', {
             theme: 'snow',
             modules: {
@@ -310,27 +420,96 @@
                 ]
             }
         });
-        
-        // Load old content if validation fails
         var oldContent = `{!! old('description', $task->description) !!}`;
-        if(oldContent) {
-            quill.root.innerHTML = oldContent;
-        }
-        
-        // Sync Quill content to textarea on form submit
+        if (oldContent) quill.root.innerHTML = oldContent;
         document.getElementById('taskForm').onsubmit = function() {
             document.getElementById('description').value = quill.root.innerHTML;
         };
 
-        // Validate that late_until is after due_date
+        // ── Date validation ───────────────────────────────────────────────────
         document.getElementById('late_until').addEventListener('change', function() {
-            const dueDate = document.getElementById('due_date').value;
+            const dueDate  = document.getElementById('due_date').value;
             const lateUntil = this.value;
-            
             if (dueDate && lateUntil && new Date(lateUntil) <= new Date(dueDate)) {
                 alert('Late submission deadline must be after the due date.');
                 this.value = '';
             }
         });
+
+        // ── Step checkbox interactions ────────────────────────────────────────
+        (function () {
+            const countLabel   = document.getElementById('stepCountLabel');
+            const selectAllBtn = document.getElementById('selectAllSteps');
+            const clearAllBtn  = document.getElementById('clearAllSteps');
+
+            function updateCount() {
+                const checked = document.querySelectorAll('.step-checkbox:checked').length;
+                countLabel.textContent = checked;
+            }
+
+            function applyCardState(checkbox) {
+                const card     = checkbox.closest('label.step-card');
+                const visual   = card.querySelector('.step-check-visual');
+                const checkSvg = visual.querySelector('svg');
+                const badge    = card.querySelectorAll('div')[1];
+                const title    = card.querySelector('p');
+
+                if (checkbox.checked) {
+                    card.classList.replace('bg-white', 'bg-[#FFF0FA]');
+                    card.classList.replace('border-gray-200', 'border-[#FF92C2]');
+                    card.classList.add('shadow-sm');
+                    visual.classList.replace('border-gray-300', 'border-[#FF92C2]');
+                    visual.classList.replace('bg-white', 'bg-[#FF92C2]');
+                    checkSvg.classList.remove('hidden');
+                    badge.classList.replace('bg-gray-100', 'bg-[#FF92C2]');
+                    badge.classList.replace('text-gray-500', 'text-white');
+                    title.classList.replace('text-gray-600', 'text-[#D5006D]');
+                } else {
+                    card.classList.replace('bg-[#FFF0FA]', 'bg-white');
+                    card.classList.replace('border-[#FF92C2]', 'border-gray-200');
+                    card.classList.remove('shadow-sm');
+                    visual.classList.replace('border-[#FF92C2]', 'border-gray-300');
+                    visual.classList.replace('bg-[#FF92C2]', 'bg-white');
+                    checkSvg.classList.add('hidden');
+                    badge.classList.replace('bg-[#FF92C2]', 'bg-gray-100');
+                    badge.classList.replace('text-white', 'text-gray-500');
+                    title.classList.replace('text-[#D5006D]', 'text-gray-600');
+                }
+            }
+
+            document.querySelectorAll('.step-checkbox').forEach(function(cb) {
+                cb.addEventListener('change', function() {
+                    applyCardState(this);
+                    updateCount();
+                });
+            });
+
+            selectAllBtn.addEventListener('click', function() {
+                document.querySelectorAll('.step-checkbox').forEach(function(cb) {
+                    cb.checked = true;
+                    applyCardState(cb);
+                });
+                updateCount();
+            });
+
+            clearAllBtn.addEventListener('click', function() {
+                document.querySelectorAll('.step-checkbox').forEach(function(cb) {
+                    cb.checked = false;
+                    applyCardState(cb);
+                });
+                updateCount();
+            });
+
+            // Form submit guard
+            document.getElementById('taskForm').addEventListener('submit', function(e) {
+                const checked = document.querySelectorAll('.step-checkbox:checked').length;
+                if (checked === 0) {
+                    e.preventDefault();
+                    alert('Please select at least one step for students to complete.');
+                }
+            });
+
+            updateCount();
+        })();
     </script>
 </x-app-layout>

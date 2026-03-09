@@ -12,24 +12,38 @@ use Illuminate\Support\Facades\DB;
 
 class PerformanceTaskAnswerSheetController extends Controller
 {
+    private array $allStepTitles = [
+        1  => 'Analyze Transactions',
+        2  => 'Journalize Transactions',
+        3  => 'Post to Ledger Accounts',
+        4  => 'Prepare Trial Balance',
+        5  => 'Journalize & Post Adjusting Entries',
+        6  => 'Prepare Adjusted Trial Balance',
+        7  => 'Prepare Financial Statements',
+        8  => 'Journalize & Post Closing Entries',
+        9  => 'Prepare Post-Closing Trial Balance',
+        10 => 'Reverse (Optional Step)',
+    ];
+
     /**
-     * Show all performance tasks with answer sheet counts
+     * Show all performance tasks with answer sheet counts.
      */
     public function index()
     {
         try {
             $instructor = auth()->user()->instructor;
-            
+
             if (!$instructor) {
                 throw new Exception('Not authorized as an instructor');
             }
-            
+
             $tasks = PerformanceTask::where('instructor_id', $instructor->id)
                 ->withCount('answerSheets')
                 ->latest()
                 ->get();
 
             return view('instructors.performance-tasks.answer-sheets.index', compact('tasks'));
+
         } catch (Exception $e) {
             Log::error('Error in PerformanceTaskAnswerSheetController@index: ' . $e->getMessage());
             return back()->with('error', 'An error occurred while loading tasks. Please try again.');
@@ -37,7 +51,7 @@ class PerformanceTaskAnswerSheetController extends Controller
     }
 
     /**
-     * Show the 10 steps for a selected performance task
+     * Show only ENABLED steps for this task, with their answer sheet status.
      */
     public function show(PerformanceTask $task)
     {
@@ -52,21 +66,14 @@ class PerformanceTaskAnswerSheetController extends Controller
                 ->get()
                 ->keyBy('step');
 
-            // ✅ Add step titles
-            $stepTitles = [
-                1 => 'Analyze Transactions',
-                2 => 'Journalize Transactions',
-                3 => 'Post to Ledger Accounts',
-                4 => 'Prepare Trial Balance',
-                5 => 'Journalize & Post Adjusting Entries',
-                6 => 'Prepare Adjusted Trial Balance',
-                7 => 'Prepare Financial Statements',
-                8 => 'Journalize & Post Closing Entries',
-                9 => 'Prepare Post-Closing Trial Balance',
-                10 => 'Reverse (Optional Step)',
-            ];
+            // ✅ Only show enabled steps — disabled steps are hidden from the list
+            $stepTitles = collect($this->allStepTitles)
+                ->only($task->enabled_steps_list)
+                ->toArray();
 
-            return view('instructors.performance-tasks.answer-sheets.show', compact('task', 'answerSheets', 'stepTitles'));
+            return view('instructors.performance-tasks.answer-sheets.show', compact(
+                'task', 'answerSheets', 'stepTitles'
+            ));
 
         } catch (Exception $e) {
             Log::error('Error in PerformanceTaskAnswerSheetController@show: ' . $e->getMessage());
@@ -74,80 +81,81 @@ class PerformanceTaskAnswerSheetController extends Controller
         }
     }
 
-
     /**
-     * Edit or Create specific step answer sheet
+     * Edit or create a specific step's answer sheet — only if step is enabled.
      */
     public function edit(PerformanceTask $task, $step)
     {
-        // Verify ownership
         $instructor = auth()->user()->instructor;
         if ($task->instructor_id !== $instructor->id) {
             abort(403, 'Unauthorized access');
         }
 
-        // Validate step number
+        // ✅ Check both range AND enabled
         if ($step < 1 || $step > 10) {
             return redirect()->route('instructors.performance-tasks.answer-sheets.show', $task)
                 ->with('error', 'Invalid step number. Must be between 1 and 10.');
         }
 
+        if (!$task->isStepEnabled((int) $step)) {
+            return redirect()->route('instructors.performance-tasks.answer-sheets.show', $task)
+                ->with('error', "Step {$step} is not enabled for this task.");
+        }
+
         $sheet = PerformanceTaskAnswerSheet::firstOrNew([
             'performance_task_id' => $task->id,
-            'step' => $step,
+            'step'                => $step,
         ]);
 
         return view("instructors.performance-tasks.answer-sheets.step-$step", compact('task', 'sheet'));
     }
 
     /**
-     * Update or create answer sheet for a specific step
+     * Save the answer sheet for a specific step.
+     * After saving, redirects to the next ENABLED step (not just step+1).
      */
     public function update(Request $request, PerformanceTask $task, $step)
     {
         DB::beginTransaction();
         try {
-            // Verify ownership
             $instructor = auth()->user()->instructor;
             if ($task->instructor_id !== $instructor->id) {
                 throw new Exception('Unauthorized access to task');
             }
 
-            // Validate step number
             if (!in_array($step, range(1, 10))) {
                 throw new Exception('Invalid step number. Must be between 1 and 10.');
             }
 
-            // Validate the correct_data input
+            // ✅ Block saving to a disabled step
+            if (!$task->isStepEnabled((int) $step)) {
+                throw new Exception("Step {$step} is not enabled for this task.");
+            }
+
             $request->validate([
                 'correct_data' => ['required', 'string', 'json'],
             ]);
 
-            // Validate JSON structure based on step
             $data = json_decode($request->input('correct_data'), true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new Exception('Invalid JSON data provided');
             }
 
-            // Create or update the answer sheet
-            $answerSheet = PerformanceTaskAnswerSheet::updateOrCreate(
-                [
-                    'performance_task_id' => $task->id,
-                    'step' => $step
-                ],
-                [
-                    'correct_data' => $request->input('correct_data')
-                ]
+            PerformanceTaskAnswerSheet::updateOrCreate(
+                ['performance_task_id' => $task->id, 'step' => $step],
+                ['correct_data'        => $request->input('correct_data')]
             );
 
             DB::commit();
 
-            $nextStep = $step + 1;
-            
-            if ($nextStep > 10) {
+            // ✅ Find the next ENABLED step after the current one
+            $nextStep = collect($task->enabled_steps_list)
+                ->first(fn($s) => $s > $step);
+
+            if (!$nextStep) {
                 return redirect()
                     ->route('instructors.performance-tasks.answer-sheets.show', $task)
-                    ->with('success', "All answer sheets have been saved successfully!");
+                    ->with('success', 'All answer sheets have been saved successfully!');
             }
 
             return redirect()
@@ -157,7 +165,7 @@ class PerformanceTaskAnswerSheetController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error in PerformanceTaskAnswerSheetController@update: ' . $e->getMessage());
-            
+
             return back()
                 ->withInput()
                 ->with('error', 'Error saving answer sheet: ' . $this->getUserFriendlyError($e->getMessage()));
@@ -165,7 +173,7 @@ class PerformanceTaskAnswerSheetController extends Controller
     }
 
     /**
-     * Delete an answer sheet for a specific step
+     * Delete an answer sheet for a specific step.
      */
     public function destroy(PerformanceTask $task, $step)
     {
@@ -184,24 +192,22 @@ class PerformanceTaskAnswerSheetController extends Controller
             DB::commit();
 
             return back()->with('success', "Answer sheet for Step {$step} deleted successfully.");
+
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error in PerformanceTaskAnswerSheetController@destroy: ' . $e->getMessage());
-            
             return back()->with('error', 'Unable to delete answer sheet. Please try again.');
         }
     }
 
-    /**
-     * Convert technical error messages to user-friendly messages
-     */
-    private function getUserFriendlyError($message)
+    private function getUserFriendlyError($message): string
     {
         $friendlyMessages = [
-            'Unauthorized access' => 'You do not have permission to perform this action.',
-            'Invalid JSON data' => 'The answer sheet data is not in the correct format.',
-            'Invalid step number' => 'Please select a valid step between 1 and 10.',
-            'SQLSTATE' => 'A database error occurred.',
+            'Unauthorized access'  => 'You do not have permission to perform this action.',
+            'Invalid JSON data'    => 'The answer sheet data is not in the correct format.',
+            'Invalid step number'  => 'Please select a valid step between 1 and 10.',
+            'not enabled'          => 'That step is not enabled for this task.',
+            'SQLSTATE'             => 'A database error occurred.',
         ];
 
         foreach ($friendlyMessages as $technical => $friendly) {

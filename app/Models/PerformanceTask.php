@@ -18,51 +18,67 @@ class PerformanceTask extends Model
         'late_until',
         'max_score',
         'deduction_per_error',
+        'enabled_steps',   // ← NEW
     ];
 
     protected $casts = [
-        'template_data' => 'array',
-        'due_date' => 'datetime',
-        'late_until' => 'datetime',
+        'template_data'  => 'array',
+        'enabled_steps'  => 'array',   // ← NEW: stored as JSON, cast to PHP array
+        'due_date'       => 'datetime',
+        'late_until'     => 'datetime',
     ];
 
-    // Submissions per student (individual tracking)
+    // ── NEW HELPERS ──────────────────────────────────────────────────────────
+
+    /**
+     * Returns the list of enabled step numbers (1–10).
+     * If enabled_steps is null (legacy tasks), all 10 steps are enabled.
+     */
+    public function getEnabledStepsListAttribute(): array
+    {
+        return $this->enabled_steps ?? range(1, 10);
+    }
+
+    /**
+     * Returns true if the given step number is enabled for this task.
+     */
+    public function isStepEnabled(int $step): bool
+    {
+        return in_array($step, $this->enabled_steps_list);
+    }
+
+    // ── RELATIONSHIPS ────────────────────────────────────────────────────────
+
     public function submissions()
     {
         return $this->hasMany(PerformanceTaskSubmission::class, 'task_id');
     }
 
-    // The instructor who created this task
     public function instructor()
     {
         return $this->belongsTo(Instructor::class, 'instructor_id');
     }
 
-    // The subject this task belongs to
     public function subject()
     {
         return $this->belongsTo(Subject::class, 'subject_id');
     }
 
-    // The section this task is assigned to
     public function section()
     {
         return $this->belongsTo(Section::class, 'section_id');
     }
 
-    // Steps/questions within this task
     public function steps()
     {
         return $this->hasMany(PerformanceTaskStep::class, 'performance_task_id');
     }
 
-    // Answer sheets for this task
     public function answerSheets()
     {
         return $this->hasMany(PerformanceTaskAnswerSheet::class);
     }
 
-    // XP transactions related to this task
     public function xpTransactions()
     {
         return $this->hasMany(XpTransaction::class, 'performance_task_id');
@@ -75,12 +91,11 @@ class PerformanceTask extends Model
                     ->withTimestamps();
     }
 
-
     public function feedbacks()
-        {
-            return $this->hasMany(FeedbackRecord::class, 'performance_task_id');
-        }
-    
+    {
+        return $this->hasMany(FeedbackRecord::class, 'performance_task_id');
+    }
+
     public function exercises()
     {
         return $this->hasMany(PerformanceTaskExercise::class, 'performance_task_id');

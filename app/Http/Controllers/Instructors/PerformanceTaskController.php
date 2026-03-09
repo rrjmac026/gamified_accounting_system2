@@ -50,19 +50,28 @@ class PerformanceTaskController extends Controller
         $validated = $request->validate([
             'title'               => 'required|string|max:255',
             'description'         => 'nullable|string',
-            'xp_reward'           => 'required|integer|min:0',
-            'max_attempts'        => 'required|integer|min:1',
             'subject_id'          => 'required|exists:subjects,id',
             'section_id'          => 'required|exists:sections,id',
-            'due_date'            => 'required|date|after:now',
+            'max_score'           => 'required|numeric|min:1',
+            'deduction_per_error' => 'required|numeric|min:0',
+            'due_date'            => 'required|date',
             'late_until'          => 'nullable|date|after:due_date',
-            'max_score'           => 'required|integer|min:1',
-            'deduction_per_error' => 'required|integer|min:0',
+            'xp_reward'           => 'required|numeric|min:0',
+            'max_attempts'        => 'required|integer|min:1',
+            'enabled_steps'       => 'required|array|min:1',
+            'enabled_steps.*'     => 'integer|between:1,10',
         ]);
 
         $instructor = Auth::user()->instructor;
 
-        // Create the performance task
+        // ✅ Build enabled_steps BEFORE create()
+        $enabledSteps = collect($validated['enabled_steps'])
+            ->map(fn($s) => (int) $s)
+            ->filter(fn($s) => $s >= 1 && $s <= 10)
+            ->sort()
+            ->values()
+            ->toArray();
+
         $task = PerformanceTask::create([
             'title'               => $validated['title'],
             'description'         => $validated['description'] ?? null,
@@ -75,23 +84,22 @@ class PerformanceTaskController extends Controller
             'late_until'          => $validated['late_until'] ?? null,
             'max_score'           => $validated['max_score'],
             'deduction_per_error' => $validated['deduction_per_error'],
+            'enabled_steps'       => $enabledSteps,   // ✅ no longer undefined
         ]);
 
-        // Load the section with students
         $task->load('section.students.user', 'subject', 'section');
 
-        // ✅ Log performance task creation
         $this->logActivity('created performance task', $task->id, [
-            'title' => $task->title,
-            'subject' => $task->subject->subject_name ?? 'N/A',
-            'section' => $task->section->section_name ?? 'N/A',
-            'xp_reward' => $task->xp_reward,
-            'max_score' => $task->max_score,
-            'due_date' => $task->due_date,
-            'students_notified' => $task->section->students->count(),
+            'title'              => $task->title,
+            'subject'            => $task->subject->subject_name ?? 'N/A',
+            'section'            => $task->section->section_name ?? 'N/A',
+            'xp_reward'          => $task->xp_reward,
+            'max_score'          => $task->max_score,
+            'due_date'           => $task->due_date,
+            'enabled_steps'      => $enabledSteps,
+            'students_notified'  => $task->section->students->count(),
         ]);
 
-        // Notify all students in the section
         foreach ($task->section->students as $student) {
             SystemNotification::create([
                 'user_id' => $student->user->id,
@@ -156,7 +164,6 @@ class PerformanceTaskController extends Controller
      */
     public function update(Request $request, PerformanceTask $task)
     {
-        // Authorize: ensure the instructor owns this task
         if ($task->instructor_id !== Auth::user()->instructor->id) {
             abort(403, 'Unauthorized action.');
         }
@@ -164,22 +171,42 @@ class PerformanceTaskController extends Controller
         $validated = $request->validate([
             'title'               => 'required|string|max:255',
             'description'         => 'nullable|string',
-            'xp_reward'           => 'required|integer|min:0',
-            'max_attempts'        => 'required|integer|min:1',
             'subject_id'          => 'required|exists:subjects,id',
             'section_id'          => 'required|exists:sections,id',
-            'due_date'            => 'required|date|after:now',
+            'max_score'           => 'required|numeric|min:1',
+            'deduction_per_error' => 'required|numeric|min:0',
+            'due_date'            => 'required|date',
             'late_until'          => 'nullable|date|after:due_date',
-            'max_score'           => 'required|integer|min:1',
-            'deduction_per_error' => 'required|integer|min:0',
+            'xp_reward'           => 'required|numeric|min:0',
+            'max_attempts'        => 'required|integer|min:1',
+            'enabled_steps'       => 'required|array|min:1',
+            'enabled_steps.*'     => 'integer|between:1,10',
         ]);
 
-        // ✅ Capture changes before update
+        // ✅ Build enabled_steps BEFORE update() so the diff check captures it too
+        $enabledSteps = collect($validated['enabled_steps'])
+            ->map(fn($s) => (int) $s)
+            ->filter(fn($s) => $s >= 1 && $s <= 10)
+            ->sort()
+            ->values()
+            ->toArray();
+
+        // Replace the raw array in $validated with the sanitized version
+        $validated['enabled_steps'] = $enabledSteps;
+
+        // ✅ Diff check — compare old vs new for all validated fields
         $changes = [];
         foreach ($validated as $key => $value) {
-            if ($task->{$key} != $value) {
+            $old = $task->{$key};
+
+            // For array fields (like enabled_steps), compare as sorted arrays
+            $isDifferent = is_array($value)
+                ? $old !== $value   // model casts already return array
+                : $old != $value;
+
+            if ($isDifferent) {
                 $changes[$key] = [
-                    'old' => $task->{$key},
+                    'old' => $old,
                     'new' => $value,
                 ];
             }
@@ -187,19 +214,16 @@ class PerformanceTaskController extends Controller
 
         $task->update($validated);
 
-        // Load the section with students
         $task->load('section.students.user', 'subject', 'section');
 
-        // ✅ Log performance task update
         $this->logActivity('updated performance task', $task->id, [
-            'title' => $task->title,
-            'subject' => $task->subject->subject_name ?? 'N/A',
-            'section' => $task->section->section_name ?? 'N/A',
-            'changes' => $changes,
+            'title'             => $task->title,
+            'subject'           => $task->subject->subject_name ?? 'N/A',
+            'section'           => $task->section->section_name ?? 'N/A',
+            'changes'           => $changes,
             'students_notified' => $task->section->students->count(),
         ]);
 
-        // Notify students about updates
         foreach ($task->section->students as $student) {
             SystemNotification::create([
                 'user_id' => $student->user->id,

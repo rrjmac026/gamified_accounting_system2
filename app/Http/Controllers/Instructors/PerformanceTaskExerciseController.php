@@ -26,56 +26,57 @@ class PerformanceTaskExerciseController extends Controller
     ];
 
     /**
-     * Show all steps for a task, with exercise counts per step.
-     * Instructor picks which step to add exercises to — no forced order.
+     * Show only ENABLED steps for this task, with exercise counts per step.
      */
     public function show(PerformanceTask $task)
     {
         $this->authorizeTask($task);
 
-        // Group all exercises by step
         $exercisesByStep = PerformanceTaskExercise::where('performance_task_id', $task->id)
             ->orderBy('step')
             ->orderBy('order')
             ->get()
             ->groupBy('step');
 
+        // ✅ Only pass the enabled steps to the view — disabled steps are hidden
+        $stepTitles = collect($this->stepTitles)
+            ->only($task->enabled_steps_list)
+            ->toArray();
+
         return view('instructors.performance-tasks.exercises.show', compact(
             'task',
             'exercisesByStep',
-        ))->with('stepTitles', $this->stepTitles);
+            'stepTitles',
+        ));
     }
 
     /**
-     * Show form to add a new exercise to a specific step.
+     * Show form to add a new exercise — only if the step is enabled.
      */
     public function create(PerformanceTask $task, int $step)
     {
         $this->authorizeTask($task);
-        $this->validateStep($step);
+        $this->validateStep($task, $step); // ✅ now checks enabled_steps too
 
         $stepTitle = $this->stepTitles[$step];
 
-        $existingCount = PerformanceTaskExercise::where([
+        $nextNumber = PerformanceTaskExercise::where([
             'performance_task_id' => $task->id,
             'step'                => $step,
-        ])->count();
+        ])->count() + 1;
 
-        $nextNumber = $existingCount + 1;
-
-        // ✅ ONE shared view for all steps
         return view('instructors.performance-tasks.exercises.form', compact(
             'task', 'step', 'stepTitle', 'nextNumber'
         ));
     }
 
     /**
-     * Store a new exercise for a specific step.
+     * Store a new exercise — only if the step is enabled.
      */
     public function store(Request $request, PerformanceTask $task, int $step)
     {
         $this->authorizeTask($task);
-        $this->validateStep($step);
+        $this->validateStep($task, $step); // ✅ now checks enabled_steps too
 
         $validated = $request->validate([
             'title'        => 'required|string|max:255',
@@ -114,18 +115,17 @@ class PerformanceTaskExerciseController extends Controller
 
     /**
      * Show form to edit a specific exercise.
+     * No enabled_steps check needed here — editing existing exercises on
+     * disabled steps is allowed (instructor may want to fix data before re-enabling).
      */
     public function edit(PerformanceTask $task, PerformanceTaskExercise $exercise)
     {
         $this->authorizeTask($task);
 
-        $step      = $exercise->step;
-        $stepTitle = $this->stepTitles[$step];
-
-        // nextNumber not needed for edit but pass it to avoid undefined variable
+        $step       = $exercise->step;
+        $stepTitle  = $this->stepTitles[$step];
         $nextNumber = $exercise->order;
 
-        // ✅ ONE shared view for all steps
         return view('instructors.performance-tasks.exercises.form', compact(
             'task', 'exercise', 'step', 'stepTitle', 'nextNumber'
         ));
@@ -156,7 +156,7 @@ class PerformanceTaskExerciseController extends Controller
 
             return redirect()
                 ->route('instructors.performance-tasks.exercises.show', $task)
-                ->with('success', "Exercise updated successfully!");
+                ->with('success', 'Exercise updated successfully!');
 
         } catch (Exception $e) {
             DB::rollBack();
@@ -178,14 +178,12 @@ class PerformanceTaskExerciseController extends Controller
             $exercise->delete();
 
             // Re-number remaining exercises in the same step
-            $remaining = PerformanceTaskExercise::where([
+            PerformanceTaskExercise::where([
                 'performance_task_id' => $task->id,
                 'step'                => $step,
-            ])->orderBy('order')->get();
-
-            foreach ($remaining as $i => $ex) {
+            ])->orderBy('order')->get()->each(function ($ex, $i) {
                 $ex->update(['order' => $i + 1]);
-            }
+            });
 
             DB::commit();
 
@@ -237,10 +235,17 @@ class PerformanceTaskExerciseController extends Controller
         }
     }
 
-    private function validateStep(int $step): void
+    /**
+     * Validates step is in range 1–10 AND is enabled for this task.
+     */
+    private function validateStep(PerformanceTask $task, int $step): void
     {
         if ($step < 1 || $step > 10) {
             abort(422, 'Invalid step number. Must be between 1 and 10.');
+        }
+
+        if (!$task->isStepEnabled($step)) {
+            abort(403, "Step {$step} is not enabled for this task.");
         }
     }
 }

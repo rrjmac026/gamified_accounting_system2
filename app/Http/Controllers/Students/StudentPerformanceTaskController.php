@@ -13,14 +13,14 @@ use App\Traits\Loggable;
 
 class StudentPerformanceTaskController extends Controller
 {
-	use Loggable;
+    use Loggable;
 
     /**
      * Show list of performance tasks assigned to the logged-in student
      */
     public function index()
     {
-        $user = auth()->user();
+        $user    = auth()->user();
         $student = $user->student;
 
         $performanceTasks = PerformanceTask::whereHas('section.students', function ($query) use ($student) {
@@ -31,18 +31,23 @@ class StudentPerformanceTaskController extends Controller
             ->get();
 
         $performanceTasks->each(function ($task) use ($student) {
+            // ✅ Use enabled step count instead of hardcoded 10
+            $enabledSteps    = $task->enabled_steps_list;
+            $totalSteps      = count($enabledSteps);
+
             $submittedSteps = PerformanceTaskSubmission::where('task_id', $task->id)
                 ->where('student_id', $student->id)
+                ->whereIn('step', $enabledSteps)   // ✅ only count enabled steps
                 ->distinct('step')
                 ->pluck('step')
                 ->unique();
 
             $completedSteps = $submittedSteps->count();
 
-            $task->progress = $completedSteps;
-            $task->totalSteps = 10;
+            $task->progress           = $completedSteps;
+            $task->totalSteps         = $totalSteps;
             $task->progressPercentage = $completedSteps > 0
-                ? round(($completedSteps / 10) * 100, 2)
+                ? round(($completedSteps / $totalSteps) * 100, 2)
                 : 0;
 
             $pivotData = DB::table('performance_task_student')
@@ -51,9 +56,9 @@ class StudentPerformanceTaskController extends Controller
                 ->first();
 
             if ($pivotData) {
-                $task->score        = $pivotData->score ?? 0;
-                $task->xp_earned    = $pivotData->xp_earned ?? 0;
-                $task->status       = $pivotData->status ?? 'in-progress';
+                $task->score        = $pivotData->score        ?? 0;
+                $task->xp_earned    = $pivotData->xp_earned    ?? 0;
+                $task->status       = $pivotData->status       ?? 'in-progress';
                 $task->submitted_at = $pivotData->submitted_at ?? null;
             } else {
                 $task->score        = 0;
@@ -62,7 +67,7 @@ class StudentPerformanceTaskController extends Controller
                 $task->submitted_at = null;
             }
 
-            $task->max_score = $task->max_score ?? 1000;
+            $task->max_score       = $task->max_score ?? 1000;
             $task->gradePercentage = $task->max_score > 0
                 ? round(($task->score / $task->max_score) * 100, 2)
                 : 0;
@@ -74,7 +79,7 @@ class StudentPerformanceTaskController extends Controller
     }
 
     /**
-     * Show progress page for the most recent active performance task
+     * Show progress page for a performance task
      */
     public function progress($taskId = null)
     {
@@ -83,9 +88,7 @@ class StudentPerformanceTaskController extends Controller
         $performanceTask = PerformanceTask::whereHas('section.students', function ($query) use ($user) {
                 $query->where('student_id', $user->student->id);
             })
-            ->when($taskId, function ($query) use ($taskId) {
-                $query->where('id', $taskId);
-            })
+            ->when($taskId, fn($q) => $q->where('id', $taskId))
             ->latest()
             ->first();
 
@@ -100,21 +103,29 @@ class StudentPerformanceTaskController extends Controller
                 ->with('error', $deadlineStatus['message']);
         }
 
+        // ✅ Only track completed steps that are actually enabled
+        $enabledSteps = $performanceTask->enabled_steps_list;
+
         $completedSteps = PerformanceTaskSubmission::where([
-            'task_id' => $performanceTask->id,
+            'task_id'    => $performanceTask->id,
             'student_id' => $user->student->id,
-        ])->pluck('step')->toArray();
+        ])
+        ->whereIn('step', $enabledSteps)   // ✅
+        ->pluck('step')
+        ->toArray();
 
-		$this->logActivity('viewed performance task progress', [
-			'student_id' => $user->student->id ?? null,
-			'task_id' => $performanceTask->id ?? null,
-		]);
+        $this->logActivity('viewed performance task progress', [
+            'student_id' => $user->student->id ?? null,
+            'task_id'    => $performanceTask->id ?? null,
+        ]);
 
-        return view('students.performance-tasks.progress', compact('performanceTask', 'completedSteps', 'deadlineStatus'));
+        return view('students.performance-tasks.progress', compact(
+            'performanceTask', 'completedSteps', 'deadlineStatus'
+        ));
     }
 
     /**
-     * Load the step view (e.g. step-1, step-2, ...)
+     * Load a specific step view
      */
     public function step($id, $step)
     {
@@ -133,6 +144,11 @@ class StudentPerformanceTaskController extends Controller
                 ->with('error', 'No active performance task found.');
         }
 
+        if (!$performanceTask->isStepEnabled((int) $step)) {
+            return redirect()->route('students.performance-tasks.progress', ['taskId' => $id])
+                ->with('error', "Step {$step} is not part of this task.");
+        }
+
         $deadlineStatus = $this->getDeadlineStatus($performanceTask);
         if ($deadlineStatus['canSubmit'] === false) {
             return redirect()->route('students.performance-tasks.index')
@@ -145,41 +161,59 @@ class StudentPerformanceTaskController extends Controller
             'step'       => $step,
         ])->first();
 
-        // ── NEW: Load exercises for this step ──────────────────────────────────
         $exercises = PerformanceTaskExercise::where([
             'performance_task_id' => $performanceTask->id,
             'step'                => $step,
         ])->orderBy('order')->get();
 
-        // Backward compatibility — fall back to old answer sheet if no exercises
-        $answerSheet = $exercises->isEmpty()
-            ? PerformanceTaskAnswerSheet::where([
+        // ✅ Pick a specific exercise for this student and LOCK it in.
+        // On retries, reuse the same exercise they started with.
+        // Only fall back to legacy AnswerSheet if no exercises exist at all.
+        $assignedExercise = null;
+        $answerSheet      = null;
+
+        if ($exercises->isNotEmpty()) {
+            if ($submission && $submission->exercise_id) {
+                $assignedExercise = $exercises->firstWhere('id', $submission->exercise_id)
+                    ?? $exercises->random();
+            } else {
+                $assignedExercise = $exercises->random();
+            }
+        } else {
+            $answerSheet = PerformanceTaskAnswerSheet::where([
                 'performance_task_id' => $performanceTask->id,
                 'step'                => $step,
-            ])->first()
-            : null;
-        // ──────────────────────────────────────────────────────────────────────
+            ])->first();
+        }
 
+        $enabledSteps   = $performanceTask->enabled_steps_list;
         $completedSteps = PerformanceTaskSubmission::where([
             'task_id'    => $performanceTask->id,
             'student_id' => $user->student->id,
-        ])->pluck('step')->toArray();
+        ])
+        ->whereIn('step', $enabledSteps)
+        ->pluck('step')
+        ->toArray();
 
-        if ($step > 1 && !in_array($step - 1, $completedSteps)) {
+        $enabledIndex    = array_search((int) $step, $enabledSteps);
+        $previousEnabled = $enabledIndex > 0 ? $enabledSteps[$enabledIndex - 1] : null;
+
+        if ($previousEnabled && !in_array($previousEnabled, $completedSteps)) {
             return redirect()->route('students.performance-tasks.step', [
                 'id'   => $performanceTask->id,
-                'step' => $step - 1,
-            ])->with('error', "You must complete Step " . ($step - 1) . " first.");
+                'step' => $previousEnabled,
+            ])->with('error', "You must complete Step {$previousEnabled} first.");
         }
 
         return view("students.performance-tasks.step-$step", [
-            'performanceTask' => $performanceTask,
-            'submission'      => $submission,
-            'answerSheet'     => $answerSheet,
-            'exercises'       => $exercises,       // ← NEW
-            'completedSteps'  => $completedSteps,
-            'deadlineStatus'  => $deadlineStatus,
-            'step'            => $step,
+            'performanceTask'  => $performanceTask,
+            'submission'       => $submission,
+            'answerSheet'      => $answerSheet,
+            'exercises'        => $exercises,
+            'assignedExercise' => $assignedExercise, // ✅ pass to blade
+            'completedSteps'   => $completedSteps,
+            'deadlineStatus'   => $deadlineStatus,
+            'step'             => $step,
         ]);
     }
 
@@ -200,15 +234,25 @@ class StudentPerformanceTaskController extends Controller
             return back()->with('error', 'Performance task not found or not assigned to you.');
         }
 
+        if (!$task->isStepEnabled((int) $step)) {
+            return back()->with('error', "Step {$step} is not part of this task.");
+        }
+
         $deadlineStatus = $this->getDeadlineStatus($task);
         if ($deadlineStatus['canSubmit'] === false) {
             return back()->with('error', $deadlineStatus['message']);
         }
 
         try {
+            // ✅ Require exercise_id when exercises exist for this step
+            $hasExercises = PerformanceTaskExercise::where([
+                'performance_task_id' => $id,
+                'step'                => $step,
+            ])->exists();
+
             $validated = $request->validate([
                 'submission_data' => 'required|string',
-                'exercise_id'     => 'nullable|integer',   // ← NEW
+                'exercise_id'     => $hasExercises ? 'required|integer' : 'nullable|integer',
             ]);
 
             $submission = PerformanceTaskSubmission::where([
@@ -233,33 +277,27 @@ class StudentPerformanceTaskController extends Controller
                 ]);
             }
 
-            // ── NEW: Record which exercise the student used ────────────────────
             $exerciseId = $validated['exercise_id'] ?? null;
             if ($exerciseId) {
                 $submission->exercise_id = $exerciseId;
             }
-            // ─────────────────────────────────────────────────────────────────
 
-            $studentData    = $validated['submission_data'];
-            $decodedData    = json_decode($studentData, true);
+            $studentData      = $validated['submission_data'];
+            $decodedData      = json_decode($studentData, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 return back()->with('error', 'Invalid submission data format.');
             }
 
-            if (isset($decodedData['data']) && isset($decodedData['metadata'])) {
-                $studentDataArray = $decodedData['data'];
-            } else {
-                $studentDataArray = $decodedData;
-            }
+            $studentDataArray = isset($decodedData['data'], $decodedData['metadata'])
+                ? $decodedData['data']
+                : $decodedData;
+
             $submission->submission_data = $studentData;
+            $submission->attempts        = $submission->attempts + 1;
+            $currentAttempt              = $submission->attempts;
 
-            $submission->attempts = $submission->attempts + 1;
-            $currentAttempt = $submission->attempts;
-
-            // ── NEW: Resolve the correct answer key ───────────────────────────
-            // Priority 1: exercise linked in this submission
-            // Priority 2: legacy PerformanceTaskAnswerSheet
+            // ✅ Resolve answer key — exercise first, legacy sheet ONLY if no exercises exist
             $correctDataRaw = null;
 
             if ($exerciseId) {
@@ -268,40 +306,41 @@ class StudentPerformanceTaskController extends Controller
                     $correctDataRaw = is_string($exercise->correct_data)
                         ? json_decode($exercise->correct_data, true)
                         : $exercise->correct_data;
-
                     \Log::info("Step {$step} - Using exercise #{$exerciseId} ({$exercise->title}) as answer key");
                 }
             }
 
             if (!$correctDataRaw) {
-                // Fall back to legacy answer sheet
-                $answerSheet = PerformanceTaskAnswerSheet::where([
-                    'performance_task_id' => $task->id,
-                    'step'                => $step,
-                ])->first();
+                if (!$hasExercises) {
+                    // ✅ Only fall back to legacy AnswerSheet if no exercises exist for this step
+                    $answerSheet = PerformanceTaskAnswerSheet::where([
+                        'performance_task_id' => $task->id,
+                        'step'                => $step,
+                    ])->first();
 
-                if ($answerSheet && $answerSheet->correct_data) {
-                    $correctDataRaw = is_string($answerSheet->correct_data)
-                        ? json_decode($answerSheet->correct_data, true)
-                        : $answerSheet->correct_data;
-
-                    \Log::info("Step {$step} - Using legacy answer sheet as answer key");
+                    if ($answerSheet && $answerSheet->correct_data) {
+                        $correctDataRaw = is_string($answerSheet->correct_data)
+                            ? json_decode($answerSheet->correct_data, true)
+                            : $answerSheet->correct_data;
+                        \Log::info("Step {$step} - Legacy fallback: no exercises exist for this step");
+                    }
+                } else {
+                    \Log::warning("Step {$step} - exercise_id missing despite exercises existing", [
+                        'student_id' => $user->student->id,
+                        'task_id'    => $task->id,
+                    ]);
                 }
             }
-            // ─────────────────────────────────────────────────────────────────
 
-            $awardXp      = false;
-            $errorCount   = 0;
-            $totalCells   = 0;
-            $maxScorePerStep = $task->max_score / 10;
+            $awardXp         = false;
+            $errorCount      = 0;
+            $totalCells      = 0;
+            $maxScorePerStep = $task->max_score / count($task->enabled_steps_list);
 
             if ($correctDataRaw) {
-                // Extract data array if wrapped in {data, metadata} structure
-                if (is_array($correctDataRaw) && isset($correctDataRaw['data'])) {
-                    $correctData = $correctDataRaw['data'];
-                } else {
-                    $correctData = $correctDataRaw;
-                }
+                $correctData = (is_array($correctDataRaw) && isset($correctDataRaw['data']))
+                    ? $correctDataRaw['data']
+                    : $correctDataRaw;
 
                 \Log::info("Step {$step} - Data sample comparison", [
                     'student_row_0' => $studentDataArray[0] ?? 'missing',
@@ -317,18 +356,17 @@ class StudentPerformanceTaskController extends Controller
                     $submission->score  = 0;
 
                     $remainingAttempts = $task->max_attempts - $currentAttempt;
-                    $attemptInfo = $remainingAttempts > 0
+                    $attemptInfo       = $remainingAttempts > 0
                         ? " You have {$remainingAttempts} attempt(s) remaining."
                         : " No attempts remaining.";
 
-                    $submission->remarks = $deadlineStatus['isLate']
-                        ? "Wrong number of entries detected. Your submission has extra or missing data. Score: 0/{$maxScorePerStep}.{$attemptInfo} (Late submission)"
-                        : "Wrong number of entries detected. Your submission has extra or missing data. Score: 0/{$maxScorePerStep}.{$attemptInfo}";
+                    $submission->remarks = ($deadlineStatus['isLate'] ? "(Late submission) " : "")
+                        . "Wrong number of entries detected. Your submission has extra or missing data. Score: 0/{$maxScorePerStep}.{$attemptInfo}";
 
                     $awardXp = false;
 
                 } else {
-                    $wrongAttemptsBefore = ($currentAttempt > 1) ? ($currentAttempt - 1) : 0;
+                    $wrongAttemptsBefore = $currentAttempt > 1 ? ($currentAttempt - 1) : 0;
                     $cumulativePenalty   = $wrongAttemptsBefore * $task->deduction_per_error;
                     $isPerfect           = ($errorCount === 0);
                     $calculatedScore     = max(0, $maxScorePerStep - $cumulativePenalty);
@@ -337,43 +375,38 @@ class StudentPerformanceTaskController extends Controller
                     $submission->score = round($calculatedScore, 2);
 
                     if ($isPerfect && $calculatedScore > 0) {
-                        $submission->status = 'correct';
-                        $awardXp = ($previousStatus !== 'correct');
-                        $deductionInfo = ($cumulativePenalty > 0) ? " (-{$cumulativePenalty} penalty from previous attempts)" : "";
-                        $submission->remarks = $deadlineStatus['isLate']
-                            ? "Perfect! {$calculatedScore}/{$maxScorePerStep} points{$deductionInfo} (Late submission)"
-                            : "Perfect! {$calculatedScore}/{$maxScorePerStep} points{$deductionInfo}";
+                        $submission->status  = 'correct';
+                        $awardXp             = ($previousStatus !== 'correct');
+                        $deductionInfo       = $cumulativePenalty > 0 ? " (-{$cumulativePenalty} penalty from previous attempts)" : "";
+                        $submission->remarks = ($deadlineStatus['isLate'] ? "(Late submission) " : "")
+                            . "Perfect! {$calculatedScore}/{$maxScorePerStep} points{$deductionInfo}";
 
                     } elseif ($calculatedScore >= $passingScore && $calculatedScore > 0) {
-                        $submission->status = 'passed';
-                        $awardXp = ($previousStatus !== 'correct' && $previousStatus !== 'passed');
-                        $deductionInfo = ($cumulativePenalty > 0) ? " (-{$cumulativePenalty} penalty from previous attempts)" : "";
-                        $submission->remarks = $deadlineStatus['isLate']
-                            ? "Good job! {$calculatedScore}/{$maxScorePerStep} points{$deductionInfo}. {$errorCount} error(s) found. (Late submission)"
-                            : "Good job! {$calculatedScore}/{$maxScorePerStep} points{$deductionInfo}. {$errorCount} error(s) found.";
+                        $submission->status  = 'passed';
+                        $awardXp             = ($previousStatus !== 'correct' && $previousStatus !== 'passed');
+                        $deductionInfo       = $cumulativePenalty > 0 ? " (-{$cumulativePenalty} penalty from previous attempts)" : "";
+                        $submission->remarks = ($deadlineStatus['isLate'] ? "(Late submission) " : "")
+                            . "Good job! {$calculatedScore}/{$maxScorePerStep} points{$deductionInfo}. {$errorCount} error(s) found.";
 
                     } else {
                         $submission->status = 'wrong';
-                        $awardXp = false;
+                        $awardXp            = false;
 
                         $remainingAttempts = $task->max_attempts - $currentAttempt;
-                        $attemptInfo = $remainingAttempts > 0
+                        $attemptInfo       = $remainingAttempts > 0
                             ? " You have {$remainingAttempts} attempt(s) remaining."
                             : " No attempts remaining.";
-
-                        $futureMaxScore   = max(0, $maxScorePerStep - ($currentAttempt * $task->deduction_per_error));
-                        $penaltyWarning   = ($remainingAttempts > 0 && $futureMaxScore > 0)
+                        $futureMaxScore    = max(0, $maxScorePerStep - ($currentAttempt * $task->deduction_per_error));
+                        $penaltyWarning    = ($remainingAttempts > 0 && $futureMaxScore > 0)
                             ? " Next attempt max score: {$futureMaxScore}/{$maxScorePerStep}."
                             : "";
 
-                        $submission->remarks = $deadlineStatus['isLate']
-                            ? "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found.{$attemptInfo}{$penaltyWarning} (Late submission)"
-                            : "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found.{$attemptInfo}{$penaltyWarning}";
+                        $submission->remarks = ($deadlineStatus['isLate'] ? "(Late submission) " : "")
+                            . "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found.{$attemptInfo}{$penaltyWarning}";
                     }
                 }
 
             } else {
-                // No answer key found at all
                 $submission->status  = 'in-progress';
                 $submission->score   = 0;
                 $submission->remarks = 'Answer key not found for this step.';
@@ -411,34 +444,23 @@ class StudentPerformanceTaskController extends Controller
             $this->recordHistory($user->student->id, $task, $step, $submission, $deadlineStatus['isLate'], $errorCount);
             $this->syncSubmissionToPivot($user->student->id, $task->id, $step, $submission);
 
-            if ($step >= 10) {
+            $enabledSteps    = $task->enabled_steps_list;
+            $lastEnabledStep = end($enabledSteps);
+
+            if ((int) $step === (int) $lastEnabledStep) {
                 $this->storeFinalGrade($user->student->id, $task);
             }
 
             $this->logPerformance($user->student, $task, $step, $submission, $deadlineStatus['isLate'], $errorCount);
 
             $remainingAttempts = $task->max_attempts - $currentAttempt;
-
             $message = "Step {$step} submitted! (Attempt {$currentAttempt}/{$task->max_attempts}) - Score: {$submission->score}/{$maxScorePerStep}";
 
-            if ($previousScore > 0 && $submission->score < $previousScore) {
-                $difference = round($previousScore - $submission->score, 2);
-                $message .= " (⬇️ -{$difference} from previous)";
-            }
-
-            if ($errorCount > 0) {
-                $message .= " | {$errorCount} error(s) detected";
-            }
-
-            if ($remainingAttempts > 0 && $submission->status === 'wrong') {
-                $message .= " | {$remainingAttempts} attempt(s) remaining";
-            } elseif ($remainingAttempts === 0 && $submission->status === 'wrong') {
-                $message .= " | ⚠️ No attempts remaining for this step";
-            }
-
-            if ($deadlineStatus['isLate']) {
-                $message .= " ⚠️ Late submission";
-            }
+            if ($previousScore > 0 && $submission->score < $previousScore)           $message .= " (⬇️ -" . round($previousScore - $submission->score, 2) . " from previous)";
+            if ($errorCount > 0)                                                      $message .= " | {$errorCount} error(s) detected";
+            if ($remainingAttempts > 0 && $submission->status === 'wrong')           $message .= " | {$remainingAttempts} attempt(s) remaining";
+            if ($remainingAttempts === 0 && $submission->status === 'wrong')         $message .= " | ⚠️ No attempts remaining for this step";
+            if ($deadlineStatus['isLate'])                                            $message .= " ⚠️ Late submission";
 
             if ($awardXp && $submission->score > 0) {
                 $this->awardXpForStep($user->student, $task, $step, $deadlineStatus['isLate'], $submission->score);
@@ -446,19 +468,21 @@ class StudentPerformanceTaskController extends Controller
                 $message .= " 🎉 You earned {$xpEarned} XP!";
             }
 
-            if ($step >= 10) {
+            if ((int) $step === (int) $lastEnabledStep) {
                 if ($awardXp && $submission->score > 0) {
                     $this->awardCompletionBonus($user->student, $task);
                 }
                 $this->logTaskCompletion($user->student, $task);
 
                 return redirect()->route('students.performance-tasks.index')
-                    ->with('success', 'You have completed all 10 steps! Final score: ' . $submission->score . '/' . $maxScorePerStep);
+                    ->with('success', 'You have completed all steps! Final score: ' . $submission->score . '/' . $maxScorePerStep);
             }
+
+            $nextStep = collect($enabledSteps)->first(fn($s) => $s > (int) $step);
 
             return redirect()->route('students.performance-tasks.step', [
                 'id'   => $task->id,
-                'step' => $step + 1,
+                'step' => $nextStep,
             ])->with('success', $message);
 
         } catch (\Exception $e) {
@@ -466,7 +490,7 @@ class StudentPerformanceTaskController extends Controller
                 'student_id' => $user->student->id ?? null,
                 'task_id'    => $id,
                 'step'       => $step,
-                'trace'      => $e->getTraceAsString()
+                'trace'      => $e->getTraceAsString(),
             ]);
             return back()->with('error', 'Error saving your submission. Please try again.');
         }
@@ -491,6 +515,12 @@ class StudentPerformanceTaskController extends Controller
                 ->with('error', 'Performance task not found.');
         }
 
+        // ✅ Block access to disabled step answers
+        if (!$performanceTask->isStepEnabled((int) $step)) {
+            return redirect()->route('students.performance-tasks.progress', ['taskId' => $id])
+                ->with('error', "Step {$step} is not part of this task.");
+        }
+
         $submission = PerformanceTaskSubmission::where([
             'task_id'    => $performanceTask->id,
             'student_id' => $user->student->id,
@@ -504,7 +534,6 @@ class StudentPerformanceTaskController extends Controller
             ])->with('error', 'You must complete all attempts before viewing answers.');
         }
 
-        // ── NEW: resolve answer key from exercise first, fall back to sheet ──
         $exercise    = null;
         $answerSheet = null;
 
@@ -522,19 +551,18 @@ class StudentPerformanceTaskController extends Controller
         if (!$exercise && !$answerSheet) {
             return back()->with('error', 'Answer sheet not available for this step.');
         }
-        // ─────────────────────────────────────────────────────────────────────
 
-		$this->logActivity('viewed answer sheet', [
-			'student_id'  => $user->student->id ?? null,
-			'task_id'     => $performanceTask->id ?? null,
-			'step'        => $step,
+        $this->logActivity('viewed answer sheet', [
+            'student_id'  => $user->student->id ?? null,
+            'task_id'     => $performanceTask->id ?? null,
+            'step'        => $step,
             'exercise_id' => $submission->exercise_id ?? null,
-		]);
+        ]);
 
         return view("students.performance-tasks.answers.view", [
             'performanceTask' => $performanceTask,
-            'answerSheet'     => $answerSheet,   // may be null
-            'exercise'        => $exercise,      // ← NEW, may be null
+            'answerSheet'     => $answerSheet,
+            'exercise'        => $exercise,
             'submission'      => $submission,
             'step'            => $step,
         ]);
@@ -546,14 +574,19 @@ class StudentPerformanceTaskController extends Controller
     public function stepHistory(int $id, int $step)
     {
         $user = auth()->user();
-
         abort_if($step < 1 || $step > 10, 404);
 
-        $task = \App\Models\PerformanceTask::where('id', $id)
+        $task = PerformanceTask::where('id', $id)
             ->whereHas('section.students', function ($q) use ($user) {
                 $q->where('student_id', $user->student->id);
             })
             ->firstOrFail();
+
+        // ✅ Block history for disabled steps
+        if (!$task->isStepEnabled($step)) {
+            return redirect()->route('students.performance-tasks.progress', ['taskId' => $id])
+                ->with('error', "Step {$step} is not part of this task.");
+        }
 
         $histories = \App\Models\PerformanceTaskSubmissionHistory::where([
                 'task_id'    => $task->id,
@@ -579,10 +612,9 @@ class StudentPerformanceTaskController extends Controller
     public function historyDetail(int $id, int $step, int $attempt)
     {
         $user = auth()->user();
-
         abort_if($step < 1 || $step > 10, 404);
 
-        $task = \App\Models\PerformanceTask::where('id', $id)
+        $task = PerformanceTask::where('id', $id)
             ->whereHas('section.students', function ($q) use ($user) {
                 $q->where('student_id', $user->student->id);
             })
@@ -596,11 +628,9 @@ class StudentPerformanceTaskController extends Controller
             ])
             ->firstOrFail();
 
-        // ── NEW: resolve answer key from exercise first, fall back to sheet ──
         $exercise    = null;
         $answerSheet = null;
 
-        // Get the current (most recent) submission to check exercise_id
         $submission = PerformanceTaskSubmission::where([
             'task_id'    => $task->id,
             'student_id' => $user->student->id,
@@ -617,13 +647,115 @@ class StudentPerformanceTaskController extends Controller
                 'step'                => $step,
             ])->first();
         }
-        // ─────────────────────────────────────────────────────────────────────
 
         $stepTitles = $this->stepTitlesArray();
 
         return view('students.performance-tasks.history-detail', compact(
             'task', 'history', 'answerSheet', 'exercise', 'step', 'attempt', 'stepTitles'
         ));
+    }
+
+    /**
+     * My progress page
+     */
+    public function myProgress($id)
+    {
+        $user = auth()->user();
+
+        $task = PerformanceTask::where('id', $id)
+            ->whereHas('section.students', function ($query) use ($user) {
+                $query->where('student_id', $user->student->id);
+            })
+            ->firstOrFail();
+
+        // ✅ Only show enabled step titles
+        $stepTitles = collect($this->stepTitlesArray())
+            ->only($task->enabled_steps_list)
+            ->toArray();
+
+        $submissions = PerformanceTaskSubmission::where('task_id', $task->id)
+            ->where('student_id', $user->student->id)
+            ->whereIn('step', $task->enabled_steps_list)   // ✅
+            ->orderBy('step')
+            ->get();
+
+        $submissionDetails = [];
+        foreach ($submissions as $submission) {
+            $submissionDetails[$submission->step] = [
+                'step_title'          => $stepTitles[$submission->step] ?? "Step {$submission->step}",
+                'status'              => $submission->status,
+                'score'               => $submission->score,
+                'attempts'            => $submission->attempts,
+                'remarks'             => $submission->remarks,
+                'instructor_feedback' => $submission->instructor_feedback,
+                'feedback_given_at'   => $submission->feedback_given_at,
+                'submitted_at'        => $submission->created_at,
+                'updated_at'          => $submission->updated_at,
+            ];
+        }
+
+        $totalSteps = count($task->enabled_steps_list);
+
+        $statistics = [
+            'total_score'       => $submissions->sum('score'),
+            'total_attempts'    => $submissions->sum('attempts'),
+            'answered_steps'    => $submissions->count(),
+            'correct_steps'     => $submissions->where('status', 'correct')->count(),
+            'passed_steps'      => $submissions->where('status', 'passed')->count(),
+            'wrong_steps'       => $submissions->where('status', 'wrong')->count(),
+            'completed_steps'   => $submissions->whereIn('status', ['correct', 'passed'])->count(),
+            'in_progress_steps' => $totalSteps - $submissions->count(),   // ✅ based on enabled count
+            'feedback_count'    => $submissions->whereNotNull('instructor_feedback')->count(),
+        ];
+
+        return view('students.performance-tasks.my-progress', compact(
+            'task', 'submissionDetails', 'stepTitles', 'statistics'
+        ));
+    }
+
+    public function viewFeedback($id, $step)
+    {
+        $user = auth()->user();
+
+        $task = PerformanceTask::where('id', $id)
+            ->whereHas('section.students', function ($query) use ($user) {
+                $query->where('student_id', $user->student->id);
+            })
+            ->firstOrFail();
+
+        $submission = PerformanceTaskSubmission::where([
+            'task_id'    => $task->id,
+            'student_id' => $user->student->id,
+            'step'       => $step,
+        ])->firstOrFail();
+
+        if (!$submission->instructor_feedback) {
+            return redirect()->route('students.performance-tasks.my-progress', $task->id)
+                ->with('info', 'No instructor feedback available for this step yet.');
+        }
+
+        $stepTitles = $this->stepTitlesArray();
+
+        return view('students.performance-tasks.view-feedback', compact(
+            'task', 'submission', 'step', 'stepTitles'
+        ));
+    }
+
+    public function submit()
+    {
+        return back()->with('success', 'Performance task submitted!');
+    }
+
+    public function show($id)
+    {
+        $user = auth()->user();
+        $task = PerformanceTask::where('id', $id)
+            ->whereHas('section.students', function ($query) use ($user) {
+                $query->where('student_id', $user->student->id);
+            })
+            ->firstOrFail();
+
+        return redirect()->route('students.performance-tasks.progress', ['taskId' => $id]);
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────
@@ -644,48 +776,24 @@ class StudentPerformanceTaskController extends Controller
         ];
     }
 
-    /**
-     * Log performance metrics for a step submission
-     */
     private function logPerformance($student, $task, $step, $submission, $isLate, $errorCount = 0)
     {
         try {
-            \App\Models\PerformanceLog::create([
-                'student_id'         => $student->id,
-                'subject_id'         => $task->subject_id,
-                'task_id'            => $task->id,
-                'performance_metric' => "step_{$step}_score",
-                'value'              => $submission->score,
-                'recorded_at'        => now(),
-            ]);
-
-            \App\Models\PerformanceLog::create([
-                'student_id'         => $student->id,
-                'subject_id'         => $task->subject_id,
-                'task_id'            => $task->id,
-                'performance_metric' => "step_{$step}_errors",
-                'value'              => $errorCount,
-                'recorded_at'        => now(),
-            ]);
-
-            \App\Models\PerformanceLog::create([
-                'student_id'         => $student->id,
-                'subject_id'         => $task->subject_id,
-                'task_id'            => $task->id,
-                'performance_metric' => "step_{$step}_attempts",
-                'value'              => $submission->attempts,
-                'recorded_at'        => now(),
-            ]);
-
-            \App\Models\PerformanceLog::create([
-                'student_id'         => $student->id,
-                'subject_id'         => $task->subject_id,
-                'task_id'            => $task->id,
-                'performance_metric' => "step_{$step}_late_submission",
-                'value'              => $isLate ? 1 : 0,
-                'recorded_at'        => now(),
-            ]);
-
+            foreach ([
+                ["step_{$step}_score",            $submission->score],
+                ["step_{$step}_errors",           $errorCount],
+                ["step_{$step}_attempts",         $submission->attempts],
+                ["step_{$step}_late_submission",  $isLate ? 1 : 0],
+            ] as [$metric, $value]) {
+                \App\Models\PerformanceLog::create([
+                    'student_id'         => $student->id,
+                    'subject_id'         => $task->subject_id,
+                    'task_id'            => $task->id,
+                    'performance_metric' => $metric,
+                    'value'              => $value,
+                    'recorded_at'        => now(),
+                ]);
+            }
         } catch (\Exception $e) {
             \Log::error('Performance logging error: ' . $e->getMessage());
         }
@@ -699,7 +807,7 @@ class StudentPerformanceTaskController extends Controller
         if (!is_array($studentData) || !is_array($correctData)) {
             \Log::error('Invalid data format in checkAnswersWithErrors', [
                 'student_is_array' => is_array($studentData),
-                'correct_is_array' => is_array($correctData)
+                'correct_is_array' => is_array($correctData),
             ]);
             return ['errorCount' => 999, 'totalCells' => 1];
         }
@@ -712,7 +820,6 @@ class StudentPerformanceTaskController extends Controller
                 if ($this->normalizeValue($cell) !== '') $studentCellCount++;
             }
         }
-
         foreach ($correctData as $row) {
             foreach ($row as $cell) {
                 if ($this->normalizeValue($cell) !== '') $correctCellCount++;
@@ -720,9 +827,9 @@ class StudentPerformanceTaskController extends Controller
         }
 
         \Log::info("Cell count comparison", [
-            'step'           => $step,
-            'student_cells'  => $studentCellCount,
-            'correct_cells'  => $correctCellCount,
+            'step'          => $step,
+            'student_cells' => $studentCellCount,
+            'correct_cells' => $correctCellCount,
         ]);
 
         if ($studentCellCount !== $correctCellCount) {
@@ -732,29 +839,18 @@ class StudentPerformanceTaskController extends Controller
                 'got'        => $studentCellCount,
                 'difference' => abs($studentCellCount - $correctCellCount),
             ]);
-
-            return [
-                'errorCount'        => 999999,
-                'totalCells'        => max($correctCellCount, 1),
-                'cellCountMismatch' => true,
-            ];
+            return ['errorCount' => 999999, 'totalCells' => max($correctCellCount, 1), 'cellCountMismatch' => true];
         }
 
         $maxRows = max(count($studentData), count($correctData));
-
         for ($rowIndex = 0; $rowIndex < $maxRows; $rowIndex++) {
             if ($step === 4 && $rowIndex < 4) continue;
-
             $correctRow = $correctData[$rowIndex] ?? [];
             $studentRow = $studentData[$rowIndex] ?? [];
             $maxCols    = max(count($studentRow), count($correctRow));
-
             for ($colIndex = 0; $colIndex < $maxCols; $colIndex++) {
-                $correctValue     = $correctRow[$colIndex] ?? null;
-                $studentValue     = $studentRow[$colIndex] ?? null;
-                $normalizedCorrect = $this->normalizeValue($correctValue);
-                $normalizedStudent = $this->normalizeValue($studentValue);
-
+                $normalizedCorrect = $this->normalizeValue($correctRow[$colIndex] ?? null);
+                $normalizedStudent = $this->normalizeValue($studentRow[$colIndex] ?? null);
                 if ($normalizedCorrect !== '') {
                     $totalCells++;
                     if ($normalizedStudent !== $normalizedCorrect) {
@@ -770,15 +866,9 @@ class StudentPerformanceTaskController extends Controller
             }
         }
 
-        return [
-            'errorCount' => $errorCount,
-            'totalCells' => $totalCells,
-        ];
+        return ['errorCount' => $errorCount, 'totalCells' => $totalCells];
     }
 
-    /**
-     * Log overall task completion metrics
-     */
     private function logTaskCompletion($student, $task)
     {
         try {
@@ -792,10 +882,10 @@ class StudentPerformanceTaskController extends Controller
             $avgAttempts     = $totalSteps > 0 ? $totalAttempts / $totalSteps : 0;
 
             foreach ([
-                ['task_overall_accuracy',       round($overallAccuracy, 2)],
-                ['task_total_attempts',          $totalAttempts],
-                ['task_avg_attempts_per_step',   round($avgAttempts, 2)],
-                ['task_completed',               1],
+                ['task_overall_accuracy',      round($overallAccuracy, 2)],
+                ['task_total_attempts',         $totalAttempts],
+                ['task_avg_attempts_per_step',  round($avgAttempts, 2)],
+                ['task_completed',              1],
             ] as [$metric, $value]) {
                 \App\Models\PerformanceLog::create([
                     'student_id'         => $student->id,
@@ -806,7 +896,6 @@ class StudentPerformanceTaskController extends Controller
                     'recorded_at'        => now(),
                 ]);
             }
-
         } catch (\Exception $e) {
             \Log::error('Task completion logging error: ' . $e->getMessage());
         }
@@ -815,7 +904,6 @@ class StudentPerformanceTaskController extends Controller
     private function awardXpForStep($student, $task, $step, $isLate = false, $score = 0)
     {
         $xpAmount = $this->calculateStepXp($step, $isLate, $score, $task->max_score, $task->xp_reward ?? 100);
-
         if ($xpAmount > 0) {
             $student->xpTransactions()->create([
                 'amount'       => $xpAmount,
@@ -859,20 +947,16 @@ class StudentPerformanceTaskController extends Controller
         if (!$task->due_date) {
             return ['canSubmit' => true, 'isLate' => false, 'status' => 'open', 'message' => 'No deadline set for this task.'];
         }
-
         if ($task->late_until && $now->greaterThan($task->late_until)) {
             return ['canSubmit' => false, 'isLate' => true, 'status' => 'closed', 'message' => 'This task is no longer accepting submissions. The deadline has passed.'];
         }
-
         if ($task->late_until && $now->greaterThan($task->due_date) && $now->lessThanOrEqualTo($task->late_until)) {
             $hoursRemaining = $now->diffInHours($task->late_until);
             return ['canSubmit' => true, 'isLate' => true, 'status' => 'late', 'message' => "⚠️ Late submission period. Final deadline: {$task->late_until->format('M d, Y h:i A')} ({$hoursRemaining} hours remaining)"];
         }
-
         if (!$task->late_until && $now->greaterThan($task->due_date)) {
             return ['canSubmit' => false, 'isLate' => true, 'status' => 'closed', 'message' => 'This task is past the due date and no longer accepting submissions.'];
         }
-
         $hoursRemaining = $now->diffInHours($task->due_date);
         return ['canSubmit' => true, 'isLate' => false, 'status' => 'on-time', 'message' => "Due: {$task->due_date->format('M d, Y h:i A')} ({$hoursRemaining} hours remaining)"];
     }
@@ -880,17 +964,14 @@ class StudentPerformanceTaskController extends Controller
     private function compareAnswers($studentData, $correctData)
     {
         if (!is_array($studentData) || !is_array($correctData)) return false;
-
         foreach ($correctData as $rowIndex => $correctRow) {
             if (!isset($studentData[$rowIndex])) return false;
             $studentRow = $studentData[$rowIndex];
             foreach ($correctRow as $colIndex => $correctValue) {
                 if ($correctValue === null || $correctValue === '' || $correctValue === 0) continue;
-                $studentValue = $studentRow[$colIndex] ?? null;
-                if (!$this->valuesMatch($studentValue, $correctValue)) return false;
+                if (!$this->valuesMatch($studentRow[$colIndex] ?? null, $correctValue)) return false;
             }
         }
-
         return true;
     }
 
@@ -902,27 +983,9 @@ class StudentPerformanceTaskController extends Controller
     private function normalizeValue($value)
     {
         if ($value === null || $value === '' || $value === 0) return '';
-        $stringValue = (string)$value;
-        $cleaned = preg_replace('/[,₱\s]/', '', $stringValue);
-        if (is_numeric($cleaned)) return number_format((float)$cleaned, 2, '.', '');
-        return strtolower(trim($stringValue));
-    }
-
-    public function submit()
-    {
-        return back()->with('success', 'Performance task submitted!');
-    }
-
-    public function show($id)
-    {
-        $user = auth()->user();
-        $task = PerformanceTask::where('id', $id)
-            ->whereHas('section.students', function ($query) use ($user) {
-                $query->where('student_id', $user->student->id);
-            })
-            ->firstOrFail();
-
-        return redirect()->route('students.performance-tasks.progress', ['taskId' => $id]);
+        $cleaned = preg_replace('/[,₱\s]/', '', (string) $value);
+        if (is_numeric($cleaned)) return number_format((float) $cleaned, 2, '.', '');
+        return strtolower(trim((string) $value));
     }
 
     private function syncSubmissionToPivot($studentId, $taskId, $step, $submission)
@@ -937,12 +1000,7 @@ class StudentPerformanceTaskController extends Controller
                 DB::table('performance_task_student')
                     ->where('performance_task_id', $taskId)
                     ->where('student_id', $studentId)
-                    ->update([
-                        'status'       => 'in_progress',
-                        'attempts'     => DB::raw('attempts + 1'),
-                        'submitted_at' => now(),
-                        'updated_at'   => now()
-                    ]);
+                    ->update(['status' => 'in_progress', 'attempts' => DB::raw('attempts + 1'), 'submitted_at' => now(), 'updated_at' => now()]);
             } else {
                 DB::table('performance_task_student')->insert([
                     'performance_task_id' => $taskId,
@@ -951,7 +1009,7 @@ class StudentPerformanceTaskController extends Controller
                     'attempts'            => 1,
                     'submitted_at'        => now(),
                     'created_at'          => now(),
-                    'updated_at'          => now()
+                    'updated_at'          => now(),
                 ]);
             }
         } catch (\Exception $e) {
@@ -962,7 +1020,7 @@ class StudentPerformanceTaskController extends Controller
     private function storeFinalGrade($studentId, $task)
     {
         try {
-            $submissions  = PerformanceTaskSubmission::where('task_id', $task->id)
+            $submissions = PerformanceTaskSubmission::where('task_id', $task->id)
                 ->where('student_id', $studentId)
                 ->get();
 
@@ -988,10 +1046,7 @@ class StudentPerformanceTaskController extends Controller
                     'score'      => round($finalScore, 2),
                     'xp_earned'  => round($cappedXp, 2),
                     'graded_at'  => now(),
-                    'feedback'   => sprintf(
-                        "Task completed! Final score: %.2f / %d (%.2f%%) | XP Earned: %d",
-                        $finalScore, $task->max_score, $percentage, $cappedXp
-                    ),
+                    'feedback'   => sprintf("Task completed! Final score: %.2f / %d (%.2f%%) | XP Earned: %d", $finalScore, $task->max_score, $percentage, $cappedXp),
                     'updated_at' => now(),
                 ]);
 
@@ -1002,97 +1057,13 @@ class StudentPerformanceTaskController extends Controller
                 'percentage'  => $percentage,
                 'xp_earned'   => round($cappedXp, 2),
             ]);
-
         } catch (\Exception $e) {
             \Log::error("Failed to store final grade: " . $e->getMessage());
         }
     }
 
-    public function myProgress($id)
+    private function recordHistory(int $studentId, PerformanceTask $task, int $step, PerformanceTaskSubmission $submission, bool $isLate, int $errorCount): void
     {
-        $user = auth()->user();
-
-        $task = PerformanceTask::where('id', $id)
-            ->whereHas('section.students', function ($query) use ($user) {
-                $query->where('student_id', $user->student->id);
-            })
-            ->firstOrFail();
-
-        $submissions = PerformanceTaskSubmission::where('task_id', $task->id)
-            ->where('student_id', $user->student->id)
-            ->orderBy('step')
-            ->get();
-
-        $stepTitles = $this->stepTitlesArray();
-
-        $submissionDetails = [];
-        foreach ($submissions as $submission) {
-            $submissionDetails[$submission->step] = [
-                'step_title'          => $stepTitles[$submission->step] ?? "Step {$submission->step}",
-                'status'              => $submission->status,
-                'score'               => $submission->score,
-                'attempts'            => $submission->attempts,
-                'remarks'             => $submission->remarks,
-                'instructor_feedback' => $submission->instructor_feedback,
-                'feedback_given_at'   => $submission->feedback_given_at,
-                'submitted_at'        => $submission->created_at,
-                'updated_at'          => $submission->updated_at,
-            ];
-        }
-
-        $statistics = [
-            'total_score'       => $submissions->sum('score'),
-            'total_attempts'    => $submissions->sum('attempts'),
-            'answered_steps'    => $submissions->count(),
-            'correct_steps'     => $submissions->where('status', 'correct')->count(),
-            'passed_steps'      => $submissions->where('status', 'passed')->count(),
-            'wrong_steps'       => $submissions->where('status', 'wrong')->count(),
-            'completed_steps'   => $submissions->whereIn('status', ['correct', 'passed'])->count(),
-            'in_progress_steps' => 10 - $submissions->count(),
-            'feedback_count'    => $submissions->whereNotNull('instructor_feedback')->count(),
-        ];
-
-        return view('students.performance-tasks.my-progress', compact(
-            'task', 'submissionDetails', 'stepTitles', 'statistics'
-        ));
-    }
-
-    public function viewFeedback($id, $step)
-    {
-        $user = auth()->user();
-
-        $task = PerformanceTask::where('id', $id)
-            ->whereHas('section.students', function ($query) use ($user) {
-                $query->where('student_id', $user->student->id);
-            })
-            ->firstOrFail();
-
-        $submission = PerformanceTaskSubmission::where([
-            'task_id'    => $task->id,
-            'student_id' => $user->student->id,
-            'step'       => $step,
-        ])->firstOrFail();
-
-        if (!$submission->instructor_feedback) {
-            return redirect()->route('students.performance-tasks.my-progress', $task->id)
-                ->with('info', 'No instructor feedback available for this step yet.');
-        }
-
-        $stepTitles = $this->stepTitlesArray();
-
-        return view('students.performance-tasks.view-feedback', compact(
-            'task', 'submission', 'step', 'stepTitles'
-        ));
-    }
-
-    private function recordHistory(
-        int $studentId,
-        \App\Models\PerformanceTask $task,
-        int $step,
-        \App\Models\PerformanceTaskSubmission $submission,
-        bool $isLate,
-        int $errorCount
-    ): void {
         try {
             \App\Models\PerformanceTaskSubmissionHistory::create([
                 'submission_id'   => $submission->id,

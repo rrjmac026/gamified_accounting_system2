@@ -104,6 +104,104 @@
                         </div>
                     </div>
 
+                    {{-- ══════════════════════════════════════════════════════════ --}}
+                    {{-- ENABLED STEPS SECTION (NEW)                               --}}
+                    {{-- ══════════════════════════════════════════════════════════ --}}
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between border-b border-[#FFC8FB] pb-2">
+                            <div>
+                                <h3 class="text-lg font-semibold text-[#FF92C2]">Accounting Steps</h3>
+                                <p class="text-xs text-gray-500 mt-0.5">Select which steps students are required to complete. Only enabled steps will be visible to students.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="selectAllSteps"
+                                    class="px-3 py-1.5 text-xs font-semibold text-[#FF92C2] border border-[#FFC8FB] rounded-lg hover:bg-[#FFC8FB]/20 transition-colors">
+                                    Select All
+                                </button>
+                                <button type="button" id="clearAllSteps"
+                                    class="px-3 py-1.5 text-xs font-semibold text-gray-500 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
+                                    Clear All
+                                </button>
+                            </div>
+                        </div>
+
+                        @php
+                            $stepList = [
+                                1  => ['title' => 'Analyze Transactions',                'icon' => 'fa-search-dollar',    'color' => 'pink'],
+                                2  => ['title' => 'Journalize Transactions',             'icon' => 'fa-book',             'color' => 'rose'],
+                                3  => ['title' => 'Post to Ledger Accounts',             'icon' => 'fa-columns',          'color' => 'fuchsia'],
+                                4  => ['title' => 'Prepare Trial Balance',               'icon' => 'fa-balance-scale',    'color' => 'purple'],
+                                5  => ['title' => 'Journalize & Post Adjusting Entries', 'icon' => 'fa-edit',             'color' => 'violet'],
+                                6  => ['title' => 'Prepare Adjusted Trial Balance',      'icon' => 'fa-check-double',     'color' => 'indigo'],
+                                7  => ['title' => 'Prepare Financial Statements',        'icon' => 'fa-file-invoice-dollar', 'color' => 'blue'],
+                                8  => ['title' => 'Journalize & Post Closing Entries',   'icon' => 'fa-door-closed',      'color' => 'cyan'],
+                                9  => ['title' => 'Prepare Post-Closing Trial Balance',  'icon' => 'fa-list-ol',          'color' => 'teal'],
+                                10 => ['title' => 'Reverse (Optional Step)',             'icon' => 'fa-undo',             'color' => 'green'],
+                            ];
+
+                            // Re-populate after validation failure
+                            $oldSteps = old('enabled_steps', array_keys($stepList)); // default: all selected
+                        @endphp
+
+                        @error('enabled_steps')
+                            <p class="text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="stepsGrid">
+                            @foreach ($stepList as $num => $step)
+                                @php $isChecked = in_array($num, (array) $oldSteps); @endphp
+                                <label for="step_{{ $num }}"
+                                    class="step-card flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer select-none transition-all duration-200
+                                           {{ $isChecked
+                                               ? 'bg-[#FFF0FA] border-[#FF92C2] shadow-sm'
+                                               : 'bg-white border-gray-200 hover:border-[#FFC8FB] hover:bg-[#FFF8FD]' }}">
+
+                                    {{-- Hidden checkbox --}}
+                                    <input type="checkbox"
+                                           id="step_{{ $num }}"
+                                           name="enabled_steps[]"
+                                           value="{{ $num }}"
+                                           class="step-checkbox sr-only"
+                                           {{ $isChecked ? 'checked' : '' }}>
+
+                                    {{-- Custom checkbox visual --}}
+                                    <div class="step-check-visual flex-shrink-0 mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200
+                                                {{ $isChecked ? 'bg-[#FF92C2] border-[#FF92C2]' : 'border-gray-300 bg-white' }}">
+                                        <svg class="w-3 h-3 text-white {{ $isChecked ? '' : 'hidden' }}" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                    </div>
+
+                                    {{-- Step number badge --}}
+                                    <div class="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200
+                                                {{ $isChecked ? 'bg-[#FF92C2] text-white' : 'bg-gray-100 text-gray-500' }}">
+                                        {{ $num }}
+                                    </div>
+
+                                    {{-- Step info --}}
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-semibold {{ $isChecked ? 'text-[#D5006D]' : 'text-gray-600' }} transition-colors duration-200 leading-tight">
+                                            {{ $step['title'] }}
+                                        </p>
+                                        @if ($num === 10)
+                                            <p class="text-xs text-gray-400 mt-0.5">Students may skip this step</p>
+                                        @endif
+                                    </div>
+                                </label>
+                            @endforeach
+                        </div>
+
+                        {{-- Live count feedback --}}
+                        <div class="flex items-center gap-2 text-sm text-gray-600 bg-white border border-[#FFC8FB] rounded-lg px-4 py-2.5">
+                            <i class="fas fa-info-circle text-[#FF92C2]"></i>
+                            <span>
+                                <span id="stepCountLabel" class="font-bold text-[#D5006D]">10</span>
+                                steps selected — students will only see and submit these steps.
+                            </span>
+                        </div>
+                    </div>
+                    {{-- ══════════════════════════════════════════════════════════ --}}
+
                     {{-- Scoring Configuration Section --}}
                     <div class="space-y-4">
                         <h3 class="text-lg font-semibold text-[#FF92C2] border-b border-[#FFC8FB] pb-2">Scoring Configuration</h3>
@@ -233,7 +331,7 @@
                             <i class="fas fa-info-circle text-[#FF92C2] mt-0.5 mr-3"></i>
                             <div class="text-sm text-gray-700">
                                 <p class="font-semibold mb-1 text-[#FF92C2]">About Performance Tasks</p>
-                                <p>Performance tasks are designed to assess students' practical application of knowledge. Students will receive notifications when a new task is assigned.</p>
+                                <p>Performance tasks are designed to assess students' practical application of knowledge. Students will receive notifications when a new task is assigned. Only the steps you enable above will be visible and submittable by students.</p>
                             </div>
                         </div>
                     </div>
@@ -257,6 +355,7 @@
 
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script>
+        // ── Quill editor ─────────────────────────────────────────────────────
         var quill = new Quill('#editor', {
             theme: 'snow',
             modules: {
@@ -271,43 +370,108 @@
                 ]
             }
         });
-        
-        // Load old content if validation fails
         var oldContent = `{!! old('description') !!}`;
-        if(oldContent) {
-            quill.root.innerHTML = oldContent;
-        }
-        
-        // Sync Quill content to textarea on form submit
+        if (oldContent) quill.root.innerHTML = oldContent;
         document.getElementById('taskForm').onsubmit = function() {
             document.getElementById('description').value = quill.root.innerHTML;
         };
 
-        // Validate that late_until is after due_date
+        // ── Date validation ───────────────────────────────────────────────────
         document.getElementById('late_until').addEventListener('change', function() {
-            const dueDate = document.getElementById('due_date').value;
+            const dueDate  = document.getElementById('due_date').value;
             const lateUntil = this.value;
-            
             if (dueDate && lateUntil && new Date(lateUntil) <= new Date(dueDate)) {
                 alert('Late submission deadline must be after the due date.');
                 this.value = '';
             }
         });
-
-        // Set minimum date for due_date to current date/time
         document.addEventListener('DOMContentLoaded', function() {
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            const minDateTime = now.toISOString().slice(0, 16);
-            document.getElementById('due_date').min = minDateTime;
+            document.getElementById('due_date').min = now.toISOString().slice(0, 16);
+        });
+        document.getElementById('due_date').addEventListener('change', function() {
+            if (this.value) document.getElementById('late_until').min = this.value;
         });
 
-        // Update late_until minimum when due_date changes
-        document.getElementById('due_date').addEventListener('change', function() {
-            const lateUntilInput = document.getElementById('late_until');
-            if (this.value) {
-                lateUntilInput.min = this.value;
+        // ── Step checkbox interactions ────────────────────────────────────────
+        (function () {
+            const countLabel   = document.getElementById('stepCountLabel');
+            const selectAllBtn = document.getElementById('selectAllSteps');
+            const clearAllBtn  = document.getElementById('clearAllSteps');
+
+            function updateCount() {
+                const checked = document.querySelectorAll('.step-checkbox:checked').length;
+                countLabel.textContent = checked;
             }
-        });
+
+            function applyCardState(checkbox) {
+                const card     = checkbox.closest('label.step-card');
+                const visual   = card.querySelector('.step-check-visual');
+                const checkSvg = visual.querySelector('svg');
+                const badge    = card.querySelectorAll('div')[1]; // step number badge
+                const title    = card.querySelector('p');
+
+                if (checkbox.checked) {
+                    card.classList.replace('bg-white', 'bg-[#FFF0FA]');
+                    card.classList.replace('border-gray-200', 'border-[#FF92C2]');
+                    card.classList.add('shadow-sm');
+                    visual.classList.replace('border-gray-300', 'border-[#FF92C2]');
+                    visual.classList.replace('bg-white', 'bg-[#FF92C2]');
+                    checkSvg.classList.remove('hidden');
+                    badge.classList.replace('bg-gray-100', 'bg-[#FF92C2]');
+                    badge.classList.replace('text-gray-500', 'text-white');
+                    title.classList.replace('text-gray-600', 'text-[#D5006D]');
+                } else {
+                    card.classList.replace('bg-[#FFF0FA]', 'bg-white');
+                    card.classList.replace('border-[#FF92C2]', 'border-gray-200');
+                    card.classList.remove('shadow-sm');
+                    visual.classList.replace('border-[#FF92C2]', 'border-gray-300');
+                    visual.classList.replace('bg-[#FF92C2]', 'bg-white');
+                    checkSvg.classList.add('hidden');
+                    badge.classList.replace('bg-[#FF92C2]', 'bg-gray-100');
+                    badge.classList.replace('text-white', 'text-gray-500');
+                    title.classList.replace('text-[#D5006D]', 'text-gray-600');
+                }
+            }
+
+            // Attach change listeners to every checkbox
+            document.querySelectorAll('.step-checkbox').forEach(function(cb) {
+                cb.addEventListener('change', function() {
+                    applyCardState(this);
+                    updateCount();
+                });
+            });
+
+            // Select All
+            selectAllBtn.addEventListener('click', function() {
+                document.querySelectorAll('.step-checkbox').forEach(function(cb) {
+                    cb.checked = true;
+                    applyCardState(cb);
+                });
+                updateCount();
+            });
+
+            // Clear All
+            clearAllBtn.addEventListener('click', function() {
+                document.querySelectorAll('.step-checkbox').forEach(function(cb) {
+                    cb.checked = false;
+                    applyCardState(cb);
+                });
+                updateCount();
+            });
+
+            // Form submit guard — at least 1 step must be selected
+            document.getElementById('taskForm').addEventListener('submit', function(e) {
+                const checked = document.querySelectorAll('.step-checkbox:checked').length;
+                if (checked === 0) {
+                    e.preventDefault();
+                    alert('Please select at least one step for students to complete.');
+                }
+            });
+
+            // Init count
+            updateCount();
+        })();
     </script>
 </x-app-layout>
