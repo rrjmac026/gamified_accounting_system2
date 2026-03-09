@@ -120,8 +120,10 @@
                                     <th class="px-6 py-3 text-left text-sm font-semibold text-[#D5006D]">Score</th>
                                 </tr>
                             </thead>
+                            {{-- Students Table --}}
                             <tbody class="bg-white divide-y divide-[#FF9AAB]/30">
                                 @forelse($task->section->students as $student)
+                                    @php $stat = $studentStats[$student->id] ?? null; @endphp
                                     <tr class="hover:bg-[#FAF3F3]">
                                         <td class="px-6 py-4 font-medium text-[#D5006D]">
                                             {{ $student->student_number }}
@@ -130,39 +132,57 @@
                                             <div class="flex items-center">
                                                 <div class="h-10 w-10 flex-shrink-0 rounded-full bg-[#FF9AAB]/30 flex items-center justify-center mr-3">
                                                     <span class="text-[#D5006D] font-semibold">
-                                                        {{ substr($student->user->first_name, 0, 1) }}{{ substr($student->user->last_name, 0, 1) }}
+                                                        {{ substr($student->user->name, 0, 1) }}
                                                     </span>
                                                 </div>
-                                                <div>
-                                                    <div class="font-medium text-gray-900">
-                                                        {{ $student->user->first_name }} {{ $student->user->last_name }}
-                                                    </div>
-                                                </div>
+                                                <div class="font-medium text-gray-900">{{ $student->user->name }}</div>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-4 text-sm text-gray-600">
-                                            {{ $student->user->email }}
-                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-600">{{ $student->user->email }}</td>
                                         <td class="px-6 py-4">
-                                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                                                Not Started
-                                            </span>
+                                            @if(!$stat || $stat['completed_steps'] === 0)
+                                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">Not Started</span>
+                                            @elseif($stat['completed_steps'] >= $stat['total_steps'])
+                                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Completed</span>
+                                            @else
+                                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">
+                                                    In Progress ({{ $stat['completed_steps'] }}/{{ $stat['total_steps'] }})
+                                                </span>
+                                            @endif
                                         </td>
-                                        <td class="px-6 py-4">
-                                            <span class="text-sm text-gray-500">-</span>
+                                        <td class="px-6 py-4 text-sm font-semibold text-gray-800">
+                                            {{ $stat ? $stat['score'] . ' / ' . $task->max_score : '-' }}
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
                                         <td colspan="5" class="px-6 py-8 text-center">
-                                            <div class="flex flex-col items-center">
-                                                <i class="fas fa-users text-4xl text-[#FF9AAB] mb-3"></i>
-                                                <p class="text-[#D5006D] font-medium">No students in this section.</p>
-                                            </div>
+                                            <i class="fas fa-users text-4xl text-[#FF9AAB] mb-3"></i>
+                                            <p class="text-[#D5006D] font-medium">No students in this section.</p>
                                         </td>
                                     </tr>
                                 @endforelse
                             </tbody>
+
+                            {{-- Quick Stats --}}
+                            <div class="mt-6 grid grid-cols-1 sm:grid-cols-4 gap-4">
+                                <div class="bg-white p-4 rounded-lg shadow border border-[#FF9AAB]/30">
+                                    <h3 class="text-sm font-medium text-[#FF6F91]">Total Students</h3>
+                                    <p class="text-2xl font-bold text-[#D5006D]">{{ $task->section->students->count() }}</p>
+                                </div>
+                                <div class="bg-white p-4 rounded-lg shadow border border-[#FF9AAB]/30">
+                                    <h3 class="text-sm font-medium text-[#FF6F91]">Submissions</h3>
+                                    <p class="text-2xl font-bold text-blue-600">{{ $submittedCount }}</p>
+                                </div>
+                                <div class="bg-white p-4 rounded-lg shadow border border-[#FF9AAB]/30">
+                                    <h3 class="text-sm font-medium text-[#FF6F91]">Average Score</h3>
+                                    <p class="text-2xl font-bold text-green-600">{{ round($avgScore, 2) }}</p>
+                                </div>
+                                <div class="bg-white p-4 rounded-lg shadow border border-[#FF9AAB]/30">
+                                    <h3 class="text-sm font-medium text-[#FF6F91]">Completion Rate</h3>
+                                    <p class="text-2xl font-bold text-purple-600">{{ $completionRate }}%</p>
+                                </div>
+                            </div>
                         </table>
                     </div>
                 </div>

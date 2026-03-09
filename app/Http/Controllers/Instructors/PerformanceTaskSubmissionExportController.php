@@ -37,19 +37,29 @@ class PerformanceTaskSubmissionExportController extends Controller
     ]; // total = 260mm
 
     // ── Shared stats helper ───────────────────────────────────────────────────
-    private function stepStats($studentSubs): array
+
+    /**
+     * @param  \Illuminate\Support\Collection $studentSubs
+     * @param  int                            $totalSteps  actual enabled step count for this task
+     */
+    private function stepStats($studentSubs, int $totalSteps = 10): array
     {
-        $answered = $studentSubs->count();
+        // ✅ Count unique steps submitted, not raw row count
+        $answered = $studentSubs->pluck('step')->unique()->count();
+
         return [
             'answered' => $answered,
             'correct'  => $studentSubs->where('status', 'correct')->count(),
             'passed'   => $studentSubs->where('status', 'passed')->count(),
             'wrong'    => $studentSubs->where('status', 'wrong')->count(),
-            'score'    => $studentSubs->sum('score'),
+            'score'    => round($studentSubs->sum('score'), 2),
             'attempts' => $studentSubs->sum('attempts'),
-            'progress' => number_format(($answered / 10) * 100, 1),
-            'status'   => $answered === 10 ? 'All Answered'
-                        : ($answered  >  0 ? 'In Progress' : 'Not Started'),
+            'progress' => number_format(
+                ($totalSteps > 0 ? ($answered / $totalSteps) : 0) * 100, 1
+            ),
+            'status'   => ($answered >= $totalSteps && $totalSteps > 0)
+                            ? 'All Answered'
+                            : ($answered > 0 ? 'In Progress' : 'Not Started'),
         ];
     }
 
@@ -83,16 +93,22 @@ class PerformanceTaskSubmissionExportController extends Controller
             $headerStyle = [
                 'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
                 'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER,
-                                'vertical'   => Alignment::VERTICAL_CENTER,
-                                'wrapText'   => true],
-                'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_THIN,
-                                                 'color'       => ['rgb' => '2F5496']]],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical'   => Alignment::VERTICAL_CENTER,
+                    'wrapText'   => true,
+                ],
+                'borders'   => ['allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color'       => ['rgb' => '2F5496'],
+                ]],
             ];
 
-            $headers = ['#', 'Section', 'Student Name', 'Student Email', 'Task Title',
-                        'Total Score', 'Answered', 'Correct', 'Passed', 'Wrong',
-                        'Not Started', 'Total Attempts', 'Progress %', 'Status'];
+            $headers = [
+                '#', 'Section', 'Student Name', 'Student Email', 'Task Title',
+                'Total Score', 'Answered', 'Correct', 'Passed', 'Wrong',
+                'Not Started', 'Total Attempts', 'Progress %', 'Status',
+            ];
 
             $col = 'A';
             foreach ($headers as $h) {
@@ -114,13 +130,16 @@ class PerformanceTaskSubmissionExportController extends Controller
             foreach ($tasks as $task) {
                 $sectionName = $task->section->name ?? 'No Section';
 
+                // ✅ Pass actual enabled step count
+                $totalSteps = count($task->enabled_steps_list);
+
                 foreach ($task->submissions->groupBy('student_id') as $studentSubs) {
                     $user = $studentSubs->first()->student->user ?? null;
                     if (!$user) continue;
 
-                    $s = $this->stepStats($studentSubs);
+                    $s = $this->stepStats($studentSubs, $totalSteps);
 
-                    $statusColor = match($s['status']) {
+                    $statusColor = match ($s['status']) {
                         'All Answered' => '70AD47',
                         'In Progress'  => 'FFC000',
                         default        => 'C00000',
@@ -129,8 +148,10 @@ class PerformanceTaskSubmissionExportController extends Controller
                     $rowBg = $row % 2 === 0 ? 'EBF1FA' : 'FFFFFF';
                     $sheet->getStyle("A{$row}:N{$row}")->applyFromArray([
                         'fill'    => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $rowBg]],
-                        'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN,
-                                                       'color'       => ['rgb' => 'D0D7E8']]],
+                        'borders' => ['allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color'       => ['rgb' => 'D0D7E8'],
+                        ]],
                     ]);
 
                     $sheet->setCellValue("A{$row}", $counter++);
@@ -139,11 +160,11 @@ class PerformanceTaskSubmissionExportController extends Controller
                     $sheet->setCellValue("D{$row}", $user->email);
                     $sheet->setCellValue("E{$row}", $task->title);
                     $sheet->setCellValue("F{$row}", $s['score']);
-                    $sheet->setCellValue("G{$row}", $s['answered'] . '/10');
+                    $sheet->setCellValue("G{$row}", $s['answered'] . '/' . $totalSteps);  // ✅
                     $sheet->setCellValue("H{$row}", $s['correct']);
                     $sheet->setCellValue("I{$row}", $s['passed']);
                     $sheet->setCellValue("J{$row}", $s['wrong']);
-                    $sheet->setCellValue("K{$row}", 10 - $s['answered']);
+                    $sheet->setCellValue("K{$row}", $totalSteps - $s['answered']);         // ✅
                     $sheet->setCellValue("L{$row}", $s['attempts']);
                     $sheet->setCellValue("M{$row}", $s['progress'] . '%');
                     $sheet->setCellValue("N{$row}", $s['status']);
@@ -171,7 +192,7 @@ class PerformanceTaskSubmissionExportController extends Controller
                 }
             }
 
-            // Summary
+            // Summary row
             $row++;
             $sheet->setCellValue("A{$row}", 'Total Records:');
             $sheet->setCellValue("B{$row}", $counter - 1);
@@ -278,11 +299,14 @@ class PerformanceTaskSubmissionExportController extends Controller
             foreach ($tasks as $task) {
                 $sectionName = $task->section->name ?? 'No Section';
 
+                // ✅ Pass actual enabled step count
+                $totalSteps = count($task->enabled_steps_list);
+
                 foreach ($task->submissions->groupBy('student_id') as $studentSubs) {
                     $user = $studentSubs->first()->student->user ?? null;
                     if (!$user) continue;
 
-                    $s = $this->stepStats($studentSubs);
+                    $s = $this->stepStats($studentSubs, $totalSteps);
 
                     // Alternate row fill
                     $fillToggle
@@ -293,17 +317,17 @@ class PerformanceTaskSubmissionExportController extends Controller
 
                     // All data cells except Status
                     $cells = [
-                        '#'        => [$counter++,                            'C'],
-                        'Section'  => [$this->truncate($sectionName, 17),    'L'],
-                        'Student'  => [$this->truncate($user->name, 25),     'L'],
-                        'Task'     => [$this->truncate($task->title, 28),    'L'],
-                        'Score'    => [$s['score'],                          'C'],
-                        'Answered' => [$s['answered'] . '/10',               'C'],
-                        'Correct'  => [$s['correct'],                        'C'],
-                        'Passed'   => [$s['passed'],                         'C'],
-                        'Wrong'    => [$s['wrong'],                          'C'],
-                        'Attempts' => [$s['attempts'],                       'C'],
-                        'Progress' => [$s['progress'] . '%',                 'C'],
+                        '#'        => [$counter++,                                         'C'],
+                        'Section'  => [$this->truncate($sectionName, 17),                 'L'],
+                        'Student'  => [$this->truncate($user->name, 25),                  'L'],
+                        'Task'     => [$this->truncate($task->title, 28),                 'L'],
+                        'Score'    => [$s['score'],                                        'C'],
+                        'Answered' => [$s['answered'] . '/' . $totalSteps,                'C'],  // ✅
+                        'Correct'  => [$s['correct'],                                     'C'],
+                        'Passed'   => [$s['passed'],                                      'C'],
+                        'Wrong'    => [$s['wrong'],                                       'C'],
+                        'Attempts' => [$s['attempts'],                                    'C'],
+                        'Progress' => [$s['progress'] . '%',                              'C'],
                     ];
 
                     foreach ($cells as $key => [$value, $align]) {
@@ -311,7 +335,7 @@ class PerformanceTaskSubmissionExportController extends Controller
                     }
 
                     // Status cell — colored fill, white bold text, ends the row
-                    [$r, $g, $b] = match($s['status']) {
+                    [$r, $g, $b] = match ($s['status']) {
                         'All Answered' => [112, 173,  71],
                         'In Progress'  => [255, 192,   0],
                         default        => [192,   0,   0],
@@ -321,7 +345,7 @@ class PerformanceTaskSubmissionExportController extends Controller
                     $pdf->SetFont('Arial', 'B', 7.5);
                     $pdf->Cell($cols['Status'], 7, $s['status'], 1, 1, 'C', true);
 
-                    // Reset
+                    // Reset styles
                     $pdf->SetTextColor(0, 0, 0);
                     $pdf->SetFont('Arial', '', 8);
 

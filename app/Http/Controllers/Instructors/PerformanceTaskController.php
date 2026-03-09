@@ -120,23 +120,53 @@ class PerformanceTaskController extends Controller
      */
     public function show(PerformanceTask $task)
     {
-        // Authorize: ensure the instructor owns this task
         if ($task->instructor_id !== Auth::user()->instructor->id) {
             abort(403, 'Unauthorized action.');
         }
 
         $task->load([
             'subject',
-            'section.students',
+            'section.students.user',
             'instructor'
         ]);
 
-        // ✅ Log viewing performance task
-        $this->logActivity('viewed performance task', $task->id, [
-            'title' => $task->title,
-        ]);
+        // ✅ Load submissions keyed by student_id
+        $submissions = \App\Models\PerformanceTaskSubmission::where('task_id', $task->id)
+            ->get()
+            ->groupBy('student_id');
 
-        return view('instructors.performance-tasks.show', compact('task'));
+        $pivotData = \Illuminate\Support\Facades\DB::table('performance_task_student')
+            ->where('performance_task_id', $task->id)
+            ->get()
+            ->keyBy('student_id');
+
+        $enabledStepsCount = count($task->enabled_steps_list);
+
+        $studentStats = $task->section->students->mapWithKeys(function ($student) use ($submissions, $pivotData, $enabledStepsCount) {
+            $studentSubmissions = $submissions->get($student->id, collect());
+            $pivot = $pivotData->get($student->id);
+
+            $completedSteps = $studentSubmissions->pluck('step')->unique()->count();
+            $totalScore     = $studentSubmissions->sum('score');
+            $status         = $pivot->status ?? ($completedSteps === 0 ? 'not_started' : 'in_progress');
+
+            return [$student->id => [
+                'completed_steps' => $completedSteps,
+                'total_steps'     => $enabledStepsCount,
+                'score'           => round($totalScore, 2),
+                'status'          => $status,
+            ]];
+        });
+
+        // ✅ Quick stats
+        $totalStudents    = $task->section->students->count();
+        $submittedCount   = $studentStats->filter(fn($s) => in_array($s['status'], ['submitted', 'graded', 'in_progress']) || $s['completed_steps'] > 0)->count();
+        $avgScore         = $studentStats->avg('score');
+        $completionRate   = $totalStudents > 0 ? round(($studentStats->filter(fn($s) => $s['completed_steps'] >= $s['total_steps'])->count() / $totalStudents) * 100) : 0;
+
+        $this->logActivity('viewed performance task', $task->id, ['title' => $task->title]);
+
+        return view('instructors.performance-tasks.show', compact('task', 'studentStats', 'submittedCount', 'avgScore', 'completionRate'));
     }
 
     /**

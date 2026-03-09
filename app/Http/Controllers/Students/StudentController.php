@@ -67,39 +67,22 @@ class StudentController extends Controller
     private function calculateStudentStats(Student $student): array
     {
         $totalXP = $student->xpTransactions()->sum('amount');
-        
-        // Check both pivot table and submissions table
-        $pivotStats = DB::table('performance_task_student')
+
+        // ✅ Real average: sum all step scores / count of submitted steps
+        $submissionStats = DB::table('performance_task_submissions')
             ->where('student_id', $student->id)
+            ->whereIn('status', ['correct', 'passed', 'wrong'])
             ->selectRaw('
-                COUNT(CASE WHEN status IN ("submitted", "graded") THEN 1 END) as submitted_count,
-                AVG(CASE WHEN status = "graded" AND score IS NOT NULL THEN score END) as avg_score
+                COUNT(DISTINCT task_id) as submitted_count,
+                AVG(score) as avg_score
             ')
             ->first();
 
-        // Fallback to submissions table if pivot is empty
-        if (($pivotStats->submitted_count ?? 0) == 0) {
-            $submissionStats = DB::table('performance_task_submissions')
-                ->where('student_id', $student->id)
-                ->selectRaw('
-                    COUNT(DISTINCT task_id) as submitted_count,
-                    AVG(CASE WHEN status = "graded" AND score IS NOT NULL THEN score END) as avg_score
-                ')
-                ->first();
-            
-            return [
-                'total_xp' => $totalXP,
-                'submitted_tasks' => $submissionStats->submitted_count ?? 0,
-                'average_score' => round($submissionStats->avg_score ?? 0, 2),
-                'rank' => $this->calculateStudentRank($student, $totalXP)
-            ];
-        }
-
         return [
-            'total_xp' => $totalXP,
-            'submitted_tasks' => $pivotStats->submitted_count ?? 0,
-            'average_score' => round($pivotStats->avg_score ?? 0, 2),
-            'rank' => $this->calculateStudentRank($student, $totalXP)
+            'total_xp'       => $totalXP,
+            'submitted_tasks' => $submissionStats->submitted_count ?? 0,
+            'average_score'   => round($submissionStats->avg_score ?? 0, 2),
+            'rank'            => $this->calculateStudentRank($student, $totalXP),
         ];
     }
 

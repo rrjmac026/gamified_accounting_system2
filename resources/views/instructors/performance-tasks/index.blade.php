@@ -124,11 +124,6 @@
                                                     <i class="fas fa-tasks text-sm"></i>
                                                 </a>
 
-                                                <a href="{{ route('instructors.performance-tasks.submissions.show', $task->id) }}"
-                                                class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-[#D5006D] bg-[#FFF0F5] rounded-lg hover:bg-[#FFD6E8] transition-colors">
-                                                    <i class="fas fa-clipboard-list"></i> Submissions
-                                                </a>
-
                                                 <a href="{{ route('instructors.performance-tasks.comments.show', $task->id) }}"
                                                 class="relative inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors
                                                         {{ $taskUnread > 0 ? 'bg-[#D5006D] text-white hover:bg-[#FF6F91]' : 'text-[#D5006D] bg-[#FFF0F5] hover:bg-[#FFD6E8]' }}">
