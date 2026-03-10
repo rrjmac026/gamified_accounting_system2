@@ -19,11 +19,18 @@
                                     <p class="text-sm text-gray-600">{{ $section->name }} ({{ $section->section_code }})</p>
                                 </div>
                             </div>
-                            <a href="{{ route('instructors.sections.index') }}" 
-                               class="inline-flex items-center px-5 py-3 bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-200 hover:border-gray-300 rounded-xl transition-all duration-200 font-medium shadow-sm hover:shadow-md">
-                                <i class="fas fa-arrow-left mr-2"></i>
-                                Back to Sections
-                            </a>
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <a href="{{ route('instructors.sections.import-form', $section->id) }}"
+                                class="inline-flex items-center px-5 py-3 bg-gradient-to-r from-[#FF92C2] to-[#ff6fb5] text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                                    <i class="fas fa-file-import mr-2"></i>
+                                    Import Students
+                                </a>
+                                <a href="{{ route('instructors.sections.index') }}" 
+                                class="inline-flex items-center px-5 py-3 bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-200 hover:border-gray-300 rounded-xl transition-all duration-200 font-medium shadow-sm hover:shadow-md">
+                                    <i class="fas fa-arrow-left mr-2"></i>
+                                    Back to Sections
+                                </a>
+                            </div>
                         </div>
 
                         {{-- Section Info Card --}}

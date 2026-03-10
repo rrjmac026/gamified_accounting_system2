@@ -286,6 +286,18 @@ Route::middleware(['auth', 'role:instructor'])
         Route::get('/dashboard', [InstructorController::class, 'dashboard'])->name('dashboard');
 
         // Section Management
+        Route::get('/instructor/sections/{section}/import', 
+            [InstructorSectionController::class, 'importStudentsForm'])
+            ->name('sections.import-form');
+
+        Route::post('/instructor/sections/{section}/import', 
+            [InstructorSectionController::class, 'importStudents'])
+            ->name('sections.import');
+        Route::get('/instructor/sections/import-template', 
+            [InstructorSectionController::class, 'downloadImportTemplate'])
+            ->name('sections.import-template');
+
+        
         Route::get('/sections', [InstructorSectionController::class, 'index'])->name('sections.index');
         Route::get('/sections/{section}', [InstructorSectionController::class, 'show'])->name('sections.show');
          Route::get('/sections/{section}/manage-students', [InstructorSectionController::class, 'manageStudents'])
