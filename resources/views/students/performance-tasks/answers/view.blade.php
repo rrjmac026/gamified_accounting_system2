@@ -14,7 +14,7 @@
             <div class="overflow-x-auto">
                 <x-answer-sheets.display :data="$submission->submission_data" :step="$step . '-student'" />
             </div>
-            
+
             <div class="mt-4 text-sm text-red-800">
                 <p><strong>Attempt:</strong> {{ $submission->attempts }}/{{ $performanceTask->max_attempts }}</p>
                 <p><strong>Status:</strong> {{ ucfirst($submission->status) }}</p>
@@ -25,15 +25,21 @@
         <!-- Correct Answer at BOTTOM -->
         <div class="bg-green-50 p-6 rounded-lg border border-green-200">
             <h2 class="text-lg font-semibold text-green-900 mb-4">
-                ✅ Correct Answer
+                ✅ Correct Answer{{ $exercise ? ' — ' . $exercise->title : '' }}
             </h2>
             <div class="overflow-x-auto">
-                <x-answer-sheets.display :data="$answerSheet->correct_data" :step="$step . '-correct'" />
+                @if($exercise)
+                    <x-answer-sheets.display :data="$exercise->correct_data" :step="$step . '-correct'" />
+                @elseif($answerSheet)
+                    <x-answer-sheets.display :data="$answerSheet->correct_data" :step="$step . '-correct'" />
+                @else
+                    <p class="text-red-600 text-sm">No answer key available for this step.</p>
+                @endif
             </div>
-            
+
             <div class="mt-4 p-4 bg-green-100 rounded-lg">
                 <p class="text-sm text-green-800">
-                    <strong>💡 Study Tip:</strong> Compare your answer above with the correct answer. 
+                    <strong>💡 Study Tip:</strong> Compare your answer above with the correct answer.
                     Review the differences carefully to understand your mistakes.
                 </p>
             </div>
@@ -41,15 +47,23 @@
 
         <!-- Navigation -->
         <div class="mt-6 flex justify-between">
-            <a href="{{ route('students.performance-tasks.step', [$performanceTask->id, $step]) }}" 
+            <a href="{{ route('students.performance-tasks.step', [$performanceTask->id, $step]) }}"
                class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
                 Back to Step {{ $step }}
             </a>
-            
-            @if($step < 10)
-                <a href="{{ route('students.performance-tasks.step', [$performanceTask->id, $step + 1]) }}" 
+
+            @php
+                $enabledSteps = $performanceTask->enabled_steps_list;
+                $currentIndex = array_search((int) $step, $enabledSteps);
+                $nextStep = ($currentIndex !== false && isset($enabledSteps[$currentIndex + 1]))
+                    ? $enabledSteps[$currentIndex + 1]
+                    : null;
+            @endphp
+
+            @if($nextStep)
+                <a href="{{ route('students.performance-tasks.step', [$performanceTask->id, $nextStep]) }}"
                    class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-                    Continue to Step {{ $step + 1 }} →
+                    Continue to Step {{ $nextStep }} →
                 </a>
             @endif
         </div>
@@ -62,16 +76,16 @@
             position: relative;
             z-index: 1 !important;
         }
-        
+
         .handsontable thead th {
             z-index: 2 !important;
         }
-        
+
         /* Ensure navbar stays on top */
         nav {
             z-index: 9999 !important;
         }
-        
+
         /* Fix scrolling issues */
         .overflow-x-auto {
             -webkit-overflow-scrolling: touch;
