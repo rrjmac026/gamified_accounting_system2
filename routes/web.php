@@ -312,6 +312,10 @@ Route::middleware(['auth', 'role:instructor'])
         // Subject Management
         Route::get('subjects', [InstructorSubjectController::class, 'index'])->name('subjects.index');
         Route::get('subjects/{subject}', [InstructorSubjectController::class, 'show'])->name('subjects.show');
+        Route::get('subjects/{subject}/import-template', [InstructorSubjectController::class, 'downloadImportTemplate'])
+            ->name('subjects.import-template');
+        Route::post('subjects/{subject}/import-students', [InstructorSubjectController::class, 'importStudents'])
+            ->name('subjects.import-students');
 
         Route::prefix('performance-tasks')->name('performance-tasks.')->group(function () {
             // Inbox: list all tasks with unread badge counts
