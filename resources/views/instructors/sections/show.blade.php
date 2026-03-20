@@ -1,5 +1,68 @@
 <x-app-layout>
     <div class="py-12">
+        @if(session('import_success'))
+            @php $result = session('import_success'); @endphp
+            <div class="mb-6 bg-green-50 border-2 border-green-200 rounded-xl p-5 shadow-sm" id="importSuccessBanner">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start">
+                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                            <i class="fas fa-check-circle text-green-600 text-lg"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold text-green-800 text-base">Import Completed!</p>
+                            <div class="flex flex-wrap gap-3 mt-2">
+                                <span class="inline-flex items-center gap-1.5 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold border border-green-200">
+                                    <i class="fas fa-user-plus text-xs"></i>
+                                    {{ $result['imported'] }} student(s) added
+                                </span>
+                                @if($result['skipped'] > 0)
+                                <span class="inline-flex items-center gap-1.5 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold border border-yellow-200">
+                                    <i class="fas fa-forward text-xs"></i>
+                                    {{ $result['skipped'] }} skipped
+                                </span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('importSuccessBanner').remove()"
+                            class="text-green-400 hover:text-green-600 transition-colors ml-2">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            @if(session('import_errors') && count(session('import_errors')))
+            <div class="mb-6 bg-yellow-50 border-2 border-yellow-200 rounded-xl p-5 shadow-sm" id="importErrorBanner">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start">
+                        <div class="w-9 h-9 bg-yellow-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-semibold text-yellow-800 mb-2">Some rows were skipped:</p>
+                            <ul class="space-y-1 max-h-40 overflow-y-auto pr-1">
+                                @foreach(session('import_errors') as $err)
+                                    <li class="flex items-start text-sm text-yellow-700">
+                                        <i class="fas fa-circle mt-1.5 mr-2 text-yellow-400 text-xs flex-shrink-0"></i>
+                                        {{ $err }}
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('importErrorBanner').remove()"
+                            class="text-yellow-400 hover:text-yellow-600 transition-colors ml-2">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            @endif
+
+            <script>
+                const b = document.getElementById('importSuccessBanner');
+                if (b) setTimeout(() => { b.style.transition = 'opacity 0.5s'; b.style.opacity = '0'; setTimeout(() => b.remove(), 500); }, 6000);
+            </script>
+        @endif
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             {{-- Header Card --}}

@@ -28,28 +28,68 @@
                 </div>
             </div>
 
-            {{-- Import Errors --}}
-            @if(session('import_errors') && count(session('import_errors')))
-                <div class="mb-6 bg-yellow-50 border-2 border-yellow-200 rounded-xl p-5 shadow-sm">
-                    <div class="flex items-start">
-                        <div class="w-9 h-9 bg-yellow-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                            <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+            {{-- ✅ Import Success Banner --}}
+            @if(session('import_success'))
+                @php $result = session('import_success'); @endphp
+                <div class="mb-6 bg-green-50 border-2 border-green-200 rounded-xl p-5 shadow-sm" id="successBanner">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-start">
+                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                                <i class="fas fa-check-circle text-green-600 text-lg"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-green-800 text-base">Import Completed!</p>
+                                <div class="flex flex-wrap gap-3 mt-2">
+                                    <span class="inline-flex items-center gap-1.5 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold border border-green-200">
+                                        <i class="fas fa-user-plus text-xs"></i>
+                                        {{ $result['imported'] }} student(s) added
+                                    </span>
+                                    @if($result['skipped'] > 0)
+                                    <span class="inline-flex items-center gap-1.5 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold border border-yellow-200">
+                                        <i class="fas fa-forward text-xs"></i>
+                                        {{ $result['skipped'] }} skipped
+                                    </span>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <p class="font-semibold text-yellow-800 mb-2">Some rows were skipped during import:</p>
-                            <ul class="space-y-1">
-                                @foreach(session('import_errors') as $err)
-                                    <li class="flex items-start text-sm text-yellow-700">
-                                        <i class="fas fa-dot-circle mt-1 mr-2 text-yellow-400 text-xs"></i>
-                                        {{ $err }}
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
+                        <button onclick="document.getElementById('successBanner').remove()"
+                                class="text-green-400 hover:text-green-600 transition-colors ml-2">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
             @endif
 
+            {{-- ⚠️ Import Errors / Skipped Rows --}}
+            @if(session('import_errors') && count(session('import_errors')))
+                <div class="mb-6 bg-yellow-50 border-2 border-yellow-200 rounded-xl p-5 shadow-sm" id="errorBanner">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-start">
+                            <div class="w-9 h-9 bg-yellow-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                                <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-semibold text-yellow-800 mb-2">Some rows were skipped:</p>
+                                <ul class="space-y-1 max-h-40 overflow-y-auto pr-1">
+                                    @foreach(session('import_errors') as $err)
+                                        <li class="flex items-start text-sm text-yellow-700">
+                                            <i class="fas fa-circle mt-1.5 mr-2 text-yellow-400 text-xs flex-shrink-0"></i>
+                                            {{ $err }}
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                        <button onclick="document.getElementById('errorBanner').remove()"
+                                class="text-yellow-400 hover:text-yellow-600 transition-colors ml-2">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            @endif
+
+            {{-- ❌ Validation Errors --}}
             @if($errors->any())
                 <div class="mb-6 bg-red-50 border-2 border-red-200 rounded-xl p-5 shadow-sm">
                     <div class="flex items-start">
@@ -61,7 +101,7 @@
                             <ul class="space-y-1">
                                 @foreach($errors->all() as $error)
                                     <li class="text-sm text-red-700 flex items-start">
-                                        <i class="fas fa-dot-circle mt-1 mr-2 text-red-400 text-xs"></i>
+                                        <i class="fas fa-circle mt-1.5 mr-2 text-red-400 text-xs flex-shrink-0"></i>
                                         {{ $error }}
                                     </li>
                                 @endforeach
@@ -77,14 +117,14 @@
                 {{-- LEFT: Upload Form (3 cols) --}}
                 <div class="lg:col-span-3 space-y-6">
 
-                    {{-- Step indicator --}}
+                    {{-- How It Works --}}
                     <div class="bg-white rounded-2xl shadow-md border border-[#FFC8FB]/30 p-5">
                         <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">How It Works</h3>
                         <div class="space-y-3">
                             @foreach([
-                                ['1', 'Download the CSV template below', 'fas fa-download', 'from-[#FF92C2] to-[#FFC8FB]'],
-                                ['2', 'Fill in student numbers or emails', 'fas fa-pen', 'from-blue-400 to-blue-500'],
-                                ['3', 'Upload your completed file', 'fas fa-cloud-upload-alt', 'from-green-400 to-green-500'],
+                                ['1', 'Download the CSV template on the right', 'fas fa-download', 'from-[#FF92C2] to-[#FFC8FB]'],
+                                ['2', 'Fill in student numbers or email addresses', 'fas fa-pen', 'from-blue-400 to-blue-500'],
+                                ['3', 'Upload your completed file here', 'fas fa-cloud-upload-alt', 'from-green-400 to-green-500'],
                             ] as $step)
                             <div class="flex items-center gap-4 p-3 rounded-xl bg-gray-50 hover:bg-[#FFF6FD] transition-colors duration-200 border border-gray-100">
                                 <div class="w-9 h-9 bg-gradient-to-r {{ $step[3] }} rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
@@ -131,7 +171,7 @@
                                     <div class="w-16 h-16 bg-gradient-to-r from-[#FF92C2]/15 to-[#FFC8FB]/15 group-hover:from-[#FF92C2]/25 group-hover:to-[#FFC8FB]/25 rounded-full flex items-center justify-center mb-4 transition-all duration-300 border-2 border-[#FFC8FB]/50 group-hover:border-[#FF92C2]/50">
                                         <i class="fas fa-cloud-upload-alt text-3xl text-[#FF92C2]"></i>
                                     </div>
-                                    <p class="text-base font-semibold text-gray-700 group-hover:text-[#FF92C2] transition-colors" id="dropText">
+                                    <p class="text-base font-semibold text-gray-700 group-hover:text-[#FF92C2] transition-colors">
                                         Click or drag & drop your file here
                                     </p>
                                     <p class="text-sm text-gray-400 mt-1">Accepted formats:</p>
@@ -142,7 +182,6 @@
                                     </div>
                                 </div>
 
-                                {{-- File selected state (hidden by default) --}}
                                 <div class="hidden flex-col items-center pointer-events-none" id="fileSelectedContent">
                                     <div class="w-16 h-16 bg-gradient-to-r from-green-400 to-green-500 rounded-full flex items-center justify-center mb-4 shadow-md">
                                         <i class="fas fa-check text-white text-2xl"></i>
@@ -171,7 +210,7 @@
                     </div>
                 </div>
 
-                {{-- RIGHT: Template Preview (2 cols) --}}
+                {{-- RIGHT: Template + Capacity (2 cols) --}}
                 <div class="lg:col-span-2 space-y-6">
 
                     {{-- Download Template Card --}}
@@ -191,12 +230,10 @@
                         <div class="p-5 space-y-4">
                             {{-- Spreadsheet Preview --}}
                             <div class="rounded-xl overflow-hidden border-2 border-gray-100 shadow-sm">
-                                {{-- Column header row --}}
                                 <div class="grid grid-cols-12 bg-gray-100 border-b border-gray-200">
                                     <div class="col-span-1 px-2 py-2 text-center text-xs font-bold text-gray-400 border-r border-gray-200"></div>
                                     <div class="col-span-11 px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wide">A</div>
                                 </div>
-                                {{-- Header Row --}}
                                 <div class="grid grid-cols-12 bg-gradient-to-r from-[#FFF0FA] to-[#FFC8FB]/20 border-b border-[#FFC8FB]/40">
                                     <div class="col-span-1 px-2 py-2.5 text-center text-xs font-bold text-gray-400 border-r border-gray-200">1</div>
                                     <div class="col-span-11 px-3 py-2.5">
@@ -205,17 +242,14 @@
                                         </span>
                                     </div>
                                 </div>
-                                {{-- Example Row 1 --}}
                                 <div class="grid grid-cols-12 border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                     <div class="col-span-1 px-2 py-2.5 text-center text-xs text-gray-400 border-r border-gray-200">2</div>
                                     <div class="col-span-11 px-3 py-2.5 text-xs text-gray-700 font-mono">2024-00001</div>
                                 </div>
-                                {{-- Example Row 2 --}}
                                 <div class="grid grid-cols-12 border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                     <div class="col-span-1 px-2 py-2.5 text-center text-xs text-gray-400 border-r border-gray-200">3</div>
                                     <div class="col-span-11 px-3 py-2.5 text-xs text-gray-700 font-mono">2024-00002</div>
                                 </div>
-                                {{-- Example Row 3 (email) --}}
                                 <div class="grid grid-cols-12 hover:bg-gray-50 transition-colors">
                                     <div class="col-span-1 px-2 py-2.5 text-center text-xs text-gray-400 border-r border-gray-200">4</div>
                                     <div class="col-span-11 px-3 py-2.5 text-xs text-gray-400 font-mono italic">or email@domain.com</div>
@@ -226,7 +260,7 @@
                             <div class="space-y-2">
                                 <div class="flex items-start gap-2 text-xs text-gray-600">
                                     <i class="fas fa-info-circle text-[#FF92C2] mt-0.5 flex-shrink-0"></i>
-                                    <span>Column A accepts <strong>student number</strong> (e.g. 2024-00001) or <strong>email address</strong></span>
+                                    <span>Column A accepts <strong>student number</strong> or <strong>email address</strong></span>
                                 </div>
                                 <div class="flex items-start gap-2 text-xs text-gray-600">
                                     <i class="fas fa-info-circle text-blue-400 mt-0.5 flex-shrink-0"></i>
@@ -238,7 +272,6 @@
                                 </div>
                             </div>
 
-                            {{-- Download Button --}}
                             <a href="{{ route('instructors.sections.import-template') }}"
                                class="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 text-sm">
                                 <i class="fas fa-download"></i>
@@ -291,12 +324,11 @@
             const file = input.files[0];
             if (!file) return;
 
-            const dropContent      = document.getElementById('dropContent');
+            const dropContent         = document.getElementById('dropContent');
             const fileSelectedContent = document.getElementById('fileSelectedContent');
-            const selectedFileName = document.getElementById('selectedFileName');
-            const selectedFileSize = document.getElementById('selectedFileSize');
+            const selectedFileName    = document.getElementById('selectedFileName');
+            const selectedFileSize    = document.getElementById('selectedFileSize');
 
-            // Format file size
             const size = file.size < 1024 * 1024
                 ? (file.size / 1024).toFixed(1) + ' KB'
                 : (file.size / (1024 * 1024)).toFixed(2) + ' MB';
@@ -313,7 +345,6 @@
             document.getElementById('dropZone').classList.remove('border-[#FFC8FB]');
         }
 
-        // Drag and drop
         const dropZone = document.getElementById('dropZone');
 
         dropZone.addEventListener('dragover', e => {
@@ -333,13 +364,20 @@
             handleFileSelect(fileInput);
         });
 
-        // Show loading state on submit
         document.getElementById('importForm').addEventListener('submit', function () {
-            const btn  = document.getElementById('submitBtn');
-            const text = document.getElementById('submitText');
+            const btn = document.getElementById('submitBtn');
             btn.disabled = true;
-            text.textContent = 'Importing...';
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Importing...';
         });
+
+        // Auto-dismiss success banner after 6 seconds
+        const successBanner = document.getElementById('successBanner');
+        if (successBanner) {
+            setTimeout(() => {
+                successBanner.style.transition = 'opacity 0.5s ease';
+                successBanner.style.opacity    = '0';
+                setTimeout(() => successBanner.remove(), 500);
+            }, 6000);
+        }
     </script>
 </x-app-layout>
