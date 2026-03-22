@@ -1,341 +1,250 @@
 <x-app-layout>
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-[#FFF0FA] overflow-hidden shadow-xl sm:rounded-lg">
-                <div class="p-6">
+    <div class="py-6 sm:py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-                    {{-- Header --}}
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
-                        <h2 class="text-2xl font-bold text-[#FF92C2]">Section Details</h2>
-                        <div class="flex flex-wrap gap-2">
-                            <button onclick="document.getElementById('importModal').classList.remove('hidden')"
-                                    class="inline-flex items-center px-4 py-2 bg-white border border-[#FF92C2] text-[#FF92C2] rounded-md hover:bg-[#FFF0FA] transition text-sm font-medium shadow-sm">
-                                <i class="fas fa-file-import mr-2"></i>Import Students
-                            </button>
+            {{-- ✅ Import Success Banner --}}
+            @if(session('import_success'))
+                @php $result = session('import_success'); @endphp
+                <div class="mb-6 bg-green-50 border-2 border-green-200 rounded-xl p-5 shadow-sm" id="importSuccessBanner">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-start">
+                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                                <i class="fas fa-check-circle text-green-600 text-lg"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-green-800 text-base">Import Completed!</p>
+                                <div class="flex flex-wrap gap-3 mt-2">
+                                    <span class="inline-flex items-center gap-1.5 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold border border-green-200">
+                                        <i class="fas fa-user-plus text-xs"></i>
+                                        {{ $result['imported'] }} student(s) added
+                                    </span>
+                                    @if($result['skipped'] > 0)
+                                    <span class="inline-flex items-center gap-1.5 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold border border-yellow-200">
+                                        <i class="fas fa-forward text-xs"></i>
+                                        {{ $result['skipped'] }} skipped
+                                    </span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="document.getElementById('importSuccessBanner').remove()"
+                                class="text-green-400 hover:text-green-600 transition-colors ml-2">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                @if(session('import_errors') && count(session('import_errors')))
+                <div class="mb-6 bg-yellow-50 border-2 border-yellow-200 rounded-xl p-5 shadow-sm" id="importErrorBanner">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-start">
+                            <div class="w-9 h-9 bg-yellow-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                                <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-semibold text-yellow-800 mb-2">Some rows were skipped:</p>
+                                <ul class="space-y-1 max-h-40 overflow-y-auto pr-1">
+                                    @foreach(session('import_errors') as $err)
+                                        <li class="flex items-start text-sm text-yellow-700">
+                                            <i class="fas fa-circle mt-1.5 mr-2 text-yellow-400 text-xs flex-shrink-0"></i>
+                                            {{ $err }}
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                        <button onclick="document.getElementById('importErrorBanner').remove()"
+                                class="text-yellow-400 hover:text-yellow-600 transition-colors ml-2">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                @endif
+
+                <script>
+                    const b = document.getElementById('importSuccessBanner');
+                    if (b) setTimeout(() => { b.style.transition = 'opacity 0.5s'; b.style.opacity = '0'; setTimeout(() => b.remove(), 500); }, 6000);
+                </script>
+            @endif
+
+            {{-- General flash messages --}}
+            @if(session('success'))
+                <div class="mb-4 px-4 py-3 bg-green-100 border border-green-200 text-green-700 rounded-xl">
+                    {{ session('success') }}
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="mb-4 px-4 py-3 bg-red-100 border border-red-200 text-red-700 rounded-xl">
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            <div class="bg-[#FFF0FA] overflow-hidden shadow-lg rounded-lg sm:rounded-2xl">
+                <div class="p-4 sm:p-6 text-gray-700">
+
+                    {{-- Header with action buttons --}}
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                        <h2 class="text-xl sm:text-2xl font-bold text-[#FF92C2]">Section Details</h2>
+                        <div class="flex flex-wrap gap-3">
+                            {{-- Import Students Button --}}
+                            <a href="{{ route('admin.sections.import.form', $section) }}"
+                               class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#FF92C2] to-[#ff6fb5] hover:from-[#ff6fb5] hover:to-[#FF92C2] text-white rounded-lg font-medium shadow-sm hover:shadow-md transition-all duration-200">
+                                <i class="fas fa-file-import mr-2"></i>
+                                Import Students
+                            </a>
                             <a href="{{ route('admin.sections.edit', $section) }}"
-                               class="inline-flex items-center px-4 py-2 bg-[#FF92C2] text-white rounded-md hover:bg-[#ff6fb5] transition text-sm font-medium shadow-sm">
-                                <i class="fas fa-edit mr-2"></i>Edit Section
+                               class="px-4 py-2 bg-[#FF92C2] text-white rounded-lg hover:bg-[#ff6fb5] transition-colors">
+                                Edit Section
+                            </a>
+                            <form action="{{ route('admin.sections.destroy', $section) }}" method="POST"
+                                  onsubmit="return confirm('Are you sure you want to delete this section?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                                    Delete Section
+                                </button>
+                            </form>
+                            <a href="{{ route('admin.sections.index') }}"
+                               class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                                Back to Sections
                             </a>
                         </div>
                     </div>
 
-                    {{-- Flash: success --}}
-                    @if (session('success'))
-                        <div class="flex items-start gap-3 px-4 py-3 bg-green-50 border border-green-200 text-green-700 rounded-xl mb-5 text-sm">
-                            <i class="fas fa-check-circle mt-0.5 text-green-500 flex-shrink-0"></i>
-                            <div>
-                                <span class="font-medium">{{ session('success') }}</span>
-                                @if (session('import_errors') && count(session('import_errors')))
-                                    <p class="mt-2 font-semibold text-green-800">Row details:</p>
-                                    <ul class="list-disc list-inside mt-1 space-y-0.5 text-green-700">
-                                        @foreach (session('import_errors') as $err)
-                                            <li>{{ $err }}</li>
-                                        @endforeach
-                                    </ul>
+                    {{-- Section Info --}}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6">
+                        <div class="bg-white p-4 sm:p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-[#FF92C2] mb-4">Basic Information</h3>
+                            <dl class="space-y-3">
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500">Section Code:</dt>
+                                    <dd class="font-medium text-gray-900">{{ $section->section_code }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500">Name:</dt>
+                                    <dd class="font-medium text-gray-900">{{ $section->name }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500">Course:</dt>
+                                    <dd class="font-medium text-gray-900">{{ $section->course->course_name ?? 'N/A' }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500">Capacity:</dt>
+                                    <dd class="font-medium text-gray-900">{{ $section->capacity ?? 'Unlimited' }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500">Enrolled:</dt>
+                                    <dd class="font-medium text-gray-900">{{ $section->students->count() }} student(s)</dd>
+                                </div>
+                                @if($section->capacity)
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500">Available Slots:</dt>
+                                    <dd class="font-medium {{ ($section->capacity - $section->students->count()) > 0 ? 'text-green-600' : 'text-red-600' }}">
+                                        {{ $section->capacity - $section->students->count() }}
+                                    </dd>
+                                </div>
                                 @endif
-                            </div>
-                        </div>
-                    @endif
-
-                    {{-- Flash: import_error (hard errors) --}}
-                    @if (session('import_error'))
-                        <div class="flex items-start gap-3 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-xl mb-5 text-sm">
-                            <i class="fas fa-exclamation-triangle mt-0.5 text-red-500 flex-shrink-0"></i>
-                            <span>{{ session('import_error') }}</span>
-                        </div>
-                    @endif
-
-                    {{-- Validation errors (file type etc.) --}}
-                    @if ($errors->any())
-                        <div class="flex items-start gap-3 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-xl mb-5 text-sm">
-                            <i class="fas fa-exclamation-triangle mt-0.5 text-red-500 flex-shrink-0"></i>
-                            <ul class="list-disc list-inside space-y-0.5">
-                                @foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach
-                            </ul>
-                        </div>
-                    @endif
-
-                    {{-- Info Cards --}}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-white p-6 rounded-lg shadow">
-                            <h3 class="text-lg font-semibold text-[#595758] mb-4">Section Information</h3>
-                            <dl class="grid grid-cols-1 gap-4">
-                                <div>
-                                    <dt class="text-sm font-medium text-gray-500">Section Code</dt>
-                                    <dd class="mt-1 text-sm text-[#595758]">{{ $section->section_code }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-sm font-medium text-gray-500">Name</dt>
-                                    <dd class="mt-1 text-sm text-[#595758]">{{ $section->name }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-sm font-medium text-gray-500">Course</dt>
-                                    <dd class="mt-1 text-sm text-[#595758]">{{ $section->course->course_name }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-sm font-medium text-gray-500">Capacity</dt>
-                                    <dd class="mt-1 text-sm text-[#595758]">{{ $section->capacity ?? 'Unlimited' }}</dd>
-                                </div>
                             </dl>
                         </div>
 
-                        <div class="bg-white p-6 rounded-lg shadow">
-                            <h3 class="text-lg font-semibold text-[#595758] mb-4">Statistics</h3>
-                            <dl class="grid grid-cols-1 gap-4">
-                                <div>
-                                    <dt class="text-sm font-medium text-gray-500">Total Students</dt>
-                                    <dd class="mt-1 text-sm text-[#595758]">{{ $section->students->count() }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-sm font-medium text-gray-500">Total Subjects</dt>
-                                    <dd class="mt-1 text-sm text-[#595758]">{{ $section->subjects->count() }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-sm font-medium text-gray-500">Total Instructors</dt>
-                                    <dd class="mt-1 text-sm text-[#595758]">{{ $section->instructors->count() }}</dd>
-                                </div>
-                            </dl>
+                        @if($section->notes)
+                        <div class="bg-white p-4 sm:p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-[#FF92C2] mb-4">Notes</h3>
+                            <p class="text-gray-700">{{ $section->notes }}</p>
                         </div>
+                        @endif
                     </div>
 
                     {{-- Instructors --}}
-                    <div class="mt-8">
-                        <h3 class="text-lg font-semibold text-[#595758] mb-4">Assigned Instructors</h3>
-                        <div class="bg-white overflow-hidden shadow-sm rounded-lg">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-[#FFC8FB]">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-[#595758] uppercase tracking-wider">Name</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-[#595758] uppercase tracking-wider">Email</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-[#595758] uppercase tracking-wider">Department</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-[#595758] uppercase tracking-wider">Assigned Subjects</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-[#595758] uppercase tracking-wider">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    @forelse ($section->instructors as $instructor)
-                                        <tr>
-                                            <td class="px-6 py-4 text-sm text-gray-900">{{ $instructor->user->name }}</td>
-                                            <td class="px-6 py-4 text-sm text-gray-500">{{ $instructor->user->email }}</td>
-                                            <td class="px-6 py-4 text-sm text-gray-500">{{ $instructor->department ?? 'N/A' }}</td>
-                                            <td class="px-6 py-4 text-sm">
-                                                @if($instructor->subjects->count() > 0)
-                                                    <ul class="list-disc list-inside">
-                                                        @foreach($instructor->subjects as $subject)
-                                                            <li class="text-gray-500">{{ $subject->subject_name }}</li>
-                                                        @endforeach
-                                                    </ul>
-                                                @else
-                                                    <span class="text-gray-500">No subjects assigned</span>
-                                                @endif
-                                            </td>
-                                            <td class="px-6 py-4 text-sm">
-                                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Active</span>
-                                            </td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="5" class="px-6 py-4 text-sm text-center text-gray-500">No instructors assigned</td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
+                    @if($section->instructors->count() > 0)
+                    <div class="bg-white p-4 sm:p-6 rounded-lg shadow mb-6">
+                        <h3 class="text-lg font-semibold text-[#FF92C2] mb-4">Assigned Instructors</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                            @foreach($section->instructors as $instructor)
+                                <div class="flex items-center p-3 bg-[#FFF0FA] rounded-lg border border-[#FFC8FB]/30">
+                                    <div class="w-9 h-9 bg-gradient-to-r from-[#FF92C2] to-[#FFC8FB] rounded-full flex items-center justify-center mr-3 text-white font-bold text-sm">
+                                        {{ substr($instructor->user->name, 0, 1) }}
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-gray-800 text-sm">{{ $instructor->user->name }}</p>
+                                        <p class="text-xs text-gray-500">{{ $instructor->department ?? '' }}</p>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
                     </div>
+                    @endif
 
-                    {{-- Students --}}
-                    <div class="mt-8">
-                        <h3 class="text-lg font-semibold text-[#595758] mb-4">Enrolled Students</h3>
-                        <div class="bg-white overflow-hidden shadow-sm rounded-lg">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-[#FFC8FB]">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-[#595758] uppercase tracking-wider">Name</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-[#595758] uppercase tracking-wider">Student ID</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-[#595758] uppercase tracking-wider">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    @forelse ($section->students as $student)
-                                        <tr>
-                                            <td class="px-6 py-4 text-sm text-gray-900">{{ $student->user->name }}</td>
-                                            <td class="px-6 py-4 text-sm text-gray-500">{{ $student->student_number }}</td>
-                                            <td class="px-6 py-4 text-sm text-gray-500">Active</td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="3" class="px-6 py-4 text-sm text-center text-gray-500">No students enrolled yet</td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
+                    {{-- Students Table --}}
+                    <div class="bg-white p-4 sm:p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+                            <h3 class="text-lg font-semibold text-[#FF92C2]">
+                                Enrolled Students
+                                <span class="ml-2 text-sm font-normal text-gray-500">({{ $section->students->count() }})</span>
+                            </h3>
+                            <a href="{{ route('admin.sections.import.form', $section) }}"
+                               class="inline-flex items-center px-3 py-1.5 text-sm bg-gradient-to-r from-[#FF92C2] to-[#ff6fb5] text-white rounded-lg hover:from-[#ff6fb5] hover:to-[#FF92C2] transition-all duration-200 font-medium">
+                                <i class="fas fa-file-import mr-1.5"></i>
+                                Import Students
+                            </a>
                         </div>
-                    </div>
 
-                    {{-- Subjects --}}
-                    <div class="mt-8">
-                        <h3 class="text-lg font-semibold text-[#595758] mb-4">Subjects in this Section</h3>
-                        <div class="bg-white p-4 rounded-lg shadow-sm">
-                            @if($section->subjects->count() > 0)
-                                <ul class="list-disc list-inside text-gray-500">
-                                    @foreach($section->subjects as $subject)
-                                        <li>{{ $subject->subject_name }}</li>
-                                    @endforeach
-                                </ul>
-                            @else
-                                <span class="text-gray-500">No subjects assigned to this section</span>
-                            @endif
-                        </div>
+                        @if($section->students->count() > 0)
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-[#FFC8FB]">
+                                    <thead class="bg-[#FFC8FB]/50">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">#</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Student Number</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Year Level</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-[#FFC8FB]/30">
+                                        @foreach($section->students as $i => $student)
+                                            <tr class="hover:bg-[#FFF6FD] transition-colors duration-150">
+                                                <td class="px-4 py-3 text-sm text-gray-500">{{ $i + 1 }}</td>
+                                                <td class="px-4 py-3">
+                                                    <div class="flex items-center">
+                                                        <div class="w-8 h-8 bg-gradient-to-r from-[#FF92C2] to-[#FFC8FB] rounded-full flex items-center justify-center mr-3 text-white font-bold text-xs flex-shrink-0">
+                                                            {{ substr($student->user->name, 0, 1) }}
+                                                        </div>
+                                                        <span class="text-sm font-medium text-gray-900">{{ $student->user->name }}</span>
+                                                    </div>
+                                                </td>
+                                                <td class="px-4 py-3 text-sm text-gray-600 font-mono">
+                                                    {{ $student->student_number ?? '—' }}
+                                                </td>
+                                                <td class="px-4 py-3 text-sm text-gray-600">
+                                                    {{ $student->user->email }}
+                                                </td>
+                                                <td class="px-4 py-3 text-sm text-gray-600">
+                                                    {{ $student->year_level ? 'Year ' . $student->year_level : '—' }}
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <div class="text-center py-12">
+                                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-user-slash text-2xl text-gray-400"></i>
+                                </div>
+                                <p class="text-gray-500 font-medium mb-1">No students enrolled yet</p>
+                                <p class="text-sm text-gray-400 mb-4">Import students to get started</p>
+                                <a href="{{ route('admin.sections.import.form', $section) }}"
+                                   class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-[#FF92C2] to-[#ff6fb5] text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-200">
+                                    <i class="fas fa-file-import mr-2"></i>
+                                    Import Students Now
+                                </a>
+                            </div>
+                        @endif
                     </div>
 
                 </div>
             </div>
         </div>
     </div>
-
-    {{-- ═══════════════ IMPORT MODAL ═══════════════ --}}
-    <div id="importModal"
-         class="hidden fixed inset-0 z-50 flex items-center justify-center px-4"
-         onclick="if(event.target===this) closeImportModal()">
-
-        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
-
-        <div class="relative bg-[#FFF0FA] rounded-2xl shadow-2xl w-full max-w-lg p-6 z-10">
-
-            {{-- Modal header --}}
-            <div class="flex items-center justify-between mb-5">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 bg-gradient-to-r from-[#FF92C2] to-[#FFC8FB] rounded-full flex items-center justify-center shadow-sm">
-                        <i class="fas fa-file-import text-white text-sm"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-base font-semibold text-gray-800">Import Students</h3>
-                        <p class="text-xs text-gray-500">
-                            Section: <span class="font-medium text-[#FF92C2]">{{ $section->section_code }} — {{ $section->name }}</span>
-                        </p>
-                    </div>
-                </div>
-                <button onclick="closeImportModal()" class="text-gray-400 hover:text-gray-600 transition text-2xl leading-none">&times;</button>
-            </div>
-
-            <form action="{{ route('admin.sections.import.store', $section) }}"
-                  method="POST"
-                  enctype="multipart/form-data"
-                  id="importForm">
-                @csrf
-
-                {{-- Drop zone --}}
-                <label for="import_file"
-                       id="dropZone"
-                       class="group flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-[#FFC8FB] rounded-xl bg-white/70 hover:bg-white hover:border-[#FF92C2] cursor-pointer transition-all duration-200 mb-1">
-
-                    <div class="flex flex-col items-center pointer-events-none" id="dropContent">
-                        <div class="w-10 h-10 bg-[#FFE6F0] rounded-full flex items-center justify-center mb-2 group-hover:bg-[#FF92C2]/20 transition-colors">
-                            <i class="fas fa-cloud-upload-alt text-[#FF92C2] text-lg"></i>
-                        </div>
-                        <p class="text-sm font-medium text-gray-700">Click to browse or drag & drop</p>
-                        <p class="text-xs text-gray-400 mt-0.5">.xlsx or .xls — max 5 MB</p>
-                    </div>
-
-                    <div class="hidden flex-col items-center pointer-events-none" id="fileSelectedContent">
-                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mb-2">
-                            <i class="fas fa-file-excel text-green-500 text-lg"></i>
-                        </div>
-                        <p class="text-sm font-semibold text-gray-800 max-w-xs truncate" id="fileName">—</p>
-                        <p class="text-xs text-gray-400 mt-0.5">Click to change</p>
-                    </div>
-
-                    <input type="file" name="import_file" id="import_file" class="sr-only" accept=".xlsx,.xls">
-                </label>
-
-                @error('import_file')
-                    <p class="text-xs text-red-500 mb-2 mt-1">{{ $message }}</p>
-                @enderror
-
-                {{-- Instructions --}}
-                <div class="bg-white/60 rounded-xl p-3 my-4 text-xs text-gray-600 space-y-1.5 border border-[#FFC8FB]/40">
-                    <p><i class="fas fa-info-circle text-[#FF92C2] mr-1"></i>Column A = <span class="font-semibold">student_number</span> (required, starts at row 9).</p>
-                    <p><i class="fas fa-info-circle text-[#FF92C2] mr-1"></i>Column B = year_level (optional: 1, 2, 3, or 4).</p>
-                    <p><i class="fas fa-info-circle text-[#FF92C2] mr-1"></i>Students already in this section are skipped.</p>
-                    <p><i class="fas fa-info-circle text-[#FF92C2] mr-1"></i>
-                        Not sure what student_numbers to use? Check
-                        <a href="{{ route('admin.student.index') }}" target="_blank" class="text-[#FF92C2] underline font-medium">Students list</a>.
-                    </p>
-                </div>
-
-                {{-- Buttons --}}
-                <div class="flex flex-col sm:flex-row gap-2">
-                    <button type="submit"
-                            id="submitBtn"
-                            class="flex-1 px-5 py-2.5 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-lg hover:from-pink-600 hover:to-pink-700 transition flex items-center justify-center font-medium text-sm shadow-md">
-                        <i class="fas fa-cloud-upload-alt mr-2"></i>Import Now
-                    </button>
-                    <a href="{{ route('admin.sections.import.template') }}"
-                       class="flex-1 px-5 py-2.5 bg-white border border-[#FF92C2] text-[#FF92C2] rounded-lg hover:bg-[#FFF0FA] transition flex items-center justify-center font-medium text-sm shadow-sm">
-                        <i class="fas fa-download mr-2"></i>Get Template
-                    </a>
-                    <button type="button"
-                            onclick="closeImportModal()"
-                            class="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition text-sm font-medium">
-                        Cancel
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        // Re-open modal if Laravel redirected back with validation errors
-        @if ($errors->has('import_file'))
-            document.getElementById('importModal').classList.remove('hidden');
-        @endif
-
-        function closeImportModal() {
-            document.getElementById('importModal').classList.add('hidden');
-        }
-
-        const input        = document.getElementById('import_file');
-        const defaultView  = document.getElementById('dropContent');
-        const selectedView = document.getElementById('fileSelectedContent');
-        const fileNameEl   = document.getElementById('fileName');
-        const dropZone     = document.getElementById('dropZone');
-        const submitBtn    = document.getElementById('submitBtn');
-
-        function showFile(file) {
-            fileNameEl.textContent = file.name;
-            defaultView.classList.add('hidden');
-            defaultView.classList.remove('flex');
-            selectedView.classList.remove('hidden');
-            selectedView.classList.add('flex');
-        }
-
-        input.addEventListener('change', function () {
-            if (this.files.length > 0) showFile(this.files[0]);
-        });
-
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('border-[#FF92C2]', 'bg-white');
-        });
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('border-[#FF92C2]', 'bg-white');
-        });
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-[#FF92C2]', 'bg-white');
-            const file = e.dataTransfer.files[0];
-            if (file) {
-                const dt = new DataTransfer();
-                dt.items.add(file);
-                input.files = dt.files;
-                showFile(file);
-            }
-        });
-
-        document.getElementById('importForm').addEventListener('submit', function () {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>Importing...';
-        });
-    </script>
-
 </x-app-layout>

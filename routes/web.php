@@ -161,9 +161,16 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     //Section Management
     Route::get('sections/import/template', [SectionImportController::class, 'downloadTemplate'])
-        ->name('sections.import.template');
+    ->name('sections.import.template');
+ 
+    Route::get('sections/{section}/import', function (\App\Models\Section $section) {
+        $section->load('students');
+        return view('admin.sections.import', compact('section'));
+    })->name('sections.import.form');
+    
     Route::post('sections/{section}/import', [SectionImportController::class, 'import'])
         ->name('sections.import.store');
+    
     Route::resource('sections', SectionController::class);
 
 

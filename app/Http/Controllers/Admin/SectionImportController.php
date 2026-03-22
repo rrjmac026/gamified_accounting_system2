@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Section;
 use App\Models\Student;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class SectionImportController extends Controller
 {
@@ -16,7 +14,16 @@ class SectionImportController extends Controller
         $path = public_path('templates/student_section_import_template.xlsx');
 
         if (! file_exists($path)) {
-            return back()->with('import_error', 'Template file not found. Please contact the administrator.');
+            // Fall back to a simple CSV if xlsx template is missing
+            return response()->streamDownload(function () {
+                $handle = fopen('php://output', 'w');
+                fputcsv($handle, ['student_number']);
+                fputcsv($handle, ['2024-00001']);
+                fputcsv($handle, ['2024-00002']);
+                fclose($handle);
+            }, 'student_section_import_template.csv', [
+                'Content-Type' => 'text/csv',
+            ]);
         }
 
         return response()->download($path, 'student_section_import_template.xlsx');
@@ -25,126 +32,144 @@ class SectionImportController extends Controller
     public function import(Request $request, Section $section)
     {
         $request->validate([
-            'import_file' => 'required|file|mimes:xlsx,xls|max:5120',
+            'import_file' => 'required|file|mimes:xlsx,xls,csv,txt|max:5120',
         ]);
 
-        Log::info('SectionImport - STARTED for section: ' . $section->section_code . ' (ID: ' . $section->id . ')');
+        $file      = $request->file('import_file');
+        $extension = strtolower($file->getClientOriginalExtension());
+        $rows      = [];
 
-        try {
-            $spreadsheet = IOFactory::load($request->file('import_file')->getRealPath());
-        } catch (\Exception $e) {
-            Log::error('SectionImport - File load failed: ' . $e->getMessage());
-            return back()->with('import_error', 'Could not read the file: ' . $e->getMessage());
+        // ── Parse file ────────────────────────────────────────────────────────
+        if (in_array($extension, ['xlsx', 'xls'])) {
+            try {
+                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getPathname());
+                $rows        = $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
+            } catch (\Exception $e) {
+                return back()->with('import_error', 'Could not read the file: ' . $e->getMessage());
+            }
+        } else {
+            if (($handle = fopen($file->getPathname(), 'r')) !== false) {
+                while (($row = fgetcsv($handle)) !== false) {
+                    $rows[] = $row;
+                }
+                fclose($handle);
+            }
         }
 
-        $sheet = $spreadsheet->getActiveSheet();
-        $rows  = $sheet->toArray(null, true, true, true);
+        if (empty($rows)) {
+            return back()->with('import_error', 'No data found in the uploaded file.');
+        }
 
-        Log::info('SectionImport - Total rows in sheet: ' . count($rows));
+        // ── Detect header row ─────────────────────────────────────────────────
+        $dataStartIndex = null;
+        $colStudentNo   = null;
+        $colEmail       = null;
 
-        // ── Auto-detect the header row ────────────────────────────────────────
-        // Find the row where column A contains "student_number" (case-insensitive)
-        // If no header found, assume data starts at row 1 (plain file with no header)
-        $dataStartRow = 1;
-        foreach ($rows as $rowIndex => $row) {
-            $cellA = strtolower(trim((string)($row['A'] ?? '')));
-            if ($cellA === 'student_number') {
-                $dataStartRow = $rowIndex + 1; // data is the row after the header
-                Log::info("SectionImport - Header found at row {$rowIndex}, data starts at row {$dataStartRow}");
+        foreach ($rows as $i => $row) {
+            $colStudentFound = null;
+            $colEmailFound   = null;
+
+            foreach ($row as $colIdx => $cell) {
+                $val = strtolower(trim((string)($cell ?? '')));
+                if ($val === 'student number' || $val === 'student_number') {
+                    $colStudentFound = $colIdx;
+                }
+                if (str_contains($val, 'email')) {
+                    $colEmailFound = $colIdx;
+                }
+            }
+
+            if ($colStudentFound !== null) {
+                $colStudentNo   = $colStudentFound;
+                $colEmail       = $colEmailFound;
+                $dataStartIndex = $i + 1;
+                break;
+            }
+
+            $col0 = strtolower(trim((string)($row[0] ?? '')));
+            if (in_array($col0, ['student_number', 'student number'])) {
+                $colStudentNo   = 0;
+                $colEmail       = 1;
+                $dataStartIndex = $i + 1;
                 break;
             }
         }
 
-        Log::info("SectionImport - Data start row: {$dataStartRow}");
-
-        // Log first 5 data rows for debugging
-        $preview = [];
-        foreach ($rows as $rowIndex => $row) {
-            if ($rowIndex < $dataStartRow) continue;
-            $val = trim((string)($row['A'] ?? ''));
-            if ($val === '') continue;
-            $preview[] = "Row {$rowIndex}: '{$val}'";
-            if (count($preview) >= 5) break;
+        if ($dataStartIndex === null) {
+            $dataStartIndex = 0;
+            $colStudentNo   = 0;
+            $colEmail       = 1;
         }
-        Log::info('SectionImport - First data rows: ' . (empty($preview) ? 'NONE FOUND' : implode(', ', $preview)));
 
-        $imported = 0;
-        $skipped  = 0;
-        $errors   = [];
+        // ── Process rows ──────────────────────────────────────────────────────
+        $imported  = 0;
+        $skipped   = 0;
+        $errors    = [];
+        $remaining = $section->capacity
+            ? ($section->capacity - $section->students()->count())
+            : PHP_INT_MAX;
 
-        foreach ($rows as $rowIndex => $row) {
-            if ($rowIndex < $dataStartRow) continue;
+        $skipPhrases = ['fill either', 'color guide', 'blue =', 'instructions:'];
 
-            $studentNumber = trim((string)($row['A'] ?? ''));
-            if ($studentNumber === '') continue;
+        foreach ($rows as $index => $row) {
+            if ($index < $dataStartIndex) continue;
 
-            $yearLevel = trim((string)($row['B'] ?? ''));
+            $studentNumber = trim((string)($row[$colStudentNo] ?? ''));
+            $email         = $colEmail !== null ? trim((string)($row[$colEmail] ?? '')) : '';
 
-            Log::info("SectionImport - Processing row {$rowIndex}: student_number='{$studentNumber}'");
+            if ($studentNumber === '' && $email === '') continue;
 
-            // ── Look up student ───────────────────────────────────────────
-            $student = Student::where('student_number', $studentNumber)->first();
+            $snLower = strtolower($studentNumber);
+            $skip    = false;
+            foreach ($skipPhrases as $phrase) {
+                if (str_contains($snLower, $phrase)) { $skip = true; break; }
+            }
+            if ($skip) continue;
 
-            if (! $student) {
-                $msg = "Row {$rowIndex}: Student number '{$studentNumber}' not found in the system.";
-                $errors[] = $msg;
-                Log::warning('SectionImport - ' . $msg);
+            if (is_numeric($studentNumber) && $email === '') continue;
+
+            $student = null;
+            $tried   = [];
+
+            if ($studentNumber !== '') {
+                $tried[]  = $studentNumber;
+                $student  = Student::where('student_number', $studentNumber)->first();
+            }
+            if (!$student && $email !== '') {
+                $tried[] = $email;
+                $student = Student::where('student_number', $email)
+                    ->orWhereHas('user', fn($q) => $q->where('email', $email))
+                    ->first();
+            }
+
+            if (!$student) {
+                $errors[] = "Row " . ($index + 1) . ": Student '" . implode("' / '", $tried) . "' not found in the system.";
                 $skipped++;
                 continue;
             }
 
-            // ── Capacity check ────────────────────────────────────────────
-            if ($section->capacity) {
-                $currentCount = $section->students()->count();
-                if ($currentCount >= $section->capacity) {
-                    $msg = "Section is full (capacity: {$section->capacity}). '{$studentNumber}' and remaining rows were skipped.";
-                    $errors[] = $msg;
-                    Log::warning('SectionImport - ' . $msg);
-                    $skipped++;
-                    break;
-                }
-            }
-
-            // ── Duplicate check ───────────────────────────────────────────
-            if ($section->students()->where('students.id', $student->id)->exists()) {
-                $msg = "Row {$rowIndex}: '{$studentNumber}' is already in this section (skipped).";
-                $errors[] = $msg;
-                Log::info('SectionImport - ' . $msg);
+            if ($section->students()->where('student_id', $student->id)->exists()) {
+                $errors[] = "Row " . ($index + 1) . ": '{$student->user->name}' is already in this section.";
                 $skipped++;
                 continue;
             }
 
-            // ── Attach to section ─────────────────────────────────────────
-            try {
-                $section->students()->attach($student->id);
-                Log::info("SectionImport - SUCCESS: attached {$studentNumber} (student ID: {$student->id}) to section {$section->section_code}");
-            } catch (\Exception $e) {
-                $msg = "Row {$rowIndex}: Database error attaching '{$studentNumber}': " . $e->getMessage();
-                $errors[] = $msg;
-                Log::error('SectionImport - ' . $msg);
+            if ($imported >= $remaining) {
+                $errors[] = "Section capacity reached. Remaining rows were skipped.";
                 $skipped++;
-                continue;
+                break;
             }
 
-            // ── Update year_level if provided ─────────────────────────────
-            if ($yearLevel !== '' && in_array((int) $yearLevel, [1, 2, 3, 4])) {
-                $student->update(['year_level' => (int) $yearLevel]);
-            }
-
+            $section->students()->attach($student->id);
             $imported++;
-        }
-
-        Log::info("SectionImport - DONE: {$imported} imported, {$skipped} skipped.");
-
-        if ($imported === 0 && $skipped === 0) {
-            $message = "No student numbers found in the file. Make sure column A contains student numbers (e.g. S82582294).";
-        } else {
-            $message = "Import complete: {$imported} student(s) added, {$skipped} skipped.";
         }
 
         return redirect()
             ->route('admin.sections.show', $section)
-            ->with('success', $message)
+            ->with('import_success', [
+                'imported' => $imported,
+                'skipped'  => $skipped,
+            ])
             ->with('import_errors', $errors);
     }
 }

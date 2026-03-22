@@ -11,6 +11,7 @@
             </a>
         </div>
     </div>
+    
 
     {{-- Enhanced Search Form --}}
     <div class="px-4 sm:px-8 mt-8">
