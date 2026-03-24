@@ -813,21 +813,32 @@ class StudentPerformanceTaskController extends Controller
 
         if (!is_array($studentData) || !is_array($correctData)) {
             \Log::error('Invalid data format in checkAnswersWithErrors', [
-                'student_is_array' => is_array($studentData),
-                'correct_is_array' => is_array($correctData),
+                'student_type' => gettype($studentData),
+                'correct_type' => gettype($correctData),
             ]);
             return ['errorCount' => 999, 'totalCells' => 1];
         }
 
+        // ── Log full structure for debugging ────────────────────────────────────
+        \Log::info("checkAnswersWithErrors Step {$step}", [
+            'student_row_count' => count($studentData),
+            'correct_row_count' => count($correctData),
+            'student_sample'    => array_slice($studentData, 0, 3),
+            'correct_sample'    => array_slice($correctData, 0, 3),
+        ]);
+
+        // ── Count non-empty cells on both sides ─────────────────────────────────
         $studentCellCount = 0;
         $correctCellCount = 0;
 
         foreach ($studentData as $row) {
+            if (!is_array($row)) continue;
             foreach ($row as $cell) {
                 if ($this->normalizeValue($cell) !== '') $studentCellCount++;
             }
         }
         foreach ($correctData as $row) {
+            if (!is_array($row)) continue;
             foreach ($row as $cell) {
                 if ($this->normalizeValue($cell) !== '') $correctCellCount++;
             }
@@ -840,38 +851,64 @@ class StudentPerformanceTaskController extends Controller
         ]);
 
         if ($studentCellCount !== $correctCellCount) {
-            \Log::warning("Cell count mismatch - automatic fail", [
+            \Log::warning("Cell count mismatch — automatic fail", [
                 'step'       => $step,
                 'expected'   => $correctCellCount,
                 'got'        => $studentCellCount,
                 'difference' => abs($studentCellCount - $correctCellCount),
             ]);
-            return ['errorCount' => 999999, 'totalCells' => max($correctCellCount, 1), 'cellCountMismatch' => true];
+            return [
+                'errorCount'       => 999999,
+                'totalCells'       => max($correctCellCount, 1),
+                'cellCountMismatch' => true,
+            ];
         }
 
+        // ── Cell-by-cell comparison ──────────────────────────────────────────────
         $maxRows = max(count($studentData), count($correctData));
+
         for ($rowIndex = 0; $rowIndex < $maxRows; $rowIndex++) {
+            // Step 4: skip header rows (first 4)
             if ($step === 4 && $rowIndex < 4) continue;
-            $correctRow = $correctData[$rowIndex] ?? [];
-            $studentRow = $studentData[$rowIndex] ?? [];
-            $maxCols    = max(count($studentRow), count($correctRow));
+
+            $correctRow = isset($correctData[$rowIndex]) && is_array($correctData[$rowIndex])
+                ? $correctData[$rowIndex]
+                : [];
+            $studentRow = isset($studentData[$rowIndex]) && is_array($studentData[$rowIndex])
+                ? $studentData[$rowIndex]
+                : [];
+
+            $maxCols = max(count($studentRow), count($correctRow));
+
             for ($colIndex = 0; $colIndex < $maxCols; $colIndex++) {
-                $normalizedCorrect = $this->normalizeValue($correctRow[$colIndex] ?? null);
-                $normalizedStudent = $this->normalizeValue($studentRow[$colIndex] ?? null);
-                if ($normalizedCorrect !== '') {
-                    $totalCells++;
-                    if ($normalizedStudent !== $normalizedCorrect) {
-                        $errorCount++;
-                        if ($errorCount <= 5) {
-                            \Log::info("Mismatch at Row {$rowIndex}, Col {$colIndex}", [
-                                'student_normalized' => $normalizedStudent,
-                                'correct_normalized' => $normalizedCorrect,
-                            ]);
-                        }
-                    }
+                $correctRaw        = $correctRow[$colIndex] ?? null;
+                $studentRaw        = $studentRow[$colIndex] ?? null;
+                $normalizedCorrect = $this->normalizeValue($correctRaw);
+                $normalizedStudent = $this->normalizeValue($studentRaw);
+
+                // Only grade cells where the answer key has an expected value
+                if ($normalizedCorrect === '') continue;
+
+                $totalCells++;
+
+                if ($normalizedStudent !== $normalizedCorrect) {
+                    $errorCount++;
+                    \Log::info("Mismatch at Row {$rowIndex}, Col {$colIndex}", [
+                        'step'               => $step,
+                        'student_raw'        => $studentRaw,
+                        'correct_raw'        => $correctRaw,
+                        'student_normalized' => $normalizedStudent,
+                        'correct_normalized' => $normalizedCorrect,
+                    ]);
                 }
             }
         }
+
+        \Log::info("Grading result", [
+            'step'        => $step,
+            'errorCount'  => $errorCount,
+            'totalCells'  => $totalCells,
+        ]);
 
         return ['errorCount' => $errorCount, 'totalCells' => $totalCells];
     }
