@@ -1053,10 +1053,18 @@ class StudentPerformanceTaskController extends Controller
 
     private function normalizeValue($value)
     {
-        if ($value === null || $value === '' || $value === 0) return '';
-        $cleaned = preg_replace('/[,₱\s]/', '', (string) $value);
-        if (is_numeric($cleaned)) return number_format((float) $cleaned, 2, '.', '');
-        return strtolower(trim((string) $value));
+        // Treat only null and empty string as "no answer"
+        // Do NOT treat 0 as empty — zero is a valid accounting value
+        if ($value === null || $value === '') return '';
+
+        $str     = (string) $value;
+        $cleaned = preg_replace('/[,₱\s]/', '', $str);
+
+        if (is_numeric($cleaned)) {
+            return number_format((float) $cleaned, 2, '.', '');
+        }
+
+        return strtolower(trim($str));
     }
 
     private function syncSubmissionToPivot($studentId, $taskId, $step, $submission)
