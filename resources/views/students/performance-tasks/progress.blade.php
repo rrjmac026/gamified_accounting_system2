@@ -152,7 +152,11 @@
                                     <div class="flex items-center justify-between">
                                         <span class="text-xs font-medium text-gray-600">Score:</span>
                                         <span class="text-sm font-bold {{ $stepSubmission->status === 'correct' ? 'text-green-700' : ($stepSubmission->status === 'passed' ? 'text-blue-700' : 'text-orange-700') }}">
-                                            {{ number_format($stepSubmission->score, 2) }} / {{ number_format($maxScorePerStep, 2) }}
+                                            @if($stepSubmission->attempts >= 2)
+                                                {{ number_format($stepSubmission->score, 2) }} / {{ number_format($maxScorePerStep, 2) }}
+                                            @else
+                                                Submitted
+                                            @endif
                                         </span>
                                     </div>
                                     <div class="flex items-center justify-between mt-1">

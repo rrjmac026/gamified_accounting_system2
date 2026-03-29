@@ -28,7 +28,7 @@
                     @php
                         // A task is "completed" if all 10 steps have been submitted (any status)
                         // OR if the pivot status is graded/completed
-                        $isFullyAnswered = ($task->progress ?? 0) >= 10;
+                        $isFullyAnswered = ($task->progress ?? 0) >= ($task->totalSteps ?? 10);
                         $isGradedOrCompleted = in_array($task->status, ['graded', 'completed']);
                         $showAsCompleted = $isGradedOrCompleted || $isFullyAnswered;
                     @endphp

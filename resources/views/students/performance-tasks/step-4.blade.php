@@ -197,7 +197,7 @@
                             </div>
                             @endif
 
-                            @if(isset($submission->score))
+                            @if(isset($submission->score) && ($submission->attempts ?? 0) >= 2)
                             <div class="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
                                 <div class="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
                                     <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
@@ -206,7 +206,7 @@
                                 </div>
                                 <div>
                                     <p class="text-xs text-purple-600 font-medium">Score</p>
-                                    <p class="text-lg font-bold text-purple-900">{{ $submission->score }}%</p>
+                                     <p class="text-lg font-bold text-purple-900">{{ number_format($submission->score, 2) }} pts</p>
                                 </div>
                             </div>
                             @endif
