@@ -269,6 +269,8 @@
                                 </svg>
                                 Back
                             </button>
+                            <x-step-history-button :performanceTask="$performanceTask" :step="$step" :submission="$submission" />
+                            <button type="submit" id="submitButton"
 
                             <button type="submit" id="submitButton"
                                 class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:from-cyan-700 hover:to-blue-700 focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 transition-all text-sm font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"

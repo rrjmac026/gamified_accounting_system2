@@ -161,13 +161,15 @@
                         <!-- Action Buttons -->
                         <div class="p-4 sm:p-6 bg-gray-50 border-t border-gray-200">
                             <div class="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-                                <button type="button" onclick="window.history.back()" 
+                                <button type="button" onclick="window.history.back()"
                                     class="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 bg-white text-gray-700 border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all text-sm font-medium">
                                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                                     </svg>
                                     Back
                                 </button>
+                                <x-step-history-button :performanceTask="$performanceTask" :step="$step" :submission="$submission" />
+                                <button type="submit" id="submitButton"
                                 <button type="submit" 
                                     class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all text-sm font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                     {{ ($submission->attempts ?? 0) >= $performanceTask->max_attempts ? 'disabled' : '' }}>
