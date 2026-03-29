@@ -223,51 +223,49 @@ class StudentPerformanceTaskController extends Controller
     public function saveStep(Request $request, $id, $step)
     {
         $user = auth()->user();
-
+ 
         $task = PerformanceTask::where('id', $id)
             ->whereHas('section.students', function ($query) use ($user) {
                 $query->where('student_id', $user->student->id);
             })
             ->first();
-
+ 
         if (!$task) {
             return back()->with('error', 'Performance task not found or not assigned to you.');
         }
-
+ 
         if (!$task->isStepEnabled((int) $step)) {
             return back()->with('error', "Step {$step} is not part of this task.");
         }
-
+ 
         $deadlineStatus = $this->getDeadlineStatus($task);
         if ($deadlineStatus['canSubmit'] === false) {
             return back()->with('error', $deadlineStatus['message']);
         }
-
+ 
         try {
-            $hasExercises = PerformanceTaskExercise::where([
-                'performance_task_id' => $id,
-                'step'                => $step,
-            ])->exists();
-
             $validated = $request->validate([
                 'submission_data' => 'required|string',
                 'exercise_id'     => 'nullable|integer',
             ]);
-
-            // ── Fetch existing submission first ──────────────────────────────────
+ 
+            // ── Fetch or create the submission record ────────────────────────
             $submission = PerformanceTaskSubmission::where([
                 'task_id'    => $task->id,
                 'student_id' => $user->student->id,
                 'step'       => $step,
             ])->first();
-
+ 
             if ($submission && $submission->attempts >= $task->max_attempts) {
-                return back()->with('error', "You have reached the maximum of {$task->max_attempts} attempts for this step. Your current score is {$submission->score}.");
+                return back()->with('error',
+                    "You have reached the maximum of {$task->max_attempts} attempts for this step. "
+                    . "Your current score is {$submission->score}."
+                );
             }
-
-            $previousStatus = $submission ? $submission->status : null;
-            $previousScore  = $submission ? $submission->score  : 0;
-
+ 
+            $previousStatus = $submission?->status;
+            $previousScore  = $submission?->score ?? 0;
+ 
             if (!$submission) {
                 $submission = new PerformanceTaskSubmission([
                     'task_id'    => $task->id,
@@ -276,222 +274,311 @@ class StudentPerformanceTaskController extends Controller
                     'attempts'   => 0,
                 ]);
             }
-
-            // ── Resolve exercise_id ──────────────────────────────────────────────
-            $exerciseId = $validated['exercise_id'] ?? null;
-
-            if (!$exerciseId && $hasExercises) {
-                // Auto-assign: reuse the one already on the submission, or pick order=1
-                $exerciseId = $submission->exercise_id
-                    ?? PerformanceTaskExercise::where([
-                        'performance_task_id' => $id,
-                        'step'                => $step,
-                        'order'               => 1,
-                    ])->value('id');
+ 
+            // ── Resolve which exercise to use as the answer key ──────────────
+            //
+            // Priority:
+            //   1. The exercise already locked to this submission (retry case)
+            //   2. The exercise_id explicitly submitted by the blade form
+            //   3. The instructor's answer-key exercise (order = 1) for this step
+            //   4. Legacy PerformanceTaskAnswerSheet (fallback for old tasks)
+            //
+            // IMPORTANT: we distinguish "student exercises" (order > 1, variants
+            // shown to students) from "answer-key exercises" (order = 1, saved
+            // by the instructor via the answer-sheet editor).  Both live in the
+            // same table; order = 1 is always the answer key.
+ 
+            $resolvedExercise    = null;
+            $legacyAnswerSheet   = null;
+            $resolvedExerciseId  = null;
+ 
+            // Step 1 – reuse locked exercise from a previous attempt
+            if ($submission->exercise_id) {
+                $resolvedExercise   = PerformanceTaskExercise::find($submission->exercise_id);
+                $resolvedExerciseId = $submission->exercise_id;
             }
-
-            if ($exerciseId) {
-                $submission->exercise_id = $exerciseId;
+ 
+            // Step 2 – blade sent an explicit exercise_id (student was shown a
+            //          specific variant exercise)
+            if (!$resolvedExercise && !empty($validated['exercise_id'])) {
+                $resolvedExercise   = PerformanceTaskExercise::find($validated['exercise_id']);
+                $resolvedExerciseId = $validated['exercise_id'];
             }
-
-            // ── Decode student data ──────────────────────────────────────────────
-            $studentData  = $validated['submission_data'];
-            $decodedData  = json_decode($studentData, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                return back()->with('error', 'Invalid submission data format.');
+ 
+            // Step 3 – fall back to the instructor answer-key exercise (order=1)
+            if (!$resolvedExercise) {
+                $resolvedExercise = PerformanceTaskExercise::where([
+                    'performance_task_id' => $task->id,
+                    'step'                => $step,
+                    'order'               => 1,
+                ])->first();
+                $resolvedExerciseId = $resolvedExercise?->id;
             }
-
-            $studentDataArray = isset($decodedData['data'], $decodedData['metadata'])
-                ? $decodedData['data']
-                : $decodedData;
-
-            $submission->submission_data = $studentData;
-            $submission->attempts        = $submission->attempts + 1;
-            $currentAttempt              = $submission->attempts;
-
-            // ── Resolve answer key ───────────────────────────────────────────────
-            $correctDataRaw = null;
-
-            if ($exerciseId) {
-                $exercise = PerformanceTaskExercise::find($exerciseId);
-                if ($exercise && $exercise->correct_data) {
-                    $correctDataRaw = is_string($exercise->correct_data)
-                        ? json_decode($exercise->correct_data, true)
-                        : $exercise->correct_data;
-                    \Log::info("Step {$step} - Using exercise #{$exerciseId} ({$exercise->title}) as answer key");
-                }
-            }
-
-            if (!$correctDataRaw && !$hasExercises) {
-                $answerSheet = PerformanceTaskAnswerSheet::where([
+ 
+            // Step 4 – legacy fallback (tasks created before exercise system)
+            if (!$resolvedExercise) {
+                $legacyAnswerSheet = PerformanceTaskAnswerSheet::where([
                     'performance_task_id' => $task->id,
                     'step'                => $step,
                 ])->first();
-
-                if ($answerSheet && $answerSheet->correct_data) {
-                    $correctDataRaw = is_string($answerSheet->correct_data)
-                        ? json_decode($answerSheet->correct_data, true)
-                        : $answerSheet->correct_data;
-                    \Log::info("Step {$step} - Legacy fallback: no exercises exist for this step");
-                }
             }
-
-            // ── Grade ────────────────────────────────────────────────────────────
-            $awardXp         = false;
-            $errorCount      = 0;
-            $totalCells      = 0;
-            $maxScorePerStep = $task->max_score / count($task->enabled_steps_list);
-
+ 
+            // Lock the exercise onto the submission so retries use the same key
+            if ($resolvedExerciseId) {
+                $submission->exercise_id = $resolvedExerciseId;
+            }
+ 
+            // ── Decode student submission data ───────────────────────────────
+            $studentDataRaw = $validated['submission_data'];
+            $decodedStudent = json_decode($studentDataRaw, true);
+ 
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return back()->with('error', 'Invalid submission data format.');
+            }
+ 
+            // Unwrap {data, metadata} envelope if present
+            $studentDataArray = (isset($decodedStudent['data']) && isset($decodedStudent['metadata']))
+                ? $decodedStudent['data']
+                : $decodedStudent;
+ 
+            $submission->submission_data = $studentDataRaw;
+            $submission->attempts        = $submission->attempts + 1;
+            $currentAttempt              = $submission->attempts;
+ 
+            // ── Extract correct_data from whichever source we resolved ───────
+            $correctDataRaw = null;
+ 
+            if ($resolvedExercise && $resolvedExercise->correct_data) {
+                $correctDataRaw = is_string($resolvedExercise->correct_data)
+                    ? json_decode($resolvedExercise->correct_data, true)
+                    : $resolvedExercise->correct_data;
+ 
+                \Log::info("Step {$step} — answer key from exercise #{$resolvedExerciseId} ({$resolvedExercise->title})");
+            } elseif ($legacyAnswerSheet && $legacyAnswerSheet->correct_data) {
+                $correctDataRaw = is_string($legacyAnswerSheet->correct_data)
+                    ? json_decode($legacyAnswerSheet->correct_data, true)
+                    : $legacyAnswerSheet->correct_data;
+ 
+                \Log::info("Step {$step} — answer key from legacy PerformanceTaskAnswerSheet");
+            } else {
+                \Log::warning("Step {$step} — NO answer key found. Submission saved as in-progress.");
+            }
+ 
+            // ── Grade the submission ─────────────────────────────────────────
+            $enabledStepsCount = count($task->enabled_steps_list);
+            $maxScorePerStep   = $task->max_score / $enabledStepsCount;
+            $awardXp           = false;
+ 
             if ($correctDataRaw) {
+                // Unwrap {data, ...} envelope on the answer key too
                 $correctData = (is_array($correctDataRaw) && isset($correctDataRaw['data']))
                     ? $correctDataRaw['data']
                     : $correctDataRaw;
-
-                \Log::info("Step {$step} - Data sample comparison", [
+ 
+                \Log::info("Step {$step} — grading comparison sample", [
                     'student_row_0' => $studentDataArray[0] ?? 'missing',
                     'correct_row_0' => $correctData[0]      ?? 'missing',
                 ]);
-
-                $errorDetails = $this->checkAnswersWithErrors($studentDataArray, $correctData, $step);
-                $errorCount   = $errorDetails['errorCount'];
-                $totalCells   = $errorDetails['totalCells'];
-
-                if (isset($errorDetails['cellCountMismatch']) && $errorDetails['cellCountMismatch']) {
+ 
+                $gradeResult = $this->checkAnswersWithErrors($studentDataArray, $correctData, $step);
+                $errorCount  = $gradeResult['errorCount'];
+                $totalCells  = $gradeResult['totalCells'];
+ 
+                // ── Cell-count mismatch → automatic fail ──────────────────────
+                if (!empty($gradeResult['cellCountMismatch'])) {
                     $submission->status = 'wrong';
                     $submission->score  = 0;
-
-                    $remainingAttempts = $task->max_attempts - $currentAttempt;
-                    $attemptInfo       = $remainingAttempts > 0
-                        ? " You have {$remainingAttempts} attempt(s) remaining."
+ 
+                    $remaining = $task->max_attempts - $currentAttempt;
+                    $attemptInfo = $remaining > 0
+                        ? " You have {$remaining} attempt(s) remaining."
                         : " No attempts remaining.";
-
-                    $submission->remarks = ($deadlineStatus['isLate'] ? "(Late submission) " : "")
-                        . "Wrong number of entries detected. Your submission has extra or missing data. Score: 0/{$maxScorePerStep}.{$attemptInfo}";
-
+ 
+                    $submission->remarks =
+                        ($deadlineStatus['isLate'] ? "(Late) " : "")
+                        . "Wrong number of entries detected — extra or missing data. "
+                        . "Score: 0/{$maxScorePerStep}.{$attemptInfo}";
+ 
                     $awardXp = false;
-
+ 
                 } else {
-                    $wrongAttemptsBefore = $currentAttempt > 1 ? ($currentAttempt - 1) : 0;
-                    $cumulativePenalty   = $wrongAttemptsBefore * $task->deduction_per_error;
-                    $isPerfect           = ($errorCount === 0);
-                    $calculatedScore     = max(0, $maxScorePerStep - $cumulativePenalty);
-                    $passingScore        = $calculatedScore * 0.7;
-
+                    // ── Normal scoring ────────────────────────────────────────
+                    //
+                    // Penalty accrues from ALL previous wrong attempts, not just
+                    // (attempt - 1).  We count how many prior attempts were wrong
+                    // by looking at the submission history if available; otherwise
+                    // we use (currentAttempt - 1) as a conservative upper bound.
+                    $previousWrongAttempts = max(0, $currentAttempt - 1);
+ 
+                    // Penalty already baked in from past attempts
+                    $cumulativePenalty = $previousWrongAttempts * $task->deduction_per_error;
+ 
+                    // Per-error deduction for THIS attempt's mistakes
+                    $errorPenalty = $errorCount * $task->deduction_per_error;
+ 
+                    // Final score = max possible after attempt penalties − errors on this attempt
+                    $calculatedScore = max(0, $maxScorePerStep - $cumulativePenalty - $errorPenalty);
+                    $passingThreshold = $maxScorePerStep * 0.70;
+ 
+                    \Log::info("Step {$step} grading detail", [
+                        'errorCount'         => $errorCount,
+                        'totalCells'         => $totalCells,
+                        'maxScorePerStep'    => $maxScorePerStep,
+                        'cumulativePenalty'  => $cumulativePenalty,
+                        'errorPenalty'       => $errorPenalty,
+                        'calculatedScore'    => $calculatedScore,
+                        'passingThreshold'   => $passingThreshold,
+                    ]);
+ 
                     $submission->score = round($calculatedScore, 2);
-
-                    if ($isPerfect && $calculatedScore > 0) {
-                        $submission->status  = 'correct';
-                        $awardXp             = ($previousStatus !== 'correct');
-                        $deductionInfo       = $cumulativePenalty > 0 ? " (-{$cumulativePenalty} penalty from previous attempts)" : "";
-                        $submission->remarks = ($deadlineStatus['isLate'] ? "(Late submission) " : "")
-                            . "Perfect! {$calculatedScore}/{$maxScorePerStep} points{$deductionInfo}";
-
-                    } elseif ($calculatedScore >= $passingScore && $calculatedScore > 0) {
-                        $submission->status  = 'passed';
-                        $awardXp             = ($previousStatus !== 'correct' && $previousStatus !== 'passed');
-                        $deductionInfo       = $cumulativePenalty > 0 ? " (-{$cumulativePenalty} penalty from previous attempts)" : "";
-                        $submission->remarks = ($deadlineStatus['isLate'] ? "(Late submission) " : "")
-                            . "Good job! {$calculatedScore}/{$maxScorePerStep} points{$deductionInfo}. {$errorCount} error(s) found.";
-
-                    } else {
-                        $submission->status = 'wrong';
-                        $awardXp            = false;
-
-                        $remainingAttempts = $task->max_attempts - $currentAttempt;
-                        $attemptInfo       = $remainingAttempts > 0
-                            ? " You have {$remainingAttempts} attempt(s) remaining."
-                            : " No attempts remaining.";
-                        $futureMaxScore    = max(0, $maxScorePerStep - ($currentAttempt * $task->deduction_per_error));
-                        $penaltyWarning    = ($remainingAttempts > 0 && $futureMaxScore > 0)
-                            ? " Next attempt max score: {$futureMaxScore}/{$maxScorePerStep}."
+ 
+                    if ($errorCount === 0) {
+                        // ── Perfect ───────────────────────────────────────────
+                        $submission->status = 'correct';
+                        $awardXp = ($previousStatus !== 'correct');
+ 
+                        $penaltyNote = $cumulativePenalty > 0
+                            ? " (-{$cumulativePenalty} penalty from previous attempts)"
                             : "";
-
-                        $submission->remarks = ($deadlineStatus['isLate'] ? "(Late submission) " : "")
-                            . "Score: {$calculatedScore}/{$maxScorePerStep}. {$errorCount} error(s) found.{$attemptInfo}{$penaltyWarning}";
+ 
+                        $submission->remarks =
+                            ($deadlineStatus['isLate'] ? "(Late) " : "")
+                            . "Perfect! Score: {$calculatedScore}/{$maxScorePerStep}{$penaltyNote}";
+ 
+                    } elseif ($calculatedScore >= $passingThreshold) {
+                        // ── Has errors but score is still ≥ 70 % ─────────────
+                        $submission->status = 'passed';
+                        $awardXp = !in_array($previousStatus, ['correct', 'passed']);
+ 
+                        $penaltyNote = $cumulativePenalty > 0
+                            ? " (-{$cumulativePenalty} previous penalty)"
+                            : "";
+ 
+                        $remaining = $task->max_attempts - $currentAttempt;
+                        $retryHint = ($remaining > 0 && $submission->status !== 'correct')
+                            ? " You have {$remaining} attempt(s) left to improve."
+                            : "";
+ 
+                        $submission->remarks =
+                            ($deadlineStatus['isLate'] ? "(Late) " : "")
+                            . "Passed with {$errorCount} error(s). Score: {$calculatedScore}/{$maxScorePerStep}{$penaltyNote}.{$retryHint}";
+ 
+                    } else {
+                        // ── Wrong (score < 70 % or too many errors) ───────────
+                        $submission->status = 'wrong';
+                        $awardXp = false;
+ 
+                        $remaining     = $task->max_attempts - $currentAttempt;
+                        $attemptInfo   = $remaining > 0
+                            ? " You have {$remaining} attempt(s) remaining."
+                            : " No attempts remaining.";
+ 
+                        // Tell student what the NEXT attempt's max possible score is
+                        $nextMaxScore  = max(0, $maxScorePerStep - ($currentAttempt * $task->deduction_per_error));
+                        $penaltyWarning = ($remaining > 0 && $nextMaxScore > 0)
+                            ? " Next attempt max score: {$nextMaxScore}/{$maxScorePerStep}."
+                            : "";
+ 
+                        $submission->remarks =
+                            ($deadlineStatus['isLate'] ? "(Late) " : "")
+                            . "{$errorCount} error(s) found. Score: {$calculatedScore}/{$maxScorePerStep}.{$attemptInfo}{$penaltyWarning}";
                     }
                 }
-
+ 
             } else {
+                // No answer key found — save progress but don't grade
                 $submission->status  = 'in-progress';
                 $submission->score   = 0;
-                $submission->remarks = 'Answer key not found for this step.';
+                $submission->remarks = 'Answer key not set up yet for this step. Contact your instructor.';
+                $errorCount = 0;
+ 
+                \Log::warning("Step {$step} submission saved without grading — no answer key.");
             }
-
-            \Log::info("About to save submission", [
+ 
+            \Log::info("Saving submission", [
                 'step'            => $step,
                 'student_id'      => $user->student->id,
-                'exercise_id'     => $exerciseId,
+                'exercise_id'     => $resolvedExerciseId,
                 'previous_status' => $previousStatus,
                 'new_status'      => $submission->status,
                 'score'           => $submission->score,
-                'errors'          => $errorCount,
+                'errors'          => $errorCount ?? 0,
             ]);
-
+ 
             $saved = $submission->save();
-
             if (!$saved) {
                 \Log::error("Failed to save submission for student {$user->student->id}, step {$step}");
                 return back()->with('error', 'Failed to save your submission. Please try again.');
             }
-
+ 
             $submission->refresh();
-
+ 
             $this->logActivity('submitted performance task step', [
                 'student_id'  => $user->student->id ?? null,
                 'task_id'     => $task->id ?? null,
                 'step'        => $step,
-                'exercise_id' => $exerciseId,
+                'exercise_id' => $resolvedExerciseId,
                 'status'      => $submission->status ?? null,
                 'score'       => $submission->score  ?? null,
                 'attempts'    => $submission->attempts ?? null,
             ]);
-
-            $this->recordHistory($user->student->id, $task, $step, $submission, $deadlineStatus['isLate'], $errorCount);
+ 
+            $this->recordHistory($user->student->id, $task, $step, $submission, $deadlineStatus['isLate'], $errorCount ?? 0);
             $this->syncSubmissionToPivot($user->student->id, $task->id, $step, $submission);
-
+ 
             $enabledSteps    = $task->enabled_steps_list;
             $lastEnabledStep = end($enabledSteps);
-
+ 
             if ((int) $step === (int) $lastEnabledStep) {
                 $this->storeFinalGrade($user->student->id, $task);
             }
-
-            $this->logPerformance($user->student, $task, $step, $submission, $deadlineStatus['isLate'], $errorCount);
-
-            $totalEnabledSteps = count($task->enabled_steps_list);
+ 
+            $this->logPerformance($user->student, $task, $step, $submission, $deadlineStatus['isLate'], $errorCount ?? 0);
+ 
+            // ── Build success message ─────────────────────────────────────────
+            $totalEnabledSteps = count($enabledSteps);
             $remainingAttempts = $task->max_attempts - $currentAttempt;
-            $message = "Step {$step} submitted! (Attempt {$currentAttempt}/{$task->max_attempts}) - Score: {$submission->score}/{$maxScorePerStep}";
-
-            if ($previousScore > 0 && $submission->score < $previousScore)           $message .= " (⬇️ -" . round($previousScore - $submission->score, 2) . " from previous)";
-            if ($errorCount > 0)                                                      $message .= " | {$errorCount} error(s) detected";
-            if ($remainingAttempts > 0 && $submission->status === 'wrong')           $message .= " | {$remainingAttempts} attempt(s) remaining";
-            if ($remainingAttempts === 0 && $submission->status === 'wrong')         $message .= " | ⚠️ No attempts remaining for this step";
-            if ($deadlineStatus['isLate'])                                            $message .= " ⚠️ Late submission";
-
+            $message = "Step {$step} submitted! (Attempt {$currentAttempt}/{$task->max_attempts}) — Score: {$submission->score}/{$maxScorePerStep}";
+ 
+            if ($previousScore > 0 && $submission->score < $previousScore) {
+                $message .= " (⬇️ -" . round($previousScore - $submission->score, 2) . " from previous)";
+            }
+            if (!empty($errorCount) && $errorCount > 0) {
+                $message .= " | {$errorCount} error(s) detected";
+            }
+            if ($remainingAttempts > 0 && $submission->status === 'wrong') {
+                $message .= " | {$remainingAttempts} attempt(s) remaining";
+            }
+            if ($remainingAttempts === 0 && $submission->status === 'wrong') {
+                $message .= " | ⚠️ No attempts remaining for this step";
+            }
+            if ($deadlineStatus['isLate']) {
+                $message .= " ⚠️ Late submission";
+            }
+ 
             if ($awardXp && $submission->score > 0) {
                 $this->awardXpForStep($user->student, $task, $step, $deadlineStatus['isLate'], $submission->score, $maxScorePerStep, $totalEnabledSteps);
                 $xpEarned = $this->calculateStepXp($step, $deadlineStatus['isLate'], $submission->score, $maxScorePerStep, $task->xp_reward ?? 100, $totalEnabledSteps);
                 $message .= " 🎉 You earned {$xpEarned} XP!";
             }
-
+ 
             if ((int) $step === (int) $lastEnabledStep) {
                 if ($awardXp && $submission->score > 0) {
                     $this->awardCompletionBonus($user->student, $task);
                 }
                 $this->logTaskCompletion($user->student, $task);
-
+ 
                 return redirect()->route('students.performance-tasks.index')
-                    ->with('success', 'You have completed all steps! Final score: ' . $submission->score . '/' . $maxScorePerStep);
+                    ->with('success', "You have completed all steps! Final score: {$submission->score}/{$maxScorePerStep}");
             }
-
+ 
             $nextStep = collect($enabledSteps)->first(fn($s) => $s > (int) $step);
-
+ 
             return redirect()->route('students.performance-tasks.step', [
                 'id'   => $task->id,
                 'step' => $nextStep,
             ])->with('success', $message);
-
+ 
         } catch (\Exception $e) {
             \Log::error('Performance Task Submission Error: ' . $e->getMessage(), [
                 'student_id' => $user->student->id ?? null,
@@ -806,110 +893,104 @@ class StudentPerformanceTaskController extends Controller
         }
     }
 
-    private function checkAnswersWithErrors($studentData, $correctData, $step = null)
+    private function checkAnswersWithErrors($studentData, $correctData, $step = null): array
     {
-        $errorCount = 0;
-        $totalCells = 0;
-
         if (!is_array($studentData) || !is_array($correctData)) {
-            \Log::error('Invalid data format in checkAnswersWithErrors', [
+            \Log::error('checkAnswersWithErrors: invalid data types', [
                 'student_type' => gettype($studentData),
                 'correct_type' => gettype($correctData),
             ]);
             return ['errorCount' => 999, 'totalCells' => 1];
         }
-
-        // ── Log full structure for debugging ────────────────────────────────────
+ 
+        // ── Count non-empty cells on each side ───────────────────────────────
+        // We compare only cells that the answer key expects to be filled.
+        $correctFilledCount = 0;
+        $studentFilledCount = 0;
+ 
+        foreach ($correctData as $rowIdx => $row) {
+            if (!is_array($row)) continue;
+            foreach ($row as $colIdx => $cell) {
+                if ($this->normalizeValue($cell) !== '') {
+                    $correctFilledCount++;
+                    // Check the matching student cell
+                    $studentCell = $studentData[$rowIdx][$colIdx] ?? null;
+                    if ($this->normalizeValue($studentCell) !== '') {
+                        $studentFilledCount++;
+                    }
+                }
+            }
+        }
+ 
         \Log::info("checkAnswersWithErrors Step {$step}", [
-            'student_row_count' => count($studentData),
-            'correct_row_count' => count($correctData),
-            'student_sample'    => array_slice($studentData, 0, 3),
-            'correct_sample'    => array_slice($correctData, 0, 3),
+            'correct_filled_cells' => $correctFilledCount,
+            'student_filled_cells' => $studentFilledCount,
+            'student_rows'         => count($studentData),
+            'correct_rows'         => count($correctData),
         ]);
-
-        // ── Count non-empty cells on both sides ─────────────────────────────────
-        $studentCellCount = 0;
-        $correctCellCount = 0;
-
-        foreach ($studentData as $row) {
-            if (!is_array($row)) continue;
-            foreach ($row as $cell) {
-                if ($this->normalizeValue($cell) !== '') $studentCellCount++;
+ 
+        // If the student left more than 20 % of expected cells blank, it's a mismatch.
+        // This threshold prevents false passes when students submit mostly blank data.
+        if ($correctFilledCount > 0) {
+            $blankRatio = ($correctFilledCount - $studentFilledCount) / $correctFilledCount;
+            if ($blankRatio > 0.20) {
+                \Log::warning("Step {$step} — too many blank cells ({$studentFilledCount}/{$correctFilledCount} filled)", [
+                    'blank_ratio' => round($blankRatio * 100, 1) . '%',
+                ]);
+                return [
+                    'errorCount'       => 999999,
+                    'totalCells'       => $correctFilledCount,
+                    'cellCountMismatch' => true,
+                ];
             }
         }
-        foreach ($correctData as $row) {
-            if (!is_array($row)) continue;
-            foreach ($row as $cell) {
-                if ($this->normalizeValue($cell) !== '') $correctCellCount++;
-            }
-        }
-
-        \Log::info("Cell count comparison", [
-            'step'          => $step,
-            'student_cells' => $studentCellCount,
-            'correct_cells' => $correctCellCount,
-        ]);
-
-        if ($studentCellCount !== $correctCellCount) {
-            \Log::warning("Cell count mismatch — automatic fail", [
-                'step'       => $step,
-                'expected'   => $correctCellCount,
-                'got'        => $studentCellCount,
-                'difference' => abs($studentCellCount - $correctCellCount),
-            ]);
-            return [
-                'errorCount'       => 999999,
-                'totalCells'       => max($correctCellCount, 1),
-                'cellCountMismatch' => true,
-            ];
-        }
-
-        // ── Cell-by-cell comparison ──────────────────────────────────────────────
-        $maxRows = max(count($studentData), count($correctData));
-
+ 
+        // ── Cell-by-cell comparison ──────────────────────────────────────────
+        $errorCount = 0;
+        $totalCells = 0;
+        $maxRows    = max(count($studentData), count($correctData));
+ 
         for ($rowIndex = 0; $rowIndex < $maxRows; $rowIndex++) {
-            // Step 4: skip header rows (first 4)
-            if ($step === 4 && $rowIndex < 4) continue;
-
-            $correctRow = isset($correctData[$rowIndex]) && is_array($correctData[$rowIndex])
-                ? $correctData[$rowIndex]
-                : [];
-            $studentRow = isset($studentData[$rowIndex]) && is_array($studentData[$rowIndex])
-                ? $studentData[$rowIndex]
-                : [];
-
-            $maxCols = max(count($studentRow), count($correctRow));
-
+            // Step 4 (Trial Balance) — skip the first 4 header rows
+            if ($step == 4 && $rowIndex < 4) continue;
+ 
+            $correctRow = (isset($correctData[$rowIndex]) && is_array($correctData[$rowIndex]))
+                ? $correctData[$rowIndex] : [];
+            $studentRow = (isset($studentData[$rowIndex]) && is_array($studentData[$rowIndex]))
+                ? $studentData[$rowIndex] : [];
+ 
+            $maxCols = count($correctRow); // only iterate over answer-key columns
+ 
             for ($colIndex = 0; $colIndex < $maxCols; $colIndex++) {
                 $correctRaw        = $correctRow[$colIndex] ?? null;
-                $studentRaw        = $studentRow[$colIndex] ?? null;
                 $normalizedCorrect = $this->normalizeValue($correctRaw);
-                $normalizedStudent = $this->normalizeValue($studentRaw);
-
-                // Only grade cells where the answer key has an expected value
+ 
+                // Skip cells the answer key left blank
                 if ($normalizedCorrect === '') continue;
-
+ 
                 $totalCells++;
-
+ 
+                $studentRaw        = $studentRow[$colIndex] ?? null;
+                $normalizedStudent = $this->normalizeValue($studentRaw);
+ 
                 if ($normalizedStudent !== $normalizedCorrect) {
                     $errorCount++;
-                    \Log::info("Mismatch at Row {$rowIndex}, Col {$colIndex}", [
-                        'step'               => $step,
-                        'student_raw'        => $studentRaw,
-                        'correct_raw'        => $correctRaw,
-                        'student_normalized' => $normalizedStudent,
-                        'correct_normalized' => $normalizedCorrect,
+                    \Log::info("Mismatch Row {$rowIndex} Col {$colIndex}", [
+                        'step'    => $step,
+                        'student' => $studentRaw,
+                        'correct' => $correctRaw,
+                        'norm_s'  => $normalizedStudent,
+                        'norm_c'  => $normalizedCorrect,
                     ]);
                 }
             }
         }
-
-        \Log::info("Grading result", [
-            'step'        => $step,
-            'errorCount'  => $errorCount,
-            'totalCells'  => $totalCells,
+ 
+        \Log::info("Grading result Step {$step}", [
+            'errorCount' => $errorCount,
+            'totalCells' => $totalCells,
         ]);
-
+ 
         return ['errorCount' => $errorCount, 'totalCells' => $totalCells];
     }
 
@@ -1051,20 +1132,29 @@ class StudentPerformanceTaskController extends Controller
         return $this->normalizeValue($value1) === $this->normalizeValue($value2);
     }
 
-    private function normalizeValue($value)
+    private function normalizeValue($value): string
     {
-        // Treat only null and empty string as "no answer"
-        // Do NOT treat 0 as empty — zero is a valid accounting value
-        if ($value === null || $value === '') return '';
-
-        $str     = (string) $value;
-        $cleaned = preg_replace('/[,₱\s]/', '', $str);
-
+        // Truly empty
+        if ($value === null || $value === '') {
+            return '';
+        }
+ 
+        $str = trim((string) $value);
+ 
+        if ($str === '') {
+            return '';
+        }
+ 
+        // Strip currency symbols and thousand-separators, then check numeric
+        $cleaned = preg_replace('/[₱$,\s]/', '', $str);
+ 
         if (is_numeric($cleaned)) {
+            // Preserve sign; format to exactly 2 decimal places
             return number_format((float) $cleaned, 2, '.', '');
         }
-
-        return strtolower(trim($str));
+ 
+        // Text comparison: lowercase, collapse internal whitespace
+        return preg_replace('/\s+/', ' ', strtolower($str));
     }
 
     private function syncSubmissionToPivot($studentId, $taskId, $step, $submission)
